@@ -31,10 +31,20 @@ return [
         'trace_id'    => env('RESTOSUITE_HEADER_TRACE', 'RS-OpenAPI-TraceId'),
     ],
 
+    // ✅ cache keys are namespaced by app_key + corp_id to avoid collisions
     'cache' => [
-        'token_key'   => env('RESTOSUITE_CACHE_TOKEN_KEY', 'restosuite.token'),
-        'refresh_key' => env('RESTOSUITE_CACHE_REFRESH_KEY', 'restosuite.refresh_token'),
-        'lock_key'    => env('RESTOSUITE_CACHE_LOCK_KEY', 'restosuite.token.lock'),
+        'token_key'   => env(
+            'RESTOSUITE_CACHE_TOKEN_KEY',
+            'restosuite.token.' . (env('RESTOSUITE_APP_KEY') ?: 'na') . '.' . (env('RESTOSUITE_CORP_ID') ?: '0')
+        ),
+        'refresh_key' => env(
+            'RESTOSUITE_CACHE_REFRESH_KEY',
+            'restosuite.refresh_token.' . (env('RESTOSUITE_APP_KEY') ?: 'na') . '.' . (env('RESTOSUITE_CORP_ID') ?: '0')
+        ),
+        'lock_key'    => env(
+            'RESTOSUITE_CACHE_LOCK_KEY',
+            'restosuite.token.lock.' . (env('RESTOSUITE_APP_KEY') ?: 'na') . '.' . (env('RESTOSUITE_CORP_ID') ?: '0')
+        ),
     ],
 
     // refresh a bit earlier than expiry
