@@ -32,21 +32,32 @@ COPY . .
 RUN sed -i 's|/var/www/html|/var/www/html/public|g' \
     /etc/apache2/sites-available/000-default.conf
 
-# 7️⃣ Laravel storage permissions
+# 7️⃣ Create database directory and file
+RUN mkdir -p database && \
+    touch database/database.sqlite && \
+    chown -R www-data:www-data database
+
+# 8️⃣ Laravel storage permissions
 RUN chown -R www-data:www-data storage bootstrap/cache
 
-# 8️⃣ Install PHP dependencies (production only)
+# 9️⃣ Install PHP dependencies (production only)
 RUN composer install \
     --no-dev \
     --optimize-autoloader \
     --no-interaction
 
-# 9️⃣ Environment defaults (Render overrides via ENV vars)
+# 🔟 Run Laravel setup
+RUN php artisan migrate --force --no-interaction && \
+    php artisan config:cache && \
+    php artisan route:cache && \
+    php artisan view:cache
+
+# 1️⃣1️⃣ Environment defaults (Render overrides via ENV vars)
 ENV APP_ENV=production
 ENV APP_DEBUG=false
 
-# 🔟 Expose web port
+# 1️⃣2️⃣ Expose web port
 EXPOSE 80
 
-# 1️⃣1️⃣ Start Apache
+# 1️⃣3️⃣ Start Apache
 CMD ["apache2-foreground"]

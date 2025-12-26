@@ -5,3 +5,22 @@ services:
     plan: free
     autoDeploy: true
     healthCheckPath: /up
+    envVars:
+      - key: APP_NAME
+        value: HawkerOps
+      - key: APP_ENV
+        value: production
+      - key: APP_DEBUG
+        value: false
+      - key: LOG_LEVEL
+        value: error
+      - key: RESTOSUITE_BASE_URL
+        value: https://openapi.sea.restosuite.ai
+      - key: RESTOSUITE_APP_KEY
+        value: ocrpl9704
+      - key: RESTOSUITE_SECRET_KEY
+        value: $1$gR7PgdcX$OrFhFJdEor9riRyptHk4X1
+      - key: RESTOSUITE_CORP_ID
+        value: 400000210
+      - key: APP_KEY
+        generateValue: true
