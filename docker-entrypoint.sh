@@ -14,15 +14,11 @@ fi
 echo "🔄 Running database migrations..."
 php artisan migrate --force --no-interaction
 
-# Clear and cache Laravel configs
-echo "⚡ Caching Laravel configurations..."
+# Clear caches
+echo "⚡ Clearing Laravel caches..."
 php artisan config:clear
 php artisan route:clear
 php artisan view:clear
-
-php artisan config:cache
-php artisan route:cache
-php artisan view:cache
 
 echo "✅ Laravel setup complete!"
 
