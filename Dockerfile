@@ -46,7 +46,10 @@ RUN composer install \
     --optimize-autoloader \
     --no-interaction
 
-# 🔟 Environment defaults (Render overrides via ENV vars)
+# 🔟 Generate APP_KEY during build
+RUN php artisan key:generate --force
+
+# 1️⃣1️⃣ Environment defaults (Render overrides via ENV vars)
 ENV APP_ENV=production
 ENV APP_DEBUG=false
 
