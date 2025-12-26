@@ -2,23 +2,7 @@
 
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\DB;
-
-// Helper function to get shop map
-function getShopMap() {
-    static $shopMap = null;
-    if ($shopMap === null) {
-        $client = app(App\Services\RestoSuite\RestoSuiteClient::class);
-        $shopsData = $client->getShops(1, 500);
-        $shopMap = [];
-        foreach ($shopsData as $shop) {
-            $shopMap[$shop['shopId']] = [
-                'name' => $shop['name'],
-                'brand' => $shop['brandName'],
-            ];
-        }
-    }
-    return $shopMap;
-}
+use App\Helpers\ShopHelper;
 
 Route::get('/', function () {
     return redirect('/dashboard');
@@ -26,7 +10,7 @@ Route::get('/', function () {
 
 
 Route::get('/dashboard', function () {
-    $shopMap = getShopMap();
+    $shopMap = ShopHelper::getShopMap();
 
     // Filter out testing outlets
     $testingShopIds = [];
@@ -105,7 +89,7 @@ Route::get('/dashboard', function () {
 
 // Stores Page
 Route::get('/stores', function () {
-    $shopMap = getShopMap();
+    $shopMap = ShopHelper::getShopMap();
 
     // Filter out testing outlets
     $testingShopIds = [];
@@ -157,7 +141,7 @@ Route::get('/stores', function () {
 
 // Items Page
 Route::get('/items', function () {
-    $shopMap = getShopMap();
+    $shopMap = ShopHelper::getShopMap();
 
     // Filter out testing outlets
     $testingShopIds = [];
@@ -200,7 +184,7 @@ Route::get('/items', function () {
 
 // Store Detail Page
 Route::get('/store/{shopId}', function ($shopId) {
-    $shopMap = getShopMap();
+    $shopMap = ShopHelper::getShopMap();
     $shopInfo = $shopMap[$shopId] ?? ['name' => 'Unknown Store', 'brand' => 'Unknown Brand'];
 
     $items = DB::table('restosuite_item_snapshots')
@@ -248,7 +232,7 @@ Route::get('/store/{shopId}', function ($shopId) {
 
 // Item Tracking History Page
 Route::get('/item-tracking', function () {
-    $shopMap = getShopMap();
+    $shopMap = ShopHelper::getShopMap();
 
     // Filter out testing outlets
     $testingShopIds = [];
