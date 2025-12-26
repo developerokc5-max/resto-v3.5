@@ -46,18 +46,17 @@ RUN composer install \
     --optimize-autoloader \
     --no-interaction
 
-# 🔟 Run Laravel setup
-RUN php artisan migrate --force --no-interaction && \
-    php artisan config:cache && \
-    php artisan route:cache && \
-    php artisan view:cache
-
-# 1️⃣1️⃣ Environment defaults (Render overrides via ENV vars)
+# 🔟 Environment defaults (Render overrides via ENV vars)
 ENV APP_ENV=production
 ENV APP_DEBUG=false
 
-# 1️⃣2️⃣ Expose web port
+# 1️⃣1️⃣ Expose web port
 EXPOSE 80
 
-# 1️⃣3️⃣ Start Apache
+# 1️⃣2️⃣ Create startup script
+COPY docker-entrypoint.sh /usr/local/bin/
+RUN chmod +x /usr/local/bin/docker-entrypoint.sh
+
+# 1️⃣3️⃣ Use entrypoint to run migrations before Apache starts
+ENTRYPOINT ["docker-entrypoint.sh"]
 CMD ["apache2-foreground"]
