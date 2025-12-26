@@ -46,8 +46,9 @@ RUN composer install \
     --optimize-autoloader \
     --no-interaction
 
-# 🔟 Generate APP_KEY during build
-RUN php artisan key:generate --force
+# 🔟 Copy .env.example to .env and generate APP_KEY
+RUN cp .env.example .env && \
+    php artisan key:generate --force
 
 # 1️⃣1️⃣ Environment defaults (Render overrides via ENV vars)
 ENV APP_ENV=production
