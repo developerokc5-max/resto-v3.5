@@ -30,11 +30,8 @@
         <a class="flex items-center gap-3 px-3 py-2 rounded-xl bg-slate-900 text-white shadow-sm" href="/items">
           <span class="text-sm font-medium">Items</span>
         </a>
-        <a class="flex items-center gap-3 px-3 py-2 rounded-xl text-slate-700 hover:bg-slate-100 transition" href="#">
-          <span class="text-sm font-medium">Add-ons (Modifiers)</span>
-        </a>
-        <a class="flex items-center gap-3 px-3 py-2 rounded-xl text-slate-700 hover:bg-slate-100 transition" href="#">
-          <span class="text-sm font-medium">Alerts</span>
+        <a class="flex items-center gap-3 px-3 py-2 rounded-xl text-slate-700 hover:bg-slate-100 transition" href="/platforms">
+          <span class="text-sm font-medium">🌐 Platforms</span>
         </a>
         <a class="flex items-center gap-3 px-3 py-2 rounded-xl text-slate-700 hover:bg-slate-100 transition" href="/item-tracking">
           <span class="text-sm font-medium">History</span>
@@ -59,7 +56,7 @@
         <div class="px-4 md:px-8 py-4 flex items-center justify-between gap-3">
           <div>
             <h1 class="text-xl font-semibold">Menu Items</h1>
-            <p class="text-sm text-slate-500">{{ count($items ?? []) }} items across all stores</p>
+            <p class="text-sm text-slate-500">{{ isset($totalItems) ? number_format($totalItems) : count($items ?? []) }} items across all stores</p>
           </div>
 
           <div class="flex items-center gap-2">
@@ -148,17 +145,31 @@
         </div>
 
         <!-- Pagination -->
-        @if(count($items ?? []) > 0)
+        @if(count($items ?? []) > 0 && isset($totalPages) && $totalPages > 1)
         <div class="mt-6 flex items-center justify-center gap-2">
-          <button class="px-4 py-2 rounded-xl border bg-white text-sm font-medium hover:bg-slate-50 transition">
-            ← Previous
-          </button>
+          @if($currentPage > 1)
+            <a href="/items?page={{ $currentPage - 1 }}" class="px-4 py-2 rounded-xl border bg-white text-sm font-medium hover:bg-slate-50 transition">
+              ← Previous
+            </a>
+          @else
+            <button disabled class="px-4 py-2 rounded-xl border bg-gray-100 text-gray-400 text-sm font-medium cursor-not-allowed">
+              ← Previous
+            </button>
+          @endif
+
           <div class="px-4 py-2 text-sm text-slate-600">
-            Page 1 of {{ ceil(count($items) / 20) }}
+            Page {{ $currentPage }} of {{ $totalPages }}
           </div>
-          <button class="px-4 py-2 rounded-xl border bg-white text-sm font-medium hover:bg-slate-50 transition">
-            Next →
-          </button>
+
+          @if($currentPage < $totalPages)
+            <a href="/items?page={{ $currentPage + 1 }}" class="px-4 py-2 rounded-xl border bg-white text-sm font-medium hover:bg-slate-50 transition">
+              Next →
+            </a>
+          @else
+            <button disabled class="px-4 py-2 rounded-xl border bg-gray-100 text-gray-400 text-sm font-medium cursor-not-allowed">
+              Next →
+            </button>
+          @endif
         </div>
         @endif
 

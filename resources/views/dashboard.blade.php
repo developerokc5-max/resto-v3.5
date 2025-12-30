@@ -46,8 +46,8 @@
       <div class="mt-auto p-4">
         <div class="rounded-2xl bg-slate-50 border p-4">
           <div class="text-xs text-slate-500">Last sync</div>
-          <div class="font-semibold">{{ $lastSync ?? '—' }}</div>
-          <button class="mt-3 w-full rounded-xl bg-slate-900 text-white py-2 text-sm font-medium hover:opacity-90 transition">
+          <div class="font-semibold" id="lastSyncTime">{{ $lastSync ?? '—' }}</div>
+          <button onclick="triggerSync()" id="syncBtn" class="mt-3 w-full rounded-xl bg-slate-900 text-white py-2 text-sm font-medium hover:opacity-90 transition">
             Run Sync
           </button>
         </div>
@@ -66,12 +66,12 @@
 
           <div class="flex items-center gap-2">
             <div class="hidden sm:flex items-center bg-slate-100 rounded-xl px-3 py-2">
-              <input class="bg-transparent outline-none text-sm w-64" placeholder="Search store / item…" />
+              <input id="searchInput" class="bg-transparent outline-none text-sm w-64" placeholder="Search store / item…" onkeyup="filterStores()" />
             </div>
-            <button class="rounded-xl border bg-white px-4 py-2 text-sm font-medium hover:bg-slate-50 transition">
-              Export
+            <button onclick="exportData()" class="rounded-xl border bg-white px-4 py-2 text-sm font-medium hover:bg-slate-50 transition">
+              Export CSV
             </button>
-            <button class="rounded-xl bg-slate-900 text-white px-4 py-2 text-sm font-medium hover:opacity-90 transition">
+            <button onclick="window.location.reload()" class="rounded-xl bg-slate-900 text-white px-4 py-2 text-sm font-medium hover:opacity-90 transition">
               Reload
             </button>
           </div>
@@ -194,5 +194,93 @@
       </div>
     </main>
   </div>
+
+  <script>
+    // Trigger RestoSuite API sync
+    async function triggerSync() {
+      const btn = document.getElementById('syncBtn');
+      const originalText = btn.textContent;
+      btn.disabled = true;
+      btn.textContent = 'Syncing...';
+
+      try {
+        const response = await fetch('/api/sync/resosuite', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+          }
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+          alert('✅ Sync completed successfully!\n\n' + (data.output || 'Data synced from RestoSuite API'));
+          setTimeout(() => window.location.reload(), 1000);
+        } else {
+          alert('❌ Sync failed: ' + data.message);
+        }
+      } catch (error) {
+        alert('❌ Error: ' + error.message);
+      } finally {
+        btn.disabled = false;
+        btn.textContent = originalText;
+      }
+    }
+
+    // Filter stores by search
+    function filterStores() {
+      const input = document.getElementById('searchInput');
+      const filter = input.value.toUpperCase();
+      const table = document.querySelector('table tbody');
+      const rows = table.getElementsByTagName('tr');
+
+      for (let i = 0; i < rows.length; i++) {
+        const brandCell = rows[i].getElementsByTagName('td')[0];
+        const storeCell = rows[i].getElementsByTagName('td')[1];
+
+        if (brandCell && storeCell) {
+          const brandText = brandCell.textContent || brandCell.innerText;
+          const storeText = storeCell.textContent || storeCell.innerText;
+
+          if (brandText.toUpperCase().indexOf(filter) > -1 || storeText.toUpperCase().indexOf(filter) > -1) {
+            rows[i].style.display = '';
+          } else {
+            rows[i].style.display = 'none';
+          }
+        }
+      }
+    }
+
+    // Export data to CSV
+    function exportData() {
+      const table = document.querySelector('table');
+      let csv = [];
+      const rows = table.querySelectorAll('tr');
+
+      for (let row of rows) {
+        const cells = row.querySelectorAll('td, th');
+        const rowData = Array.from(cells).map(cell => {
+          let text = cell.innerText.replace(/"/g, '""');
+          return `"${text}"`;
+        });
+        csv.push(rowData.join(','));
+      }
+
+      const csvContent = csv.join('\n');
+      const blob = new Blob([csvContent], { type: 'text/csv' });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `hawkerops_dashboard_${new Date().toISOString().split('T')[0]}.csv`;
+      a.click();
+      window.URL.revokeObjectURL(url);
+    }
+
+    // Auto-refresh every 5 minutes
+    setTimeout(() => {
+      window.location.reload();
+    }, 300000);
+  </script>
 </body>
 </html>

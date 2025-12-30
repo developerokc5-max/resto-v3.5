@@ -108,7 +108,7 @@ Route::prefix('sync')->group(function () {
 
     // Trigger manual scraping
     Route::post('/scrape', function (Request $request) {
-        $limit = $request->input('limit', 10);
+        $limit = $request->input('limit', 50);
         $platform = $request->input('platform');
 
         try {
@@ -124,11 +124,33 @@ Route::prefix('sync')->group(function () {
                 'success' => true,
                 'message' => 'Scraping completed successfully',
                 'output' => $output,
+                'timestamp' => now()->toIso8601String(),
             ]);
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
                 'message' => 'Scraping failed',
+                'error' => $e->getMessage(),
+            ], 500);
+        }
+    });
+
+    // Trigger RestoSuite API sync
+    Route::post('/resosuite', function (Request $request) {
+        try {
+            \Artisan::call('resosuite:sync-items');
+            $output = \Artisan::output();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'RestoSuite sync completed successfully',
+                'output' => $output,
+                'timestamp' => now()->toIso8601String(),
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'RestoSuite sync failed',
                 'error' => $e->getMessage(),
             ], 500);
         }

@@ -2,6 +2,7 @@
 
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Http\Request;
 use App\Helpers\ShopHelper;
 
 Route::get('/', function () {
@@ -178,8 +179,10 @@ Route::get('/stores', function () {
 });
 
 // Items Page
-Route::get('/items', function () {
+Route::get('/items', function (Request $request) {
     $shopMap = ShopHelper::getShopMap();
+    $page = max(1, (int) $request->get('page', 1));
+    $perPage = 20;
 
     // Filter out testing outlets
     $testingShopIds = [];
@@ -189,11 +192,20 @@ Route::get('/items', function () {
         }
     }
 
+    // Get total count
+    $totalItems = DB::table('restosuite_item_snapshots')
+        ->whereNotIn('shop_id', $testingShopIds)
+        ->count();
+
+    $totalPages = ceil($totalItems / $perPage);
+    $offset = ($page - 1) * $perPage;
+
     $items = DB::table('restosuite_item_snapshots')
-        ->select('shop_id', 'item_id', 'name', 'price', 'is_active', 'updated_at')
+        ->select('shop_id', 'item_id', 'name', 'price', 'is_active', 'updated_at', 'image_url')
         ->whereNotIn('shop_id', $testingShopIds)
         ->orderBy('updated_at', 'desc')
-        ->limit(100)
+        ->offset($offset)
+        ->limit($perPage)
         ->get();
 
     $itemsArray = [];
@@ -204,10 +216,10 @@ Route::get('/items', function () {
             'shop_id' => $item->shop_id,
             'item_id' => $item->item_id,
             'name' => $item->name,
-            'price' => $item->price,
+            'price' => (float) $item->price,
             'is_active' => (bool) $item->is_active,
             'shop_name' => $shopInfo['name'],
-            'image_url' => null,
+            'image_url' => $item->image_url ?? null,
             'last_update' => $item->updated_at ? \Carbon\Carbon::parse($item->updated_at)->diffForHumans() : '—',
         ];
     }
@@ -216,6 +228,9 @@ Route::get('/items', function () {
 
     return view('items', [
         'items' => $itemsArray,
+        'currentPage' => $page,
+        'totalPages' => $totalPages,
+        'totalItems' => $totalItems,
         'lastSync' => $lastSyncTime ? \Carbon\Carbon::parse($lastSyncTime)->format('h:i A') : '—',
     ]);
 });

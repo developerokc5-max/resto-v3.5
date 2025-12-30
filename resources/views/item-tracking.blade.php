@@ -30,11 +30,8 @@
         <a class="flex items-center gap-3 px-3 py-2 rounded-xl text-slate-700 hover:bg-slate-100 transition" href="/items">
           <span class="text-sm font-medium">Items</span>
         </a>
-        <a class="flex items-center gap-3 px-3 py-2 rounded-xl text-slate-700 hover:bg-slate-100 transition" href="#">
-          <span class="text-sm font-medium">Add-ons (Modifiers)</span>
-        </a>
-        <a class="flex items-center gap-3 px-3 py-2 rounded-xl text-slate-700 hover:bg-slate-100 transition" href="#">
-          <span class="text-sm font-medium">Alerts</span>
+        <a class="flex items-center gap-3 px-3 py-2 rounded-xl text-slate-700 hover:bg-slate-100 transition" href="/platforms">
+          <span class="text-sm font-medium">🌐 Platforms</span>
         </a>
         <a class="flex items-center gap-3 px-3 py-2 rounded-xl bg-slate-900 text-white shadow-sm" href="/item-tracking">
           <span class="text-sm font-medium">History</span>
