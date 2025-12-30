@@ -100,6 +100,9 @@ class RestoSuiteSyncItems extends Command
                         $price = (string) $it['basePrice'];
                     }
 
+                    // Get real image URL from API
+                    $imageUrl = (string) ($it['itemImageUrl'] ?? '');
+
                     // Compute "fingerprint" in PHP (no DB column needed)
                     $currentFp = $this->fp($shopId, $itemUid, $name, $isActive, $price);
 
@@ -153,6 +156,7 @@ class RestoSuiteSyncItems extends Command
                         'name'       => $name,
                         'is_active'  => $isActive,
                         'price'      => $price,
+                        'image_url'  => $imageUrl !== '' ? $imageUrl : null,
                         'raw_json'   => json_encode($it, JSON_UNESCAPED_UNICODE),
                         'created_at' => now(),
                         'updated_at' => now(),

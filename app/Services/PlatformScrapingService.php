@@ -153,6 +153,26 @@ class PlatformScrapingService
     }
 
     /**
+     * Get placeholder/sample images for items
+     * In production, this would scrape from actual platform pages
+     */
+    public function getItemImages(string $shopId): array
+    {
+        // For now, use placeholder images
+        // In production, would scrape from Grab/FoodPanda/Deliveroo
+        $sampleImages = [
+            'https://images.deliveroo.com/image/upload/c_fill,f_auto,q_auto,w_300,h_300/v1/dishes/singapore/',
+            'https://images.grab.com/merchant/dish/',
+            'https://images.foodpanda.com/products/',
+        ];
+
+        return [
+            'image_url' => $sampleImages[array_rand($sampleImages)] . $shopId . '.jpg',
+            'thumbnail_url' => null,
+        ];
+    }
+
+    /**
      * Fetch and parse HTML from a URL
      *
      * @param string $url

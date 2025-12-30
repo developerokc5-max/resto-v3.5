@@ -205,26 +205,44 @@
   </div>
 
   <script>
-    function triggerScrape() {
-      if (!confirm('Start platform scraping? This may take 30-60 seconds.')) return;
+    async function triggerScrape() {
+      if (!confirm('Start platform scraping? This will check all shops on Grab, FoodPanda, and Deliveroo.')) return;
 
-      fetch('/api/sync/scrape', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-CSRF-TOKEN': '{{ csrf_token() }}'
-        },
-        body: JSON.stringify({ limit: 15 })
-      })
-      .then(response => response.json())
-      .then(data => {
-        alert(data.message || 'Scraping completed!');
-        window.location.reload();
-      })
-      .catch(error => {
-        alert('Scraping failed: ' + error.message);
-      });
+      const btn = event.target;
+      const originalText = btn.textContent;
+      btn.disabled = true;
+      btn.textContent = 'Scraping...';
+
+      try {
+        const response = await fetch('/api/sync/scrape', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+          },
+          body: JSON.stringify({ limit: 50 })
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+          alert('✅ Platform scraping completed!\n\nRefreshing data...');
+          setTimeout(() => window.location.reload(), 1000);
+        } else {
+          alert('❌ Scraping failed: ' + data.message);
+        }
+      } catch (error) {
+        alert('❌ Error: ' + error.message);
+      } finally {
+        btn.disabled = false;
+        btn.textContent = originalText;
+      }
     }
+
+    // Auto-refresh every 5 minutes
+    setTimeout(() => {
+      window.location.reload();
+    }, 300000);
   </script>
 </body>
 </html>
