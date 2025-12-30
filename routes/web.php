@@ -36,11 +36,25 @@ Route::get('/dashboard', function () {
         ->whereDate('created_at', today())
         ->count();
 
+    // HYBRID: Platform stats
+    $platformsOnline = DB::table('platform_status')
+        ->whereNotIn('shop_id', $testingShopIds)
+        ->where('is_online', 1)
+        ->count();
+
+    $platformsTotal = DB::table('platform_status')
+        ->whereNotIn('shop_id', $testingShopIds)
+        ->count();
+
     $kpis = [
         'stores_online' => $totalStores,
         'items_off'     => $totalItemsOff,
         'addons_off'    => 0,
         'alerts'        => $totalChanges,
+        // HYBRID: Platform KPIs
+        'platforms_online' => $platformsOnline,
+        'platforms_total' => $platformsTotal,
+        'platforms_offline' => $platformsTotal - $platformsOnline,
     ];
 
     // Get store stats (excluding testing outlets)
@@ -64,6 +78,12 @@ Route::get('/dashboard', function () {
             ->whereDate('created_at', today())
             ->count();
 
+        // Get platform status for this shop
+        $platformStatus = DB::table('platform_status')
+            ->where('shop_id', $stat->shop_id)
+            ->get()
+            ->keyBy('platform');
+
         $stores[] = [
             'brand' => $shopInfo['brand'],
             'store' => $shopInfo['name'],
@@ -74,6 +94,24 @@ Route::get('/dashboard', function () {
             'alerts' => $recentChanges,
             'total_items' => (int) $stat->total_items,
             'last_change' => $stat->last_sync ? \Carbon\Carbon::parse($stat->last_sync)->diffForHumans() : '—',
+            // HYBRID: Platform status from scraping
+            'platforms' => [
+                'grab' => [
+                    'online' => $platformStatus->get('grab')?->is_online ?? null,
+                    'items_synced' => $platformStatus->get('grab')?->items_synced ?? 0,
+                    'last_checked' => $platformStatus->get('grab')?->last_checked_at ?? null,
+                ],
+                'foodpanda' => [
+                    'online' => $platformStatus->get('foodpanda')?->is_online ?? null,
+                    'items_synced' => $platformStatus->get('foodpanda')?->items_synced ?? 0,
+                    'last_checked' => $platformStatus->get('foodpanda')?->last_checked_at ?? null,
+                ],
+                'deliveroo' => [
+                    'online' => $platformStatus->get('deliveroo')?->is_online ?? null,
+                    'items_synced' => $platformStatus->get('deliveroo')?->items_synced ?? 0,
+                    'last_checked' => $platformStatus->get('deliveroo')?->last_checked_at ?? null,
+                ],
+            ],
         ];
     }
 
@@ -288,5 +326,80 @@ Route::get('/item-tracking', function () {
             'turned_on' => $turnedOn,
         ],
         'lastSync' => $lastSyncTime ? \Carbon\Carbon::parse($lastSyncTime)->format('h:i A') : '—',
+    ]);
+});
+
+// HYBRID: Platform Status Page
+Route::get('/platforms', function () {
+    $shopMap = ShopHelper::getShopMap();
+
+    // Filter out testing outlets
+    $testingShopIds = [];
+    foreach ($shopMap as $shopId => $info) {
+        if (stripos($info['name'], 'testing') !== false || stripos($info['name'], 'office testing') !== false) {
+            $testingShopIds[] = $shopId;
+        }
+    }
+
+    // Get all platform statuses
+    $platformStatuses = DB::table('platform_status')
+        ->whereNotIn('shop_id', $testingShopIds)
+        ->orderBy('shop_id')
+        ->orderBy('platform')
+        ->get();
+
+    // Group by shop
+    $shopsPlatforms = [];
+    foreach ($platformStatuses as $status) {
+        if (!isset($shopsPlatforms[$status->shop_id])) {
+            $shopInfo = $shopMap[$status->shop_id] ?? ['name' => 'Unknown', 'brand' => 'Unknown'];
+            $shopsPlatforms[$status->shop_id] = [
+                'shop_id' => $status->shop_id,
+                'shop_name' => $shopInfo['name'],
+                'brand' => $shopInfo['brand'],
+                'platforms' => [],
+            ];
+        }
+
+        $shopsPlatforms[$status->shop_id]['platforms'][$status->platform] = [
+            'is_online' => (bool) $status->is_online,
+            'items_synced' => $status->items_synced ?? 0,
+            'items_total' => $status->items_total ?? 0,
+            'last_checked' => $status->last_checked_at ? \Carbon\Carbon::parse($status->last_checked_at)->diffForHumans() : 'Never',
+            'status' => $status->last_check_status ?? 'unknown',
+        ];
+    }
+
+    // Calculate statistics
+    $totalPlatforms = $platformStatuses->count();
+    $onlinePlatforms = $platformStatuses->where('is_online', 1)->count();
+    $offlinePlatforms = $totalPlatforms - $onlinePlatforms;
+
+    $platformStats = [];
+    foreach (['grab', 'foodpanda', 'deliveroo'] as $platform) {
+        $platformData = $platformStatuses->where('platform', $platform);
+        $total = $platformData->count();
+        $online = $platformData->where('is_online', 1)->count();
+
+        $platformStats[$platform] = [
+            'total' => $total,
+            'online' => $online,
+            'offline' => $total - $online,
+            'percentage' => $total > 0 ? round(($online / $total) * 100, 2) : 0,
+        ];
+    }
+
+    $lastScrapeTime = DB::table('platform_status')->max('last_checked_at');
+
+    return view('platforms', [
+        'shops' => array_values($shopsPlatforms),
+        'stats' => [
+            'total' => $totalPlatforms,
+            'online' => $onlinePlatforms,
+            'offline' => $offlinePlatforms,
+            'percentage' => $totalPlatforms > 0 ? round(($onlinePlatforms / $totalPlatforms) * 100, 2) : 0,
+        ],
+        'platformStats' => $platformStats,
+        'lastScrape' => $lastScrapeTime ? \Carbon\Carbon::parse($lastScrapeTime)->format('h:i A') : '—',
     ]);
 });

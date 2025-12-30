@@ -35,11 +35,8 @@
         <a class="flex items-center gap-3 px-3 py-2 rounded-xl text-slate-700 hover:bg-slate-100 transition" href="/items">
           <span class="text-sm font-medium">Items</span>
         </a>
-        <a class="flex items-center gap-3 px-3 py-2 rounded-xl text-slate-700 hover:bg-slate-100 transition" href="#">
-          <span class="text-sm font-medium">Add-ons (Modifiers)</span>
-        </a>
-        <a class="flex items-center gap-3 px-3 py-2 rounded-xl text-slate-700 hover:bg-slate-100 transition" href="#">
-          <span class="text-sm font-medium">Alerts</span>
+        <a class="flex items-center gap-3 px-3 py-2 rounded-xl text-slate-700 hover:bg-slate-100 transition" href="/platforms">
+          <span class="text-sm font-medium">🌐 Platforms</span>
         </a>
         <a class="flex items-center gap-3 px-3 py-2 rounded-xl text-slate-700 hover:bg-slate-100 transition" href="/item-tracking">
           <span class="text-sm font-medium">History</span>
@@ -84,7 +81,7 @@
       <div class="px-4 md:px-8 py-6 space-y-6">
 
         <!-- KPI cards -->
-        <section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
           <div class="bg-white border rounded-2xl p-5 shadow-sm hover:shadow-md transition">
             <div class="text-sm text-slate-500">Stores Online</div>
             <div class="mt-2 text-3xl font-semibold">{{ $kpis['stores_online'] ?? 44 }}</div>
@@ -103,6 +100,18 @@
           <div class="bg-white border rounded-2xl p-5 shadow-sm hover:shadow-md transition">
             <div class="text-sm text-slate-500">Active Alerts</div>
             <div class="mt-2 text-3xl font-semibold">{{ $kpis['alerts'] ?? 0 }}</div>
+          </div>
+
+          {{-- HYBRID: Platform Status KPI --}}
+          <div class="bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-200 rounded-2xl p-5 shadow-sm hover:shadow-md transition">
+            <div class="text-sm text-blue-700 font-medium">Platforms Status</div>
+            <div class="mt-2 flex items-baseline gap-2">
+              <span class="text-3xl font-semibold text-blue-900">{{ $kpis['platforms_online'] ?? 0 }}</span>
+              <span class="text-sm text-blue-600">/ {{ $kpis['platforms_total'] ?? 0 }}</span>
+            </div>
+            <div class="mt-1 text-xs text-blue-600">
+              {{ $kpis['platforms_offline'] ?? 0 }} offline
+            </div>
           </div>
         </section>
 
@@ -136,6 +145,33 @@
                     <div class="text-lg font-semibold">{{ $s['alerts'] ?? 0 }}</div>
                   </div>
                 </div>
+
+                {{-- HYBRID: Platform Status Badges --}}
+                @if(isset($s['platforms']))
+                <div class="mt-4 pt-4 border-t">
+                  <div class="text-xs text-slate-500 mb-2">Platform Status</div>
+                  <div class="flex flex-wrap gap-2">
+                    @php
+                      $platformNames = [
+                        'grab' => 'Grab',
+                        'foodpanda' => 'FoodPanda',
+                        'deliveroo' => 'Deliveroo'
+                      ];
+                    @endphp
+                    @foreach($s['platforms'] as $platform => $status)
+                      @if($status['online'] !== null)
+                        <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium {{ $status['online'] ? 'bg-green-50 text-green-700 border border-green-200' : 'bg-red-50 text-red-700 border border-red-200' }}">
+                          <span class="w-1.5 h-1.5 rounded-full {{ $status['online'] ? 'bg-green-500' : 'bg-red-500' }}"></span>
+                          {{ $platformNames[$platform] ?? ucfirst($platform) }}
+                          @if($status['items_synced'] > 0)
+                            <span class="text-[10px] opacity-75">({{ $status['items_synced'] }})</span>
+                          @endif
+                        </span>
+                      @endif
+                    @endforeach
+                  </div>
+                </div>
+                @endif
 
                 <div class="mt-5 flex items-center justify-between">
                   <div class="text-xs text-slate-500">Last change: {{ $s['last_change'] ?? '—' }}</div>
