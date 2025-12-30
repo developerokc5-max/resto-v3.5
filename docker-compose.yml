@@ -1,0 +1,74 @@
+services:
+  web:
+    build: .
+    container_name: resto-db-v3-web
+    ports:
+      - "9000:80"
+    environment:
+      APP_NAME: "Resto DB v3"
+      APP_ENV: local
+      APP_DEBUG: "true"
+      APP_URL: "http://127.0.0.1:9000"
+      APP_KEY: ${APP_KEY}
+
+      LOG_CHANNEL: stack
+      LOG_LEVEL: debug
+
+      DB_CONNECTION: sqlite
+      DB_DATABASE: /var/www/html/database/database.sqlite
+
+      SESSION_DRIVER: database
+      CACHE_STORE: database
+      QUEUE_CONNECTION: database
+
+      RESTOSUITE_BASE_URL: "https://openapi.sea.restosuite.ai"
+
+      # set them directly so compose cannot “eat” them
+      RESTOSUITE_APP_KEY: "ocrpl9704"
+      RESTOSUITE_CORP_ID: "400000210"
+      RESTOSUITE_SECRET_KEY: "$$1$$gR7PgdcX$$OrFhFJdEor9riRyptHk4X1"
+
+      RESTOSUITE_LANGUAGE: "en_US"
+
+
+
+    volumes:
+      - sqlite_data:/var/www/html/database
+      - storage_data:/var/www/html/storage
+
+  scheduler:
+    build: .
+    container_name: resto-db-v3-scheduler
+    command: ["php", "artisan", "schedule:work"]
+    environment:
+      APP_ENV: local
+      APP_DEBUG: "true"
+      APP_URL: "http://127.0.0.1:9000"
+      APP_KEY: ${APP_KEY}
+
+      DB_CONNECTION: sqlite
+      DB_DATABASE: /var/www/html/database/database.sqlite
+      SESSION_DRIVER: database
+      CACHE_STORE: database
+      QUEUE_CONNECTION: database
+
+      RESTOSUITE_BASE_URL: "https://openapi.sea.restosuite.ai"
+
+      # set them directly so compose cannot “eat” them
+      RESTOSUITE_APP_KEY: "ocrpl9704"
+      RESTOSUITE_CORP_ID: "400000210"
+      RESTOSUITE_SECRET_KEY: "$$1$$gR7PgdcX$$OrFhFJdEor9riRyptHk4X1"
+
+      RESTOSUITE_LANGUAGE: "en_US"
+
+
+
+    depends_on:
+      - web
+    volumes:
+      - sqlite_data:/var/www/html/database
+      - storage_data:/var/www/html/storage
+
+volumes:
+  sqlite_data:
+  storage_data:

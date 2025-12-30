@@ -14,6 +14,7 @@ class Kernel extends ConsoleKernel
     protected $commands = [
         \App\Console\Commands\TestRestoSuite::class,
         \App\Console\Commands\RestoSuiteSyncItems::class,
+        \App\Console\Commands\ScrapePlatformStatus::class,
     ];
 
     /**
@@ -21,10 +22,24 @@ class Kernel extends ConsoleKernel
      */
     protected function schedule(Schedule $schedule): void
     {
+        // API Sync - Every 5 minutes
         $schedule->command('restosuite:sync-items --page=1 --size=100')
             ->everyFiveMinutes()
             ->withoutOverlapping()
             ->runInBackground();
+
+        // HYBRID: Platform Scraping - Every 10 minutes (offset by 2 minutes to avoid collision)
+        // Scrapes 15 shops per run to distribute load
+        $schedule->command('scrape:platform-status --limit=15')
+            ->everyTenMinutes()
+            ->withoutOverlapping()
+            ->runInBackground()
+            ->onFailure(function () {
+                \Log::error('Platform scraping failed');
+            })
+            ->onSuccess(function () {
+                \Log::info('Platform scraping completed successfully');
+            });
     }
 
     /**
