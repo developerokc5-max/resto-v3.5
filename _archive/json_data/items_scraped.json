@@ -1,0 +1,437 @@
+============================================================
+BULLETPROOF ITEMS SCRAPER
+============================================================
+Step 1: Logging in...
+\u2713 Login successful
+
+Step 2: Navigating to Item Mapping page...
+\u2713 Navigated to Item Mapping page
+
+Step 3: Getting list of stores...
+
+============================================================
+Processing: AH HUAT HOKKIEN MEE @ Bukit Batok
+============================================================
+
+Selecting store: AH HUAT HOKKIEN MEE @ Bukit Batok...
+\u26a0 Could not select store: Page.click: Timeout 5000ms exceeded.
+Call log:
+  - waiting for locator("text=AH HUAT HOKKIEN MEE @ Bukit Batok")
+
+  Skipping AH HUAT HOKKIEN MEE @ Bukit Batok - could not select
+
+============================================================
+Processing: AH HUAT HOKKIEN MEE @ TPY
+============================================================
+
+Selecting store: AH HUAT HOKKIEN MEE @ TPY...
+\u26a0 Could not select store: Page.wait_for_selector: Timeout 5000ms exceeded.
+Call log:
+  - waiting for locator(".ant-select-dropdown") to be visible
+    15 × locator resolved to hidden <div class="ant-select-dropdown ant-select-dropdown-hidden css-1eb6pg6 ant-select-dropdown-placement-bottomLeft">…</div>
+
+  Skipping AH HUAT HOKKIEN MEE @ TPY - could not select
+
+============================================================
+Processing: AH HUAT HOKKIEN MEE @ PUNGGOL
+============================================================
+
+Selecting store: AH HUAT HOKKIEN MEE @ PUNGGOL...
+\u26a0 Could not select store: Page.click: Timeout 5000ms exceeded.
+Call log:
+  - waiting for locator("text=AH HUAT HOKKIEN MEE @ PUNGGOL")
+
+  Skipping AH HUAT HOKKIEN MEE @ PUNGGOL - could not select
+
+============================================================
+Processing: Le Le Mee Pok @ Toa Payoh
+============================================================
+
+Selecting store: Le Le Mee Pok @ Toa Payoh...
+\u26a0 Could not select store: Page.wait_for_selector: Timeout 5000ms exceeded.
+Call log:
+  - waiting for locator(".ant-select-dropdown") to be visible
+    15 × locator resolved to hidden <div class="ant-select-dropdown ant-select-dropdown-hidden css-1eb6pg6 ant-select-dropdown-placement-bottomLeft">…</div>
+
+  Skipping Le Le Mee Pok @ Toa Payoh - could not select
+
+============================================================
+Processing: JKT Western @ Toa Payoh
+============================================================
+
+Selecting store: JKT Western @ Toa Payoh...
+\u26a0 Could not select store: Page.click: Timeout 5000ms exceeded.
+Call log:
+  - waiting for locator("text=JKT Western @ Toa Payoh")
+
+  Skipping JKT Western @ Toa Payoh - could not select
+
+============================================================
+Processing: 51 Toa Payoh Drinks
+============================================================
+
+Selecting store: 51 Toa Payoh Drinks...
+\u26a0 Could not select store: Page.wait_for_selector: Timeout 5000ms exceeded.
+Call log:
+  - waiting for locator(".ant-select-dropdown") to be visible
+    15 × locator resolved to hidden <div class="ant-select-dropdown ant-select-dropdown-hidden css-1eb6pg6 ant-select-dropdown-placement-bottomLeft">…</div>
+
+  Skipping 51 Toa Payoh Drinks - could not select
+
+============================================================
+Processing: HUMFULL @ Bedok
+============================================================
+
+Selecting store: HUMFULL @ Bedok...
+\u26a0 Could not select store: Page.click: Timeout 5000ms exceeded.
+Call log:
+  - waiting for locator("text=HUMFULL @ Bedok")
+
+  Skipping HUMFULL @ Bedok - could not select
+
+============================================================
+Processing: HUMFULL @ Teck Whye
+============================================================
+
+Selecting store: HUMFULL @ Teck Whye...
+\u26a0 Could not select store: Page.wait_for_selector: Timeout 5000ms exceeded.
+Call log:
+  - waiting for locator(".ant-select-dropdown") to be visible
+    15 × locator resolved to hidden <div class="ant-select-dropdown ant-select-dropdown-hidden css-1eb6pg6 ant-select-dropdown-placement-bottomLeft">…</div>
+
+  Skipping HUMFULL @ Teck Whye - could not select
+
+============================================================
+Processing: HUMFULL @ Yishun
+============================================================
+
+Selecting store: HUMFULL @ Yishun...
+\u26a0 Could not select store: Page.click: Timeout 5000ms exceeded.
+Call log:
+  - waiting for locator("text=HUMFULL @ Yishun")
+
+  Skipping HUMFULL @ Yishun - could not select
+
+============================================================
+Processing: HUMFULL @ Eunos
+============================================================
+
+Selecting store: HUMFULL @ Eunos...
+\u26a0 Could not select store: Page.wait_for_selector: Timeout 5000ms exceeded.
+Call log:
+  - waiting for locator(".ant-select-dropdown") to be visible
+    15 × locator resolved to hidden <div class="ant-select-dropdown ant-select-dropdown-hidden css-1eb6pg6 ant-select-dropdown-placement-bottomLeft">…</div>
+
+  Skipping HUMFULL @ Eunos - could not select
+
+============================================================
+Processing: HUMFULL @ Jurong East
+============================================================
+
+Selecting store: HUMFULL @ Jurong East...
+\u26a0 Could not select store: Page.click: Timeout 5000ms exceeded.
+Call log:
+  - waiting for locator("text=HUMFULL @ Jurong East")
+
+  Skipping HUMFULL @ Jurong East - could not select
+
+============================================================
+Processing: HUMFULL @ Hougang
+============================================================
+
+Selecting store: HUMFULL @ Hougang...
+\u26a0 Could not select store: Page.wait_for_selector: Timeout 5000ms exceeded.
+Call log:
+  - waiting for locator(".ant-select-dropdown") to be visible
+    15 × locator resolved to hidden <div class="ant-select-dropdown ant-select-dropdown-hidden css-1eb6pg6 ant-select-dropdown-placement-bottomLeft">…</div>
+
+  Skipping HUMFULL @ Hougang - could not select
+
+============================================================
+Processing: HUMFULL @ AMK
+============================================================
+
+Selecting store: HUMFULL @ AMK...
+\u26a0 Could not select store: Page.click: Timeout 5000ms exceeded.
+Call log:
+  - waiting for locator("text=HUMFULL @ AMK")
+
+  Skipping HUMFULL @ AMK - could not select
+
+============================================================
+Processing: HUMFULL @ Havelock
+============================================================
+
+Selecting store: HUMFULL @ Havelock...
+\u26a0 Could not select store: Page.wait_for_selector: Timeout 5000ms exceeded.
+Call log:
+  - waiting for locator(".ant-select-dropdown") to be visible
+    15 × locator resolved to hidden <div class="ant-select-dropdown ant-select-dropdown-hidden css-1eb6pg6 ant-select-dropdown-placement-bottomLeft">…</div>
+
+  Skipping HUMFULL @ Havelock - could not select
+
+============================================================
+Processing: HUMFULL @ Toa Payoh
+============================================================
+
+Selecting store: HUMFULL @ Toa Payoh...
+\u26a0 Could not select store: Page.click: Timeout 5000ms exceeded.
+Call log:
+  - waiting for locator("text=HUMFULL @ Toa Payoh")
+
+  Skipping HUMFULL @ Toa Payoh - could not select
+
+============================================================
+Processing: HUMFULL @ Tampines Mart
+============================================================
+
+Selecting store: HUMFULL @ Tampines Mart...
+\u26a0 Could not select store: Page.wait_for_selector: Timeout 5000ms exceeded.
+Call log:
+  - waiting for locator(".ant-select-dropdown") to be visible
+    15 × locator resolved to hidden <div class="ant-select-dropdown ant-select-dropdown-hidden css-1eb6pg6 ant-select-dropdown-placement-bottomLeft">…</div>
+
+  Skipping HUMFULL @ Tampines Mart - could not select
+
+============================================================
+Processing: HUMFULL @ Bukit Batok
+============================================================
+
+Selecting store: HUMFULL @ Bukit Batok...
+\u26a0 Could not select store: Page.click: Timeout 5000ms exceeded.
+Call log:
+  - waiting for locator("text=HUMFULL @ Bukit Batok")
+
+  Skipping HUMFULL @ Bukit Batok - could not select
+
+============================================================
+Processing: HUMFULL @ Lengkok Bahru
+============================================================
+
+Selecting store: HUMFULL @ Lengkok Bahru...
+\u26a0 Could not select store: Page.wait_for_selector: Timeout 5000ms exceeded.
+Call log:
+  - waiting for locator(".ant-select-dropdown") to be visible
+    15 × locator resolved to hidden <div class="ant-select-dropdown ant-select-dropdown-hidden css-1eb6pg6 ant-select-dropdown-placement-bottomLeft">…</div>
+
+  Skipping HUMFULL @ Lengkok Bahru - could not select
+
+============================================================
+Processing: HUMFULL @ Woodlands Height
+============================================================
+
+Selecting store: HUMFULL @ Woodlands Height...
+\u26a0 Could not select store: Page.click: Timeout 5000ms exceeded.
+Call log:
+  - waiting for locator("text=HUMFULL @ Woodlands Height")
+
+  Skipping HUMFULL @ Woodlands Height - could not select
+
+============================================================
+Processing: HUMFULL @ Edgedale Plains
+============================================================
+
+Selecting store: HUMFULL @ Edgedale Plains...
+\u26a0 Could not select store: Page.wait_for_selector: Timeout 5000ms exceeded.
+Call log:
+  - waiting for locator(".ant-select-dropdown") to be visible
+    15 × locator resolved to hidden <div class="ant-select-dropdown ant-select-dropdown-hidden css-1eb6pg6 ant-select-dropdown-placement-bottomLeft">…</div>
+
+  Skipping HUMFULL @ Edgedale Plains - could not select
+
+============================================================
+Processing: HUMFULL @ Punggol
+============================================================
+
+Selecting store: HUMFULL @ Punggol...
+\u26a0 Could not select store: Page.click: Timeout 5000ms exceeded.
+Call log:
+  - waiting for locator("text=HUMFULL @ Punggol")
+
+  Skipping HUMFULL @ Punggol - could not select
+
+============================================================
+Processing: HUMFULL @ Marsiling
+============================================================
+
+Selecting store: HUMFULL @ Marsiling...
+\u26a0 Could not select store: Page.wait_for_selector: Timeout 5000ms exceeded.
+Call log:
+  - waiting for locator(".ant-select-dropdown") to be visible
+    15 × locator resolved to hidden <div class="ant-select-dropdown ant-select-dropdown-hidden css-1eb6pg6 ant-select-dropdown-placement-bottomLeft">…</div>
+
+  Skipping HUMFULL @ Marsiling - could not select
+
+============================================================
+Processing: OK CHICKEN RICE @ Bukit Batok
+============================================================
+
+Selecting store: OK CHICKEN RICE @ Bukit Batok...
+\u26a0 Could not select store: Page.click: Timeout 5000ms exceeded.
+Call log:
+  - waiting for locator("text=OK CHICKEN RICE @ Bukit Batok")
+
+  Skipping OK CHICKEN RICE @ Bukit Batok - could not select
+
+============================================================
+Processing: OK CHICKEN RICE @ Tampines
+============================================================
+
+Selecting store: OK CHICKEN RICE @ Tampines...
+\u26a0 Could not select store: Page.wait_for_selector: Timeout 5000ms exceeded.
+Call log:
+  - waiting for locator(".ant-select-dropdown") to be visible
+    15 × locator resolved to hidden <div class="ant-select-dropdown ant-select-dropdown-hidden css-1eb6pg6 ant-select-dropdown-placement-bottomLeft">…</div>
+
+  Skipping OK CHICKEN RICE @ Tampines - could not select
+
+============================================================
+Processing: OK CHICKEN RICE @ Woodlands Height
+============================================================
+
+Selecting store: OK CHICKEN RICE @ Woodlands Height...
+\u26a0 Could not select store: Page.click: Timeout 5000ms exceeded.
+Call log:
+  - waiting for locator("text=OK CHICKEN RICE @ Woodlands Height")
+
+  Skipping OK CHICKEN RICE @ Woodlands Height - could not select
+
+============================================================
+Processing: OK CHICKEN RICE @ Teck Whye
+============================================================
+
+Selecting store: OK CHICKEN RICE @ Teck Whye...
+\u26a0 Could not select store: Page.wait_for_selector: Timeout 5000ms exceeded.
+Call log:
+  - waiting for locator(".ant-select-dropdown") to be visible
+    15 × locator resolved to hidden <div class="ant-select-dropdown ant-select-dropdown-hidden css-1eb6pg6 ant-select-dropdown-placement-bottomLeft">…</div>
+
+  Skipping OK CHICKEN RICE @ Teck Whye - could not select
+
+============================================================
+Processing: OK CHICKEN RICE @ Toa Payoh
+============================================================
+
+Selecting store: OK CHICKEN RICE @ Toa Payoh...
+\u26a0 Could not select store: Page.click: Timeout 5000ms exceeded.
+Call log:
+  - waiting for locator("text=OK CHICKEN RICE @ Toa Payoh")
+
+  Skipping OK CHICKEN RICE @ Toa Payoh - could not select
+
+============================================================
+Processing: OK CHICKEN RICE @ Eunos
+============================================================
+
+Selecting store: OK CHICKEN RICE @ Eunos...
+\u26a0 Could not select store: Page.wait_for_selector: Timeout 5000ms exceeded.
+Call log:
+  - waiting for locator(".ant-select-dropdown") to be visible
+    15 × locator resolved to hidden <div class="ant-select-dropdown ant-select-dropdown-hidden css-1eb6pg6 ant-select-dropdown-placement-bottomLeft">…</div>
+
+  Skipping OK CHICKEN RICE @ Eunos - could not select
+
+============================================================
+Processing: OK CHICKEN RICE @ Lengkok Bahru
+============================================================
+
+Selecting store: OK CHICKEN RICE @ Lengkok Bahru...
+\u26a0 Could not select store: Page.click: Timeout 5000ms exceeded.
+Call log:
+  - waiting for locator("text=OK CHICKEN RICE @ Lengkok Bahru")
+
+  Skipping OK CHICKEN RICE @ Lengkok Bahru - could not select
+
+============================================================
+Processing: OK CHICKEN RICE @ Bedok
+============================================================
+
+Selecting store: OK CHICKEN RICE @ Bedok...
+\u26a0 Could not select store: Page.wait_for_selector: Timeout 5000ms exceeded.
+Call log:
+  - waiting for locator(".ant-select-dropdown") to be visible
+    15 × locator resolved to hidden <div class="ant-select-dropdown ant-select-dropdown-hidden css-1eb6pg6 ant-select-dropdown-placement-bottomLeft">…</div>
+
+  Skipping OK CHICKEN RICE @ Bedok - could not select
+
+============================================================
+Processing: OK CHICKEN RICE @ Marsiling
+============================================================
+
+Selecting store: OK CHICKEN RICE @ Marsiling...
+\u26a0 Could not select store: Page.click: Timeout 5000ms exceeded.
+Call log:
+  - waiting for locator("text=OK CHICKEN RICE @ Marsiling")
+
+  Skipping OK CHICKEN RICE @ Marsiling - could not select
+
+============================================================
+Processing: OK CHICKEN RICE @ Jurong East
+============================================================
+
+Selecting store: OK CHICKEN RICE @ Jurong East...
+\u26a0 Could not select store: Page.wait_for_selector: Timeout 5000ms exceeded.
+Call log:
+  - waiting for locator(".ant-select-dropdown") to be visible
+    15 × locator resolved to hidden <div class="ant-select-dropdown ant-select-dropdown-hidden css-1eb6pg6 ant-select-dropdown-placement-bottomLeft">…</div>
+
+  Skipping OK CHICKEN RICE @ Jurong East - could not select
+
+============================================================
+Processing: OK CHICKEN RICE @ Havelock
+============================================================
+
+Selecting store: OK CHICKEN RICE @ Havelock...
+\u26a0 Could not select store: Page.click: Timeout 5000ms exceeded.
+Call log:
+  - waiting for locator("text=OK CHICKEN RICE @ Havelock")
+
+  Skipping OK CHICKEN RICE @ Havelock - could not select
+
+============================================================
+Processing: OK CHICKEN RICE @ Yishun
+============================================================
+
+Selecting store: OK CHICKEN RICE @ Yishun...
+\u26a0 Could not select store: Page.wait_for_selector: Timeout 5000ms exceeded.
+Call log:
+  - waiting for locator(".ant-select-dropdown") to be visible
+    15 × locator resolved to hidden <div class="ant-select-dropdown ant-select-dropdown-hidden css-1eb6pg6 ant-select-dropdown-placement-bottomLeft">…</div>
+
+  Skipping OK CHICKEN RICE @ Yishun - could not select
+
+============================================================
+Processing: OK CHICKEN RICE @ Hougang
+============================================================
+
+Selecting store: OK CHICKEN RICE @ Hougang...
+\u26a0 Could not select store: Page.click: Timeout 5000ms exceeded.
+Call log:
+  - waiting for locator("text=OK CHICKEN RICE @ Hougang")
+
+  Skipping OK CHICKEN RICE @ Hougang - could not select
+
+============================================================
+Processing: OK CHICKEN RICE @ AMK
+============================================================
+
+Selecting store: OK CHICKEN RICE @ AMK...
+\u26a0 Could not select store: Page.wait_for_selector: Timeout 5000ms exceeded.
+Call log:
+  - waiting for locator(".ant-select-dropdown") to be visible
+    15 × locator resolved to hidden <div class="ant-select-dropdown ant-select-dropdown-hidden css-1eb6pg6 ant-select-dropdown-placement-bottomLeft">…</div>
+
+  Skipping OK CHICKEN RICE @ AMK - could not select
+
+============================================================
+SCAN COMPLETE!
+============================================================
+Total stores: 0
+Total items: 0
+{
+  "success": true,
+  "message": "Successfully scraped 0 items from 0 stores",
+  "stores": {},
+  "total_items": 0,
+  "timestamp": "2026-01-13 09:54:22"
+}

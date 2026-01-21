@@ -31,7 +31,7 @@
           <span class="text-sm font-medium">Items</span>
         </a>
         <a class="flex items-center gap-3 px-3 py-2 rounded-xl text-slate-700 hover:bg-slate-100 transition" href="/platforms">
-          <span class="text-sm font-medium">🌐 Platforms</span>
+          <span class="text-sm font-medium">Platforms</span>
         </a>
         <a class="flex items-center gap-3 px-3 py-2 rounded-xl text-slate-700 hover:bg-slate-100 transition" href="/item-tracking">
           <span class="text-sm font-medium">History</span>

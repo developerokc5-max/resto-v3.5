@@ -10,6 +10,15 @@
 
   {{-- If you DON'T use Vite yet, comment the line above and use this CDN temporarily --}}
   <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    .filter-btn.active {
+      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.15);
+      transform: translateY(-1px);
+    }
+    .filter-btn:hover {
+      transform: translateY(-1px);
+    }
+  </style>
 </head>
 
 <body class="bg-slate-50 text-slate-900">
@@ -36,7 +45,7 @@
           <span class="text-sm font-medium">Items</span>
         </a>
         <a class="flex items-center gap-3 px-3 py-2 rounded-xl text-slate-700 hover:bg-slate-100 transition" href="/platforms">
-          <span class="text-sm font-medium">🌐 Platforms</span>
+          <span class="text-sm font-medium">Platforms</span>
         </a>
         <a class="flex items-center gap-3 px-3 py-2 rounded-xl text-slate-700 hover:bg-slate-100 transition" href="/item-tracking">
           <span class="text-sm font-medium">History</span>
@@ -45,8 +54,8 @@
 
       <div class="mt-auto p-4">
         <div class="rounded-2xl bg-slate-50 border p-4">
-          <div class="text-xs text-slate-500">Last sync</div>
-          <div class="font-semibold" id="lastSyncTime">{{ $lastSync ?? '—' }}</div>
+          <div class="text-xs text-slate-500">Last Updated (SGT)</div>
+          <div class="text-xs font-semibold" id="lastSyncTime">{{ $lastSync ?? '—' }}</div>
           <button onclick="triggerSync()" id="syncBtn" class="mt-3 w-full rounded-xl bg-slate-900 text-white py-2 text-sm font-medium hover:opacity-90 transition">
             Run Sync
           </button>
@@ -61,16 +70,19 @@
         <div class="px-4 md:px-8 py-4 flex items-center justify-between gap-3">
           <div>
             <h1 class="text-xl font-semibold">Overview</h1>
-            <p class="text-sm text-slate-500">Monitor items & add-ons disabled during peak hours</p>
+            <p class="text-sm text-slate-500">Hybrid monitoring: RestoSuite API + Platform scraping</p>
           </div>
 
           <div class="flex items-center gap-2">
             <div class="hidden sm:flex items-center bg-slate-100 rounded-xl px-3 py-2">
-              <input id="searchInput" class="bg-transparent outline-none text-sm w-64" placeholder="Search store / item…" onkeyup="filterStores()" />
+              <input id="searchInput" class="bg-transparent outline-none text-sm w-64" placeholder="Search store / item…" onkeyup="searchStores()" />
             </div>
-            <button onclick="exportData()" class="rounded-xl border bg-white px-4 py-2 text-sm font-medium hover:bg-slate-50 transition">
+            <a href="/dashboard/export" class="rounded-xl bg-green-600 hover:bg-green-700 text-white px-4 py-2 text-sm font-semibold transition shadow-sm flex items-center gap-2">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+              </svg>
               Export CSV
-            </button>
+            </a>
             <button onclick="window.location.reload()" class="rounded-xl bg-slate-900 text-white px-4 py-2 text-sm font-medium hover:opacity-90 transition">
               Reload
             </button>
@@ -81,20 +93,15 @@
       <div class="px-4 md:px-8 py-6 space-y-6">
 
         <!-- KPI cards -->
-        <section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+        <section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <div class="bg-white border rounded-2xl p-5 shadow-sm hover:shadow-md transition">
             <div class="text-sm text-slate-500">Stores Online</div>
-            <div class="mt-2 text-3xl font-semibold">{{ $kpis['stores_online'] ?? 44 }}</div>
+            <div class="mt-2 text-3xl font-semibold">{{ $kpis['stores_online'] ?? 0 }}</div>
           </div>
 
           <div class="bg-white border rounded-2xl p-5 shadow-sm hover:shadow-md transition">
             <div class="text-sm text-slate-500">Items OFF</div>
             <div class="mt-2 text-3xl font-semibold">{{ $kpis['items_off'] ?? 0 }}</div>
-          </div>
-
-          <div class="bg-white border rounded-2xl p-5 shadow-sm hover:shadow-md transition">
-            <div class="text-sm text-slate-500">Add-ons OFF</div>
-            <div class="mt-2 text-3xl font-semibold">{{ $kpis['addons_off'] ?? 0 }}</div>
           </div>
 
           <div class="bg-white border rounded-2xl p-5 shadow-sm hover:shadow-md transition">
@@ -115,78 +122,208 @@
           </div>
         </section>
 
+        <!-- Filter Buttons -->
+        <section class="flex flex-wrap gap-3 mb-6">
+          <button onclick="filterStores('all')" class="filter-btn active px-4 py-2 bg-white border-2 border-slate-300 rounded-lg text-sm font-semibold text-slate-700 shadow-sm hover:shadow-md transition" id="filter-all">
+            All Stores
+          </button>
+          <button onclick="filterStores('all_online')" class="filter-btn px-4 py-2 bg-green-50 border-2 border-green-200 rounded-lg text-sm font-semibold text-green-700 shadow-sm hover:shadow-md transition" id="filter-all_online">
+            ✓ All Platforms Online
+          </button>
+
+          <!-- Partial Offline Dropdown -->
+          <div class="relative inline-block" id="partial-dropdown">
+            <button onclick="togglePartialDropdown()" class="filter-btn px-4 py-2 bg-amber-50 border-2 border-amber-300 rounded-lg text-sm font-semibold text-amber-700 shadow-sm hover:shadow-md transition flex items-center gap-2" id="filter-partial">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+              </svg>
+              <span id="partial-label">Partial Offline</span>
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+              </svg>
+            </button>
+            <div id="partial-menu" class="hidden absolute top-full mt-2 w-56 bg-white border-2 border-amber-200 rounded-lg shadow-xl z-50">
+              <button onclick="filterStores('1_offline'); togglePartialDropdown();" class="w-full text-left px-4 py-3 hover:bg-amber-50 transition text-sm font-medium text-slate-700 border-b border-slate-100">
+                <span class="text-amber-600 font-semibold">1/3 Offline</span> - 2 Platforms Online
+              </button>
+              <button onclick="filterStores('2_offline'); togglePartialDropdown();" class="w-full text-left px-4 py-3 hover:bg-amber-50 transition text-sm font-medium text-slate-700">
+                <span class="text-amber-700 font-semibold">2/3 Offline</span> - 1 Platform Online
+              </button>
+            </div>
+          </div>
+
+          <button onclick="filterStores('all_offline')" class="filter-btn px-4 py-2 bg-red-50 border-2 border-red-200 rounded-lg text-sm font-semibold text-red-700 shadow-sm hover:shadow-md transition" id="filter-all_offline">
+            ✕ All Platforms Offline
+          </button>
+        </section>
+
         <!-- Store cards -->
-        <section class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+        <section class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-2 2xl:grid-cols-3 gap-6">
           @foreach(($stores ?? []) as $s)
-            <div class="bg-white border rounded-2xl shadow-sm hover:shadow-md transition overflow-hidden">
-              <div class="p-5">
-                <div class="flex items-start justify-between gap-3">
-                  <div>
-                    <div class="text-sm text-slate-500">{{ $s['brand'] ?? 'OK Chicken Rice' }}</div>
-                    <div class="text-lg font-semibold">{{ $s['store'] ?? 'AMK' }}</div>
-                    <div class="text-xs text-slate-500 mt-1">shop_id: {{ $s['shop_id'] ?? '-' }}</div>
-                  </div>
-                  <span class="text-xs font-medium px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-100">
-                    {{ $s['status'] ?? 'OPERATING' }}
-                  </span>
-                </div>
+            @php
+              // Count offline platforms
+              $offlineCount = 0;
+              if (isset($s['platforms'])) {
+                foreach($s['platforms'] as $platform => $status) {
+                  if (!$status['online'] || $status['online'] === false || $status['online'] === 0) {
+                    $offlineCount++;
+                  }
+                }
+              }
 
-                <div class="mt-4 grid grid-cols-3 gap-2">
-                  <div class="rounded-xl border bg-slate-50 p-3">
-                    <div class="text-xs text-slate-500">Items OFF</div>
-                    <div class="text-lg font-semibold">{{ $s['items_off'] ?? 0 }}</div>
-                  </div>
-                  <div class="rounded-xl border bg-slate-50 p-3">
-                    <div class="text-xs text-slate-500">Add-ons OFF</div>
-                    <div class="text-lg font-semibold">{{ $s['addons_off'] ?? 0 }}</div>
-                  </div>
-                  <div class="rounded-xl border bg-slate-50 p-3">
-                    <div class="text-xs text-slate-500">Alerts</div>
-                    <div class="text-lg font-semibold">{{ $s['alerts'] ?? 0 }}</div>
-                  </div>
-                </div>
+              // Platform display config
+              $platformNames = ['grab' => 'Grab', 'foodpanda' => 'FoodPanda', 'deliveroo' => 'Deliveroo'];
+              $platformColors = ['grab' => 'text-green-600', 'foodpanda' => 'text-pink-600', 'deliveroo' => 'text-cyan-600'];
+              $dotColors = ['grab' => 'bg-green-500', 'foodpanda' => 'bg-pink-500', 'deliveroo' => 'bg-cyan-500'];
+            @endphp
 
-                {{-- HYBRID: Platform Status Badges --}}
+            <div class="store-card bg-white border-2 border-slate-200 rounded-2xl shadow-sm hover:shadow-xl hover:border-slate-300 transition-all duration-300 flex flex-col h-full" data-status="{{ $s['overall_status'] ?? 'mixed' }}" data-offline-count="{{ $offlineCount }}">
+              <!-- Card Header with Store Name and Overall Badge -->
+              <div class="bg-gradient-to-r from-slate-50 to-slate-100 border-b-2 border-slate-200 px-5 py-4 rounded-t-2xl">
+                <div class="flex items-center justify-between">
+                  <div class="flex-1">
+                    <h3 class="text-xl font-bold text-slate-900">{{ $s['store'] ?? 'Store' }}</h3>
+                    @if(isset($s['brand']) && $s['brand'])
+                      <p class="text-sm text-slate-600 mt-0.5">{{ $s['brand'] }}</p>
+                    @endif
+                  </div>
+
+                  <!-- Overall Status Badge -->
+                  @if($offlineCount == 0)
+                    <div class="flex items-center gap-2 px-3 py-1.5 bg-emerald-500 rounded-lg shadow-md">
+                      <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"></path>
+                      </svg>
+                      <span class="text-xs font-bold text-white whitespace-nowrap">All Platforms Online</span>
+                    </div>
+                  @elseif($offlineCount == 3)
+                    <div class="flex items-center gap-2 px-3 py-1.5 bg-red-500 rounded-lg shadow-md">
+                      <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                      </svg>
+                      <span class="text-xs font-bold text-white whitespace-nowrap">All Platforms Offline</span>
+                    </div>
+                  @else
+                    <div class="flex items-center gap-2 px-3 py-1.5 bg-amber-500 rounded-lg shadow-md">
+                      <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+                      </svg>
+                      <span class="text-xs font-bold text-white whitespace-nowrap">{{ $offlineCount }}/3 Offline</span>
+                    </div>
+                  @endif
+                </div>
+              </div>
+
+              <!-- Card Body with Platforms -->
+              <div class="p-5 flex-grow flex flex-col justify-between">
+                <!-- Platform Status Cards -->
                 @if(isset($s['platforms']))
-                <div class="mt-4 pt-4 border-t">
-                  <div class="text-xs text-slate-500 mb-2">Platform Status</div>
-                  <div class="flex flex-wrap gap-2">
-                    @php
-                      $platformNames = [
-                        'grab' => 'Grab',
-                        'foodpanda' => 'FoodPanda',
-                        'deliveroo' => 'Deliveroo'
-                      ];
-                    @endphp
-                    @foreach($s['platforms'] as $platform => $status)
-                      @if($status['online'] !== null)
-                        <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium {{ $status['online'] ? 'bg-green-50 text-green-700 border border-green-200' : 'bg-red-50 text-red-700 border border-red-200' }}">
-                          <span class="w-1.5 h-1.5 rounded-full {{ $status['online'] ? 'bg-green-500' : 'bg-red-500' }}"></span>
-                          {{ $platformNames[$platform] ?? ucfirst($platform) }}
-                          @if($status['items_synced'] > 0)
-                            <span class="text-[10px] opacity-75">({{ $status['items_synced'] }})</span>
-                          @endif
-                        </span>
-                      @endif
-                    @endforeach
-                  </div>
+                <div class="space-y-3 mb-4 min-h-[240px]">
+                  @foreach($s['platforms'] as $platform => $status)
+                    @if($status['online'] !== null)
+                      @php
+                        $platformConfig = [
+                          'grab' => [
+                            'name' => 'Grab',
+                            'gradient' => 'from-green-500 to-emerald-600',
+                            'bgLight' => 'bg-green-50',
+                            'borderColor' => 'border-green-300',
+                            'textColor' => 'text-green-700',
+                            'icon' => '🟢'
+                          ],
+                          'foodpanda' => [
+                            'name' => 'foodpanda',
+                            'gradient' => 'from-pink-500 to-rose-600',
+                            'bgLight' => 'bg-pink-50',
+                            'borderColor' => 'border-pink-300',
+                            'textColor' => 'text-pink-700',
+                            'icon' => '🩷'
+                          ],
+                          'deliveroo' => [
+                            'name' => 'Deliveroo',
+                            'gradient' => 'from-cyan-500 to-blue-600',
+                            'bgLight' => 'bg-cyan-50',
+                            'borderColor' => 'border-cyan-300',
+                            'textColor' => 'text-cyan-700',
+                            'icon' => '🔵'
+                          ]
+                        ];
+                        $config = $platformConfig[$platform] ?? $platformConfig['grab'];
+                        $isOnline = $status['online'] ?? false;
+                        $lastChecked = $status['last_checked'] ?? null;
+                        $lastCheckedText = $lastChecked ? \Carbon\Carbon::parse($lastChecked)->diffForHumans() : 'Never';
+                        $offlineItems = $status['offline_items'] ?? 0;
+                      @endphp
+
+                      <div class="group relative {{ $isOnline ? 'bg-white' : 'bg-slate-50' }} border-2 {{ $isOnline ? 'border-slate-200' : 'border-slate-300' }} rounded-xl p-3 hover:shadow-md hover:border-slate-400 transition-all">
+                        <div class="flex items-center justify-between">
+                          <!-- Left: Platform Info -->
+                          <div class="flex items-center gap-3 flex-1">
+                            <div class="w-10 h-10 rounded-lg {{ $isOnline ? 'bg-slate-800' : 'bg-slate-600' }} flex items-center justify-center text-white font-bold text-sm shadow-sm">
+                              {{ strtoupper(substr($config['name'], 0, 1)) }}
+                            </div>
+                            <div class="flex-1">
+                              <div class="font-bold text-sm text-slate-900">{{ $config['name'] }}</div>
+                              <div class="flex items-center gap-2 mt-0.5">
+                                <span class="text-[10px] {{ $isOnline ? 'text-green-600' : 'text-red-600' }} font-semibold uppercase">
+                                  {{ $isOnline ? 'Online' : 'OFFLINE' }}
+                                </span>
+                                <span class="text-[10px] text-slate-400">• {{ $lastCheckedText }}</span>
+                              </div>
+                            </div>
+                          </div>
+
+                          <!-- Right: Items Status -->
+                          <div class="flex flex-col items-end gap-1">
+                            @if($offlineItems > 0)
+                              <!-- Show offline item count -->
+                              <div class="px-3 py-1.5 bg-slate-800 rounded-lg shadow-sm">
+                                <div class="text-xs font-bold text-white">{{ $offlineItems }}</div>
+                              </div>
+                            @else
+                              <!-- Show 0 when all items online -->
+                              <div class="px-3 py-1.5 bg-slate-100 rounded-lg border border-slate-200">
+                                <div class="text-xs font-bold text-slate-400">0</div>
+                              </div>
+                            @endif
+                          </div>
+                        </div>
+                      </div>
+                    @endif
+                  @endforeach
                 </div>
                 @endif
 
-                <div class="mt-5 flex items-center justify-between">
-                  <div class="text-xs text-slate-500">Last change: {{ $s['last_change'] ?? '—' }}</div>
-                  <button class="rounded-xl bg-slate-900 text-white px-4 py-2 text-sm font-medium hover:opacity-90 transition">
-                    View details
-                  </button>
+                <!-- Action Buttons -->
+                <div class="flex gap-3">
+                  <a href="/store/{{ $s['shop_id'] }}/items" class="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-gradient-to-r from-slate-800 to-slate-900 hover:from-slate-700 hover:to-slate-800 text-white rounded-xl font-semibold text-sm shadow-md hover:shadow-lg transition-all">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
+                    </svg>
+                    <span>View Items</span>
+                  </a>
+                  <a href="/store/{{ $s['shop_id'] }}/logs" class="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-white hover:bg-slate-50 border-2 border-slate-200 hover:border-slate-300 text-slate-700 rounded-xl font-semibold text-sm shadow-sm hover:shadow-md transition-all">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                    </svg>
+                    <span>View Logs</span>
+                  </a>
                 </div>
               </div>
-              <div class="h-1 bg-slate-900"></div>
             </div>
           @endforeach
 
           @if(empty($stores))
-            <div class="bg-white border rounded-2xl p-6 text-sm text-slate-600">
-              No stores data yet. Next step: load from DB (shops list) and compute OFF items/modifiers.
+            <div class="col-span-full bg-white border-2 border-dashed border-slate-200 rounded-2xl p-12 text-center">
+              <div class="text-slate-400 mb-3">
+                <svg class="w-16 h-16 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path>
+                </svg>
+              </div>
+              <div class="text-lg font-semibold text-slate-700 mb-2">No Stores Data Yet</div>
+              <div class="text-sm text-slate-500">
+                Run sync to load store data from RestoSuite API and platform scraping
+              </div>
             </div>
           @endif
         </section>
@@ -196,15 +333,88 @@
   </div>
 
   <script>
-    // Trigger RestoSuite API sync
+    // Toggle partial offline dropdown
+    function togglePartialDropdown() {
+      const menu = document.getElementById('partial-menu');
+      menu.classList.toggle('hidden');
+    }
+
+    // Close dropdown when clicking outside
+    document.addEventListener('click', function(event) {
+      const dropdown = document.getElementById('partial-dropdown');
+      const menu = document.getElementById('partial-menu');
+      if (dropdown && !dropdown.contains(event.target)) {
+        menu.classList.add('hidden');
+      }
+    });
+
+    // Filter stores by status
+    function filterStores(status) {
+      const allCards = document.querySelectorAll('.store-card');
+      const allButtons = document.querySelectorAll('.filter-btn');
+      const partialLabel = document.getElementById('partial-label');
+
+      // Update button active states
+      allButtons.forEach(btn => btn.classList.remove('active'));
+
+      // Handle partial dropdown active state and label
+      if (status === '1_offline') {
+        document.getElementById('filter-partial').classList.add('active');
+        partialLabel.textContent = '1/3 Offline';
+      } else if (status === '2_offline') {
+        document.getElementById('filter-partial').classList.add('active');
+        partialLabel.textContent = '2/3 Offline';
+      } else if (status !== 'all' && status !== 'all_online' && status !== 'all_offline') {
+        // For mixed status, activate partial dropdown
+        document.getElementById('filter-partial').classList.add('active');
+        partialLabel.textContent = 'Partial Offline';
+      } else {
+        document.getElementById('filter-' + status)?.classList.add('active');
+        partialLabel.textContent = 'Partial Offline';
+      }
+
+      // Show/hide cards based on filter
+      allCards.forEach(card => {
+        const cardStatus = card.getAttribute('data-status');
+        const offlineCountAttr = card.getAttribute('data-offline-count');
+        const offlineCount = offlineCountAttr ? parseInt(offlineCountAttr) : 0;
+
+        let shouldShow = false;
+
+        if (status === 'all') {
+          shouldShow = true;
+        } else if (status === 'all_online') {
+          shouldShow = cardStatus === 'all_online';
+        } else if (status === 'all_offline') {
+          shouldShow = cardStatus === 'all_offline';
+        } else if (status === '1_offline') {
+          shouldShow = offlineCount === 1;
+        } else if (status === '2_offline') {
+          shouldShow = offlineCount === 2;
+        } else {
+          shouldShow = cardStatus === status;
+        }
+
+        card.style.display = shouldShow ? 'block' : 'none';
+      });
+    }
+
+    // View store details modal
+    function viewStoreDetails(shopId, storeName) {
+      // Redirect to store detail page
+      window.location.href = `/store/${shopId}`;
+    }
+
+    // Trigger RestoSuite API sync (HYBRID: API first, then scrape)
     async function triggerSync() {
       const btn = document.getElementById('syncBtn');
       const originalText = btn.textContent;
       btn.disabled = true;
-      btn.textContent = 'Syncing...';
+      btn.textContent = 'Syncing API...';
 
       try {
-        const response = await fetch('/api/sync/resosuite', {
+        // STEP 1: Try RestoSuite API first
+        const apiResponse = await fetch('/api/sync/resosuite', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -212,13 +422,55 @@
           }
         });
 
-        const data = await response.json();
+        const apiData = await apiResponse.json();
 
-        if (data.success) {
-          alert('✅ Sync completed successfully!\n\n' + (data.output || 'Data synced from RestoSuite API'));
-          setTimeout(() => window.location.reload(), 1000);
+        if (apiData.success) {
+          btn.textContent = 'Scraping platforms...';
+
+          // STEP 2: Then scrape platform status
+          const scrapeResponse = await fetch('/api/sync/scrape', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Accept': 'application/json'
+            }
+          });
+
+          const scrapeData = await scrapeResponse.json();
+
+          if (scrapeData.success) {
+            alert('✅ Hybrid sync completed!\n\n' +
+                  '✓ RestoSuite API synced\n' +
+                  '✓ Platform status scraped\n\n' +
+                  'Reloading dashboard...');
+            setTimeout(() => window.location.reload(), 1000);
+          } else {
+            alert('⚠️ Partial success:\n\n' +
+                  '✓ RestoSuite API synced\n' +
+                  '✗ Platform scraping failed: ' + scrapeData.message);
+            setTimeout(() => window.location.reload(), 2000);
+          }
         } else {
-          alert('❌ Sync failed: ' + data.message);
+          alert('❌ API sync failed: ' + apiData.message + '\n\nTrying platform scraping only...');
+
+          // Fallback: Try scraping if API fails
+          btn.textContent = 'Scraping platforms...';
+          const scrapeResponse = await fetch('/api/sync/scrape', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Accept': 'application/json'
+            }
+          });
+
+          const scrapeData = await scrapeResponse.json();
+
+          if (scrapeData.success) {
+            alert('✅ Platform scraping completed (API unavailable)');
+            setTimeout(() => window.location.reload(), 1000);
+          } else {
+            alert('❌ Both sync methods failed');
+          }
         }
       } catch (error) {
         alert('❌ Error: ' + error.message);
@@ -228,8 +480,8 @@
       }
     }
 
-    // Filter stores by search
-    function filterStores() {
+    // Filter stores by search (for table view)
+    function searchStores() {
       const input = document.getElementById('searchInput');
       const filter = input.value.toUpperCase();
       const table = document.querySelector('table tbody');

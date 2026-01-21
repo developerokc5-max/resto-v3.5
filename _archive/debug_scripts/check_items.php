@@ -1,0 +1,1 @@
+<?php require "vendor/autoload.php"; \ = require "bootstrap/app.php"; \->make("Illuminate\Contracts\Console\Kernel")->bootstrap(); echo "Items table: " . DB::table("items")->count() . "\n"; echo "Snapshots: " . DB::table("restosuite_item_snapshots")->count() . "\n";

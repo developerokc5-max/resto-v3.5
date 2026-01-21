@@ -1,180 +1,279 @@
-<!doctype html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Items - HawkerOps</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-</head>
+@extends('layout')
 
-<body class="bg-slate-50 text-slate-900">
-  <div class="min-h-screen flex">
+@section('title', 'Items - HawkerOps')
 
-    <!-- Sidebar -->
-    <aside class="w-72 hidden md:flex flex-col border-r bg-white">
-      <div class="px-6 py-5 flex items-center gap-3">
-        <div class="h-10 w-10 rounded-xl bg-slate-900 text-white grid place-items-center font-bold">HO</div>
+@section('page-title', 'Menu Items')
+@section('page-description', 'Browse all items across your restaurants and delivery platforms')
+
+@section('extra-head')
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<style>
+    .item-card {
+        transition: all 0.3s ease;
+    }
+    .item-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
+    }
+    .platform-badge {
+        transition: all 0.2s ease;
+    }
+    .platform-badge:hover {
+        transform: scale(1.1);
+    }
+</style>
+@endsection
+
+@section('top-actions')
+<div class="hidden sm:flex items-center bg-slate-100 rounded-xl px-3 py-2">
+  <input id="searchInput" class="bg-transparent outline-none text-sm w-64" placeholder="Search items..." />
+</div>
+@endsection
+
+@section('content')
+  <!-- Stats Cards -->
+  <section class="grid grid-cols-1 md:grid-cols-4 gap-4">
+    <div class="bg-white border rounded-2xl p-5 shadow-sm">
+      <div class="flex items-center justify-between">
         <div>
-          <div class="font-semibold leading-tight">HawkerOps</div>
-          <div class="text-xs text-slate-500">Store Management</div>
+          <p class="text-sm text-slate-500">Total Items</p>
+          <p class="text-3xl font-semibold mt-1">{{$stats['total']}}</p>
         </div>
+        <i class="fas fa-box-open text-4xl text-slate-300"></i>
+      </div>
+    </div>
+    <div class="bg-white border rounded-2xl p-5 shadow-sm">
+      <div class="flex items-center justify-between">
+        <div>
+          <p class="text-sm text-slate-500">Restaurants</p>
+          <p class="text-3xl font-semibold mt-1">{{$stats['restaurants']}}</p>
+        </div>
+        <i class="fas fa-store text-4xl text-slate-300"></i>
+      </div>
+    </div>
+    <div class="bg-green-50 border border-green-200 rounded-2xl p-5 shadow-sm">
+      <div class="flex items-center justify-between">
+        <div>
+          <p class="text-sm text-green-700 font-medium">Available</p>
+          <p class="text-3xl font-semibold text-green-900 mt-1">{{$stats['available']}}</p>
+        </div>
+        <i class="fas fa-check-circle text-4xl text-green-200"></i>
+      </div>
+    </div>
+    <div class="bg-white border rounded-2xl p-5 shadow-sm">
+      <div class="flex items-center justify-between">
+        <div>
+          <p class="text-sm text-slate-500">Categories</p>
+          <p class="text-3xl font-semibold mt-1">{{count($categories)}}</p>
+        </div>
+        <i class="fas fa-tags text-4xl text-slate-300"></i>
+      </div>
+    </div>
+  </section>
+
+  <!-- Filters -->
+  <section class="bg-white rounded-2xl shadow-sm p-6">
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+      <!-- Restaurant Filter -->
+      <div>
+        <label class="block text-sm font-medium text-slate-700 mb-2">
+          <i class="fas fa-store mr-1"></i> Restaurant
+        </label>
+        <select id="restaurantFilter" class="w-full px-4 py-2 border border-slate-300 rounded-xl focus:ring-2 focus:ring-slate-900 focus:border-transparent">
+          <option value="">All Restaurants</option>
+          @foreach($restaurants as $restaurant)
+            <option value="{{$restaurant}}">{{$restaurant}}</option>
+          @endforeach
+        </select>
       </div>
 
-      <nav class="px-3 pb-6 space-y-1">
-        <a class="flex items-center gap-3 px-3 py-2 rounded-xl text-slate-700 hover:bg-slate-100 transition" href="/dashboard">
-          <span class="text-sm font-medium">Overview</span>
-        </a>
-        <a class="flex items-center gap-3 px-3 py-2 rounded-xl text-slate-700 hover:bg-slate-100 transition" href="/stores">
-          <span class="text-sm font-medium">Stores</span>
-        </a>
-        <a class="flex items-center gap-3 px-3 py-2 rounded-xl bg-slate-900 text-white shadow-sm" href="/items">
-          <span class="text-sm font-medium">Items</span>
-        </a>
-        <a class="flex items-center gap-3 px-3 py-2 rounded-xl text-slate-700 hover:bg-slate-100 transition" href="/platforms">
-          <span class="text-sm font-medium">🌐 Platforms</span>
-        </a>
-        <a class="flex items-center gap-3 px-3 py-2 rounded-xl text-slate-700 hover:bg-slate-100 transition" href="/item-tracking">
-          <span class="text-sm font-medium">History</span>
-        </a>
-      </nav>
-
-      <div class="mt-auto p-4">
-        <div class="rounded-2xl bg-slate-50 border p-4">
-          <div class="text-xs text-slate-500">Last sync</div>
-          <div class="font-semibold">{{ $lastSync ?? '—' }}</div>
-          <button class="mt-3 w-full rounded-xl bg-slate-900 text-white py-2 text-sm font-medium hover:opacity-90 transition">
-            Run Sync
-          </button>
-        </div>
+      <!-- Category Filter -->
+      <div>
+        <label class="block text-sm font-medium text-slate-700 mb-2">
+          <i class="fas fa-tags mr-1"></i> Category
+        </label>
+        <select id="categoryFilter" class="w-full px-4 py-2 border border-slate-300 rounded-xl focus:ring-2 focus:ring-slate-900 focus:border-transparent">
+          <option value="">All Categories</option>
+          @foreach($categories as $category)
+            <option value="{{$category}}">{{$category}}</option>
+          @endforeach
+        </select>
       </div>
-    </aside>
 
-    <!-- Main -->
-    <main class="flex-1">
-      <!-- Topbar -->
-      <header class="sticky top-0 z-10 bg-white/80 backdrop-blur border-b">
-        <div class="px-4 md:px-8 py-4 flex items-center justify-between gap-3">
-          <div>
-            <h1 class="text-xl font-semibold">Menu Items</h1>
-            <p class="text-sm text-slate-500">{{ isset($totalItems) ? number_format($totalItems) : count($items ?? []) }} items across all stores</p>
+      <!-- Platform Filter -->
+      <div>
+        <label class="block text-sm font-medium text-slate-700 mb-2">
+          <i class="fas fa-filter mr-1"></i> Platform
+        </label>
+        <select id="platformFilter" class="w-full px-4 py-2 border border-slate-300 rounded-xl focus:ring-2 focus:ring-slate-900 focus:border-transparent">
+          <option value="">All Platforms</option>
+          <option value="grab">Grab</option>
+          <option value="foodpanda">FoodPanda</option>
+          <option value="deliveroo">Deliveroo</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Available Only Toggle -->
+    <div class="flex items-center">
+      <label class="inline-flex items-center cursor-pointer">
+        <input type="checkbox" id="availableOnly" class="form-checkbox h-5 w-5 text-slate-900 rounded" checked>
+        <span class="ml-2 text-sm text-slate-700">
+          <i class="fas fa-check-circle text-green-600"></i> Available Only
+        </span>
+      </label>
+      <span class="ml-auto text-sm text-slate-600">
+        Showing <span id="resultCount" class="font-semibold text-slate-900">{{count($items)}}</span> items
+      </span>
+    </div>
+  </section>
+
+  <!-- Items Grid -->
+  <div id="itemsGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+    @foreach($items as $item)
+    <div class="item-card bg-white rounded-2xl shadow-sm overflow-hidden border hover:border-slate-300"
+         data-name="{{strtolower($item->name)}}"
+         data-category="{{$item->category}}"
+         data-restaurant="{{$item->shop_name}}"
+         data-platform="{{$item->platform}}"
+         data-available="{{$item->is_available ? '1' : '0'}}">
+
+      <!-- Image -->
+      <div class="relative h-48 bg-gradient-to-br from-slate-100 to-slate-200 overflow-hidden">
+        @if($item->image_url)
+          <img src="{{$item->image_url}}" alt="{{$item->name}}"
+               class="w-full h-full object-cover"
+               onerror="this.src='https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=400'">
+        @else
+          <div class="w-full h-full flex items-center justify-center">
+            <i class="fas fa-utensils text-6xl text-slate-300"></i>
           </div>
-
-          <div class="flex items-center gap-2">
-            <div class="hidden sm:flex items-center bg-slate-100 rounded-xl px-3 py-2">
-              <input class="bg-transparent outline-none text-sm w-64" placeholder="Search items..." />
-            </div>
-            <select class="rounded-xl border bg-white px-4 py-2 text-sm font-medium hover:bg-slate-50 transition">
-              <option value="">All Stores</option>
-              <option value="active">Active Only</option>
-              <option value="inactive">Inactive Only</option>
-            </select>
-          </div>
-        </div>
-      </header>
-
-      <div class="px-4 md:px-8 py-6">
-
-        <!-- Items Grid -->
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-          @forelse($items ?? [] as $item)
-            <div class="bg-white border rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition">
-              <!-- Food Image -->
-              <div class="relative bg-slate-100 h-48 flex items-center justify-center">
-                @if(!empty($item['image_url']))
-                  <img src="{{ $item['image_url'] }}" alt="{{ $item['name'] }}" class="w-full h-full object-cover">
-                @else
-                  <!-- Placeholder with food emoji based on item name -->
-                  <div class="text-6xl">
-                    @php
-                      $name = strtolower($item['name'] ?? '');
-                      $emoji = '🍽️';
-                      if (str_contains($name, 'chicken') || str_contains($name, 'chix')) $emoji = '🍗';
-                      elseif (str_contains($name, 'rice')) $emoji = '🍚';
-                      elseif (str_contains($name, 'nood') || str_contains($name, 'mee')) $emoji = '🍜';
-                      elseif (str_contains($name, 'drink') || str_contains($name, 'redbull') || str_contains($name, 'tea')) $emoji = '🥤';
-                      elseif (str_contains($name, 'porridge')) $emoji = '🥣';
-                      elseif (str_contains($name, 'egg')) $emoji = '🥚';
-                      elseif (str_contains($name, 'soup')) $emoji = '🍲';
-                      elseif (str_contains($name, 'prawn') || str_contains($name, 'shrimp')) $emoji = '🦐';
-                    @endphp
-                    {{ $emoji }}
-                  </div>
-                @endif
-
-                <!-- Status Badge -->
-                <div class="absolute top-2 right-2">
-                  @if($item['is_active'])
-                    <span class="px-2.5 py-1 rounded-full text-xs font-medium bg-emerald-500 text-white shadow-lg">
-                      ACTIVE
-                    </span>
-                  @else
-                    <span class="px-2.5 py-1 rounded-full text-xs font-medium bg-red-500 text-white shadow-lg">
-                      OFF
-                    </span>
-                  @endif
-                </div>
-              </div>
-
-              <!-- Item Info -->
-              <div class="p-4">
-                <h3 class="font-semibold text-sm text-slate-900 mb-1">{{ $item['name'] }}</h3>
-                <p class="text-xs text-slate-500 mb-2">{{ $item['shop_name'] ?? 'Unknown Store' }}</p>
-
-                <div class="flex items-center justify-between mb-3">
-                  <div class="text-lg font-bold text-slate-900">
-                    ${{ number_format($item['price'] ?? 0, 2) }}
-                  </div>
-                  <div class="text-xs text-slate-500 font-mono">
-                    #{{ substr($item['item_id'], 0, 8) }}
-                  </div>
-                </div>
-
-                <div class="flex items-center justify-between text-xs">
-                  <span class="text-slate-500">Last updated</span>
-                  <span class="text-slate-600 font-medium">{{ $item['last_update'] ?? '—' }}</span>
-                </div>
-              </div>
-            </div>
-          @empty
-            <div class="col-span-full bg-white border rounded-2xl p-12 text-center">
-              <div class="text-6xl mb-4">📦</div>
-              <h3 class="text-lg font-semibold text-slate-900 mb-2">No Items Found</h3>
-              <p class="text-sm text-slate-500">Run sync to load menu items from RestoSuite</p>
-            </div>
-          @endforelse
-        </div>
-
-        <!-- Pagination -->
-        @if(count($items ?? []) > 0 && isset($totalPages) && $totalPages > 1)
-        <div class="mt-6 flex items-center justify-center gap-2">
-          @if($currentPage > 1)
-            <a href="/items?page={{ $currentPage - 1 }}" class="px-4 py-2 rounded-xl border bg-white text-sm font-medium hover:bg-slate-50 transition">
-              ← Previous
-            </a>
-          @else
-            <button disabled class="px-4 py-2 rounded-xl border bg-gray-100 text-gray-400 text-sm font-medium cursor-not-allowed">
-              ← Previous
-            </button>
-          @endif
-
-          <div class="px-4 py-2 text-sm text-slate-600">
-            Page {{ $currentPage }} of {{ $totalPages }}
-          </div>
-
-          @if($currentPage < $totalPages)
-            <a href="/items?page={{ $currentPage + 1 }}" class="px-4 py-2 rounded-xl border bg-white text-sm font-medium hover:bg-slate-50 transition">
-              Next →
-            </a>
-          @else
-            <button disabled class="px-4 py-2 rounded-xl border bg-gray-100 text-gray-400 text-sm font-medium cursor-not-allowed">
-              Next →
-            </button>
-          @endif
-        </div>
         @endif
 
+        <!-- Availability Badge -->
+        @if($item->is_available)
+          <span class="absolute top-3 right-3 bg-green-500 text-white text-xs font-bold px-3 py-1 rounded-full shadow-lg">
+            <i class="fas fa-check-circle mr-1"></i>Available
+          </span>
+        @else
+          <span class="absolute top-3 right-3 bg-red-500 text-white text-xs font-bold px-3 py-1 rounded-full shadow-lg">
+            <i class="fas fa-times-circle mr-1"></i>Unavailable
+          </span>
+        @endif
+
+        <!-- Price Tag -->
+        <div class="absolute bottom-3 left-3 bg-white/95 backdrop-blur-sm rounded-xl px-3 py-1 shadow-lg">
+          <span class="text-2xl font-bold text-slate-900">${{number_format($item->price, 2)}}</span>
+        </div>
       </div>
-    </main>
+
+      <!-- Content -->
+      <div class="p-4">
+        <!-- Item Name -->
+        <h3 class="text-lg font-bold text-slate-900 mb-2 line-clamp-2">
+          {{$item->name}}
+        </h3>
+
+        <!-- Restaurant -->
+        <p class="text-sm text-slate-600 mb-2 flex items-center">
+          <i class="fas fa-store text-slate-400 mr-2"></i>
+          <span class="truncate">{{$item->shop_name}}</span>
+        </p>
+
+        <!-- Category -->
+        <span class="inline-block bg-slate-100 text-slate-700 text-xs font-medium px-3 py-1 rounded-full mb-3">
+          <i class="fas fa-tag mr-1"></i>{{$item->category}}
+        </span>
+
+        <!-- Platform Badge -->
+        <div class="flex justify-center">
+          @if($item->platform === 'grab')
+            <span class="platform-badge bg-green-100 text-green-700 text-xs font-bold px-4 py-2 rounded-full border-2 border-green-500">
+              <i class="fas fa-car mr-1"></i>Grab
+            </span>
+          @elseif($item->platform === 'foodpanda')
+            <span class="platform-badge bg-pink-100 text-pink-700 text-xs font-bold px-4 py-2 rounded-full border-2 border-pink-500">
+              <i class="fas fa-motorcycle mr-1"></i>foodPanda
+            </span>
+          @else
+            <span class="platform-badge bg-cyan-100 text-cyan-700 text-xs font-bold px-4 py-2 rounded-full border-2 border-cyan-500">
+              <i class="fas fa-bicycle mr-1"></i>Deliveroo
+            </span>
+          @endif
+        </div>
+      </div>
+    </div>
+    @endforeach
   </div>
-</body>
-</html>
+
+  <!-- Empty State -->
+  <div id="emptyState" class="hidden text-center py-16">
+    <i class="fas fa-search text-6xl text-slate-300 mb-4"></i>
+    <h3 class="text-xl font-semibold text-slate-600 mb-2">No items found</h3>
+    <p class="text-slate-500">Try adjusting your filters or search terms</p>
+  </div>
+@endsection
+
+@section('extra-scripts')
+<script>
+  const items = document.querySelectorAll('.item-card');
+  const searchInput = document.getElementById('searchInput');
+  const restaurantFilter = document.getElementById('restaurantFilter');
+  const categoryFilter = document.getElementById('categoryFilter');
+  const platformFilter = document.getElementById('platformFilter');
+  const availableOnly = document.getElementById('availableOnly');
+  const resultCount = document.getElementById('resultCount');
+  const emptyState = document.getElementById('emptyState');
+  const itemsGrid = document.getElementById('itemsGrid');
+
+  function filterItems() {
+    const searchTerm = searchInput.value.toLowerCase();
+    const selectedRestaurant = restaurantFilter.value;
+    const selectedCategory = categoryFilter.value;
+    const selectedPlatform = platformFilter.value;
+    const availableFilter = availableOnly.checked;
+
+    let visibleCount = 0;
+
+    items.forEach(item => {
+      const itemName = item.dataset.name;
+      const itemCategory = item.dataset.category;
+      const itemRestaurant = item.dataset.restaurant;
+      const itemPlatform = item.dataset.platform;
+      const itemAvailable = item.dataset.available === '1';
+
+      const matchesSearch = itemName.includes(searchTerm) ||
+                           itemCategory.toLowerCase().includes(searchTerm) ||
+                           itemRestaurant.toLowerCase().includes(searchTerm);
+      const matchesRestaurant = !selectedRestaurant || itemRestaurant === selectedRestaurant;
+      const matchesCategory = !selectedCategory || itemCategory === selectedCategory;
+      const matchesPlatform = !selectedPlatform || itemPlatform === selectedPlatform;
+      const matchesAvailability = !availableFilter || itemAvailable;
+
+      if (matchesSearch && matchesRestaurant && matchesCategory && matchesPlatform && matchesAvailability) {
+        item.style.display = 'block';
+        visibleCount++;
+      } else {
+        item.style.display = 'none';
+      }
+    });
+
+    resultCount.textContent = visibleCount;
+
+    if (visibleCount === 0) {
+      itemsGrid.classList.add('hidden');
+      emptyState.classList.remove('hidden');
+    } else {
+      itemsGrid.classList.remove('hidden');
+      emptyState.classList.add('hidden');
+    }
+  }
+
+  // Event listeners
+  searchInput.addEventListener('input', filterItems);
+  restaurantFilter.addEventListener('change', filterItems);
+  categoryFilter.addEventListener('change', filterItems);
+  platformFilter.addEventListener('change', filterItems);
+  availableOnly.addEventListener('change', filterItems);
+</script>
+@endsection

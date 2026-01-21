@@ -106,30 +106,172 @@ Route::prefix('platform')->group(function () {
 // Sync API
 Route::prefix('sync')->group(function () {
 
-    // Trigger manual scraping
+    // Trigger manual platform scraping - BULLETPROOF VERSION
     Route::post('/scrape', function (Request $request) {
-        $limit = $request->input('limit', 50);
-        $platform = $request->input('platform');
+        // Increase timeout to 10 minutes for accurate scraping
+        set_time_limit(600);
 
         try {
-            $command = "scrape:platform-status --limit={$limit}";
-            if ($platform) {
-                $command .= " --platform={$platform}";
+            // Run the BULLETPROOF scraper (100% reliable, session-independent)
+            $scriptPath = base_path('_archive/scrapers/scrape_platform_bulletproof.py');
+            $command = "python \"{$scriptPath}\" 2>&1";
+
+            exec($command, $output, $returnCode);
+            $rawOutput = implode("\n", $output);
+
+            if ($returnCode !== 0) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Scraper execution failed',
+                    'error' => $rawOutput,
+                ], 500);
             }
 
-            \Artisan::call($command);
-            $output = \Artisan::output();
+            // Parse JSON output - extract JSON from potentially mixed output
+            $jsonStart = strpos($rawOutput, '{');
+            if ($jsonStart !== false) {
+                $jsonOutput = substr($rawOutput, $jsonStart);
+                $data = json_decode($jsonOutput, true);
+            } else {
+                $data = null;
+            }
+
+            if (!$data || !isset($data['success']) || !$data['success']) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Failed to parse scraper output',
+                    'output' => $rawOutput,
+                ], 500);
+            }
+
+            // Save to cache
+            $cacheFile = storage_path('app/platform_data_cache.json');
+            file_put_contents($cacheFile, json_encode($data, JSON_PRETTY_PRINT));
+
+            // Update database
+            foreach ($data['shops'] as $shopId => $shopData) {
+                foreach (['grab', 'foodpanda', 'deliveroo'] as $platform) {
+                    $platformData = $shopData['platforms'][$platform];
+
+                    DB::table('platform_status')->updateOrInsert(
+                        [
+                            'shop_id' => $shopId,
+                            'platform' => $platform,
+                        ],
+                        [
+                            'store_name' => $shopData['name'],
+                            'is_online' => $platformData['online'],
+                            'items_synced' => $platformData['items_synced'],
+                            'last_checked_at' => now(),
+                            'updated_at' => now(),
+                        ]
+                    );
+                }
+            }
 
             return response()->json([
                 'success' => true,
-                'message' => 'Scraping completed successfully',
-                'output' => $output,
+                'message' => 'Platform scraping completed successfully',
+                'stats' => [
+                    'grab' => count($data['grab']),
+                    'foodpanda' => count($data['foodpanda']),
+                    'deliveroo' => count($data['deliveroo']),
+                    'total_shops' => count($data['shops']),
+                ],
                 'timestamp' => now()->toIso8601String(),
             ]);
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
                 'message' => 'Scraping failed',
+                'error' => $e->getMessage(),
+            ], 500);
+        }
+    });
+
+    // Trigger manual items scraping - BULLETPROOF VERSION
+    Route::post('/scrape-items', function (Request $request) {
+        // Increase timeout to 30 minutes (scraping all stores takes time)
+        set_time_limit(1800);
+
+        try {
+            // Run the BULLETPROOF items scraper
+            $scriptPath = base_path('_archive/scrapers/scrape_items_bulletproof.py');
+            $command = "python \"{$scriptPath}\" 2>&1";
+
+            exec($command, $output, $returnCode);
+            $rawOutput = implode("\n", $output);
+
+            if ($returnCode !== 0) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Items scraper execution failed',
+                    'error' => $rawOutput,
+                ], 500);
+            }
+
+            // Parse JSON output - extract JSON from potentially mixed output
+            $jsonStart = strpos($rawOutput, '{');
+            if ($jsonStart !== false) {
+                $jsonOutput = substr($rawOutput, $jsonStart);
+                $data = json_decode($jsonOutput, true);
+            } else {
+                $data = null;
+            }
+
+            if (!$data || !isset($data['success']) || !$data['success']) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Failed to parse items scraper output',
+                    'output' => $rawOutput,
+                ], 500);
+            }
+
+            // Save to cache
+            $cacheFile = storage_path('app/items_data_cache.json');
+            file_put_contents($cacheFile, json_encode($data, JSON_PRETTY_PRINT));
+
+            // Clear existing items
+            DB::table('items')->truncate();
+
+            // Import all items into database
+            $totalImported = 0;
+            foreach ($data['stores'] as $storeName => $items) {
+                foreach ($items as $item) {
+                    // Insert for each platform (since they may have different availability)
+                    foreach (['grab', 'foodpanda', 'deliveroo'] as $platform) {
+                        DB::table('items')->insert([
+                            'item_id' => $item['sku'] ?: 'unknown',
+                            'shop_name' => $storeName,
+                            'name' => $item['name'],
+                            'sku' => $item['sku'],
+                            'category' => $item['category'],
+                            'price' => $item['price'],
+                            'image_url' => $item['image_url'],
+                            'is_available' => $item['is_available'],
+                            'platform' => $platform,
+                            'created_at' => now(),
+                            'updated_at' => now(),
+                        ]);
+                        $totalImported++;
+                    }
+                }
+            }
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Items scraping completed successfully',
+                'stats' => [
+                    'total_stores' => count($data['stores']),
+                    'total_items' => $data['total_items'],
+                    'items_imported' => $totalImported,
+                ],
+                'timestamp' => now()->toIso8601String(),
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Items scraping failed',
                 'error' => $e->getMessage(),
             ], 500);
         }
@@ -156,6 +298,47 @@ Route::prefix('sync')->group(function () {
         }
     });
 
+    // Trigger Items Scraper - NEW BULLETPROOF VERSION
+    Route::post('/items/sync', function (Request $request) {
+        set_time_limit(1800); // 30 minutes timeout
+
+        try {
+            // Use the NEW bulletproof scraper
+            $scriptPath = base_path('scrape_items_bulletproof.py');
+
+            // Run the Python scraper in background
+            if (strtoupper(substr(PHP_OS, 0, 3)) === 'WIN') {
+                // Windows - run in background
+                $command = "start /B python \"{$scriptPath}\" > " . storage_path('logs/scraper.log') . " 2>&1";
+                pclose(popen($command, 'r'));
+
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Items scraper started in background',
+                    'note' => 'Scraping ~35 stores across 3 platforms. Check back in 10-15 minutes.',
+                    'timestamp' => now()->toIso8601String(),
+                ]);
+            } else {
+                // Linux/Mac - run in background
+                $command = "nohup python3 \"{$scriptPath}\" > " . storage_path('logs/scraper.log') . " 2>&1 &";
+                exec($command);
+
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Items scraper started in background',
+                    'note' => 'Scraping ~35 stores across 3 platforms. Check back in 10-15 minutes.',
+                    'timestamp' => now()->toIso8601String(),
+                ]);
+            }
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to start scraper',
+                'error' => $e->getMessage(),
+            ], 500);
+        }
+    });
+
     // Clear cache
     Route::post('/clear-cache', function () {
         \Cache::flush();
@@ -164,6 +347,189 @@ Route::prefix('sync')->group(function () {
             'success' => true,
             'message' => 'Cache cleared successfully',
         ]);
+    });
+});
+
+// Items Management API
+Route::prefix('v1/items')->group(function () {
+
+    // Trigger Items Sync
+    Route::post('/sync', function (Request $request) {
+        try {
+            $scriptPath = base_path('_archive/scrapers/scrape_items_full.py');
+
+            // Load .env variables for database connection
+            $env = [
+                'DB_HOST' => env('DB_HOST', '127.0.0.1'),
+                'DB_PORT' => env('DB_PORT', '3306'),
+                'DB_DATABASE' => env('DB_DATABASE', 'restodb'),
+                'DB_USERNAME' => env('DB_USERNAME', 'root'),
+                'DB_PASSWORD' => env('DB_PASSWORD', ''),
+            ];
+
+            // Build environment variables string
+            $envVars = '';
+            foreach ($env as $key => $value) {
+                if (strtoupper(substr(PHP_OS, 0, 3)) === 'WIN') {
+                    $envVars .= "set {$key}={$value} && ";
+                } else {
+                    $envVars .= "{$key}={$value} ";
+                }
+            }
+
+            // Run the Python scraper
+            if (strtoupper(substr(PHP_OS, 0, 3)) === 'WIN') {
+                // Windows
+                $command = "{$envVars}python \"{$scriptPath}\" 2>&1";
+            } else {
+                // Linux/Mac
+                $command = "{$envVars}python3 \"{$scriptPath}\" 2>&1";
+            }
+
+            exec($command, $output, $returnCode);
+
+            $outputText = implode("\n", $output);
+
+            if ($returnCode === 0 || str_contains($outputText, 'SYNC COMPLETE')) {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Items sync completed successfully',
+                    'output' => $outputText,
+                    'timestamp' => now()->toIso8601String(),
+                ]);
+            } else {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Items sync failed',
+                    'output' => $outputText,
+                    'return_code' => $returnCode,
+                ], 500);
+            }
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Items sync failed',
+                'error' => $e->getMessage(),
+            ], 500);
+        }
+    });
+
+    // Toggle item availability status
+    Route::post('/toggle-status', function (Request $request) {
+        try {
+            $validated = $request->validate([
+                'item_id' => 'required|integer',
+                'is_available' => 'required|boolean',
+                'platform' => 'required|string|in:grab,foodpanda,deliveroo',
+            ]);
+
+            $updated = DB::table('items')
+                ->where('id', $validated['item_id'])
+                ->where('platform', $validated['platform'])
+                ->update([
+                    'is_available' => $validated['is_available'],
+                    'updated_at' => now(),
+                ]);
+
+            if ($updated) {
+                // Get updated item info
+                $item = DB::table('items')->where('id', $validated['item_id'])->first();
+
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Item status updated successfully',
+                    'data' => [
+                        'item_id' => $validated['item_id'],
+                        'platform' => $validated['platform'],
+                        'is_available' => $validated['is_available'],
+                        'item_name' => $item->name ?? 'Unknown',
+                    ],
+                ]);
+            } else {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Item not found or no changes made',
+                ], 404);
+            }
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation failed',
+                'errors' => $e->errors(),
+            ], 422);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to update item status',
+                'error' => $e->getMessage(),
+            ], 500);
+        }
+    });
+
+    // Get all items with platform status
+    Route::get('/list', function () {
+        $items = DB::table('items')
+            ->select('id', 'item_id', 'shop_name', 'name', 'sku', 'category', 'price', 'is_available', 'platform')
+            ->orderBy('shop_name')
+            ->orderBy('name')
+            ->get();
+
+        return response()->json([
+            'success' => true,
+            'data' => $items,
+            'count' => $items->count(),
+        ]);
+    });
+
+    // Get items for specific shop
+    Route::get('/shop/{shopName}', function ($shopName) {
+        $items = DB::table('items')
+            ->where('shop_name', $shopName)
+            ->orderBy('name')
+            ->get();
+
+        if ($items->isEmpty()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'No items found for this shop',
+            ], 404);
+        }
+
+        return response()->json([
+            'success' => true,
+            'data' => $items,
+            'count' => $items->count(),
+        ]);
+    });
+
+    // Bulk update item status
+    Route::post('/bulk-toggle', function (Request $request) {
+        try {
+            $validated = $request->validate([
+                'item_ids' => 'required|array',
+                'item_ids.*' => 'integer',
+                'is_available' => 'required|boolean',
+            ]);
+
+            $updated = DB::table('items')
+                ->whereIn('id', $validated['item_ids'])
+                ->update([
+                    'is_available' => $validated['is_available'],
+                    'updated_at' => now(),
+                ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => "Updated {$updated} items successfully",
+                'count' => $updated,
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to bulk update items',
+                'error' => $e->getMessage(),
+            ], 500);
+        }
     });
 });
 
@@ -183,10 +549,6 @@ Route::get('/health', function () {
             'platforms_online' => $onlinePlatforms,
             'platforms_total' => $totalPlatforms,
             'online_percentage' => $totalPlatforms > 0 ? round(($onlinePlatforms / $totalPlatforms) * 100, 2) : 0,
-        ],
-        'api_sync' => [
-            'last_sync' => DB::table('restosuite_item_snapshots')->max('updated_at'),
-            'total_items' => DB::table('restosuite_item_snapshots')->count(),
         ],
     ]);
 });

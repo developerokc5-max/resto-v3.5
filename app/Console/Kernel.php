@@ -15,6 +15,8 @@ class Kernel extends ConsoleKernel
         \App\Console\Commands\TestRestoSuite::class,
         \App\Console\Commands\RestoSuiteSyncItems::class,
         \App\Console\Commands\ScrapePlatformStatus::class,
+        \App\Console\Commands\RunPlatformScraper::class,
+        \App\Console\Commands\ScrapeRestoSuiteProduction::class,
     ];
 
     /**
@@ -39,6 +41,19 @@ class Kernel extends ConsoleKernel
             })
             ->onSuccess(function () {
                 \Log::info('Platform scraping completed successfully');
+            });
+
+        // PRODUCTION: Real Platform Scraper with Browser Automation - Every 30 minutes
+        // Gets REAL images, prices, and availability from Grab/FoodPanda/Deliveroo
+        $schedule->command('scrape:platforms --platform=all --limit=5 --headless')
+            ->everyThirtyMinutes()
+            ->withoutOverlapping()
+            ->runInBackground()
+            ->onFailure(function () {
+                \Log::error('Platform browser scraping failed');
+            })
+            ->onSuccess(function () {
+                \Log::info('Platform browser scraping completed successfully');
             });
     }
 

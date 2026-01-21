@@ -1,0 +1,90 @@
+{
+  "Le Le Mee Pok": [
+    "Le Le Mee Pok Testing Outlet",
+    "Le Le Mee Pok @ Toa Payoh",
+    "JKT Western",
+    "Drinks Stall",
+    "HUMFULL",
+    "OK Chicken Rice",
+    "AH Huat Hokkien Mee"
+  ],
+  "Le Le Mee Pok Testing Outlet": [
+    "Le Le Mee Pok @ Toa Payoh",
+    "JKT Western",
+    "Drinks Stall",
+    "HUMFULL",
+    "OK Chicken Rice",
+    "AH Huat Hokkien Mee"
+  ],
+  "Le Le Mee Pok @ Toa Payoh": [
+    "JKT Western",
+    "Drinks Stall",
+    "HUMFULL",
+    "OK Chicken Rice",
+    "AH Huat Hokkien Mee"
+  ],
+  "JKT Western": [
+    "JKT Western Testing Outlet",
+    "JKT Western @ Toa Payoh",
+    "Drinks Stall",
+    "HUMFULL",
+    "OK Chicken Rice",
+    "AH Huat Hokkien Mee"
+  ],
+  "Drinks Stall": [
+    "Drinks Stall Testing Outlet",
+    "51 Toa Payoh Drinks",
+    "HUMFULL",
+    "OK Chicken Rice",
+    "AH Huat Hokkien Mee"
+  ],
+  "HUMFULL": [
+    "HUMFULL @ Taman Jurong",
+    "HUMFULL Testing Outlet",
+    "HUMFULL @ Edgedale Plains",
+    "HUMFULL @ Punggol",
+    "HUMFULL @ Marsiling",
+    "HUMFULL @ Bedok",
+    "HUMFULL @ Teck Whye",
+    "HUMFULL @ Yishun",
+    "HUMFULL @ Eunos",
+    "HUMFULL @ Jurong East",
+    "HUMFULL @ Hougang",
+    "HUMFULL @ AMK",
+    "HUMFULL @ Havelock",
+    "HUMFULL @ Toa Payoh",
+    "HUMFULL @ Tampines Mart",
+    "HUMFULL @ Bukit Batok",
+    "HUMFULL @ Lengkok Bahru",
+    "HUMFULL @ Woodlands Height",
+    "OK Chicken Rice",
+    "AH Huat Hokkien Mee"
+  ],
+  "OK Chicken Rice": [
+    "OK CHICKEN RICE @ Taman Jurong",
+    "OKCR Testing Outlet",
+    "OK CHICKEN RICE @ Depot",
+    "OK CHICKEN RICE @ Bukit Batok",
+    "OK CHICKEN RICE @ Tampines",
+    "OK CHICKEN RICE @ Woodlands Height",
+    "OK CHICKEN RICE @ Teck Whye",
+    "OK CHICKEN RICE @ Toa Payoh",
+    "OK CHICKEN RICE @ Eunos",
+    "OK CHICKEN RICE @ Lengkok Bahru",
+    "OK CHICKEN RICE @ Punggol",
+    "OK CHICKEN RICE @ Bedok",
+    "OK CHICKEN RICE @ Marsiling",
+    "OK CHICKEN RICE @ Jurong East",
+    "OK CHICKEN RICE @ Havelock",
+    "OK CHICKEN RICE @ Yishun",
+    "OK CHICKEN RICE @ Hougang",
+    "OK CHICKEN RICE @ AMK",
+    "AH Huat Hokkien Mee"
+  ],
+  "AH Huat Hokkien Mee": [
+    "AH HUAT HOKKIEN MEE @ TPY",
+    "AH HUAT HOKKIEN MEE @ Bukit Batok",
+    "AH HUAT HOKKIEN MEE @ PUNGGOL",
+    "AH HUAT HOKKIEN PRAWN MEE ( OFFICE TESTING OUTLET )"
+  ]
+}

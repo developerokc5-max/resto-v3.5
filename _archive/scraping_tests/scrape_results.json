@@ -1,0 +1,10 @@
+{
+  "total_stores_found": 0,
+  "stores_scraped": 0,
+  "stores_skipped": 0,
+  "total_items": 0,
+  "items_inserted": 0,
+  "items_updated": 0,
+  "history_records": 0,
+  "errors": []
+}

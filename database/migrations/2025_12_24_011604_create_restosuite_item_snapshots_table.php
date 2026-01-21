@@ -21,6 +21,7 @@ return new class extends Migration {
             $table->boolean('is_active')->default(0);
             $table->string('status')->nullable();
             $table->string('price')->nullable();
+            $table->text('image_url')->nullable();
 
             // fingerprint to skip duplicates
             $table->string('fingerprint', 64)->nullable()->index();

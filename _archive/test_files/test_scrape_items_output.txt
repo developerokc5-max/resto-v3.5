@@ -1,0 +1,256 @@
+============================================================
+TEST ITEMS SCRAPER (2 stores only)
+============================================================
+Logging in...
+\u2713 Login successful
+Navigating to Item Mapping page...
+\u2713 Navigated to Item Mapping page
+
+============================================================
+Processing: Le Le Mee Pok @ Toa Payoh
+============================================================
+
+Selecting store: Le Le Mee Pok @ Toa Payoh...
+\u2713 Selected store: Le Le Mee Pok @ Toa Payoh
+
+Scanning items table...
+  Found 19 item rows
+  1. Signature BCM. - $10.4 - Listed
+  2. Bak Chor Mee. - $7.2 - Listed
+  3. Pig Trotters Meal. - $10.4 - Listed
+  4. Teochew Dumpling Meal. - $10.4 - Listed
+  5. Handmade Fish Dumpling Meal. - $10.4 - Listed
+  6. Prawn Balls. - $2.6 - Listed
+  7. Pig Trotters. - $2.0 - Listed
+  8. Sauce Noodles. - $1.3 - Listed
+  9. Minced Pork. - $2.6 - Listed
+  10. Pork Slice. - $2.6 - Listed
+  11. Mushroom. - $2.6 - Listed
+  12. Pork Balls. - $2.6 - Listed
+  13. XL Prawn. - $2.6 - Listed
+  14. Abalone Slices. - $2.6 - Listed
+  15. Coke 500ml - $2.5 - Listed
+  16. Ice Lemon Tea 500ml - $2.5 - Listed
+  17. Bandung 500ml - $2.5 - Listed
+  18. Dasani 600ml - $1.5 - Listed
+  19. Redbull - $2.0 - Listed
+
+\u2713 Scanned 19 items
+\u2713 Le Le Mee Pok @ Toa Payoh: 19 items scraped
+
+============================================================
+Processing: OK CHICKEN RICE @ Bukit Batok
+============================================================
+
+Selecting store: OK CHICKEN RICE @ Bukit Batok...
+\u26a0 Could not select store: Page.click: Timeout 5000ms exceeded.
+Call log:
+  - waiting for locator("text=OK CHICKEN RICE @ Bukit Batok")
+
+  Skipping OK CHICKEN RICE @ Bukit Batok
+
+============================================================
+TEST COMPLETE!
+============================================================
+Stores: 1
+Items: 19
+{
+  "success": true,
+  "stores": {
+    "Le Le Mee Pok @ Toa Payoh": [
+      {
+        "name": "Signature BCM.",
+        "image_url": "https://resto-images-sg.s3.ap-southeast-1.amazonaws.com/c400000210/b1985626053703450630/912017-20251118.jpeg",
+        "size": "Del",
+        "category": "Main",
+        "sku": "1998605211165573130",
+        "price": 10.4,
+        "is_available": true,
+        "status": "Listed"
+      },
+      {
+        "name": "Bak Chor Mee.",
+        "image_url": "https://resto-images-sg.s3.ap-southeast-1.amazonaws.com/c400000210/b1985626053703450630/233217-20251118.jpeg",
+        "size": "Del",
+        "category": "Main",
+        "sku": "1998604955292061704",
+        "price": 7.2,
+        "is_available": true,
+        "status": "Listed"
+      },
+      {
+        "name": "Pig Trotters Meal.",
+        "image_url": "https://resto-images-sg.s3.ap-southeast-1.amazonaws.com/c400000210/b1985626053703450630/458703-20251119.jpeg",
+        "size": "Del",
+        "category": "Main",
+        "sku": "1998604655848116230",
+        "price": 10.4,
+        "is_available": true,
+        "status": "Listed"
+      },
+      {
+        "name": "Teochew Dumpling Meal.",
+        "image_url": "https://resto-images-sg.s3.ap-southeast-1.amazonaws.com/c400000210/b1985626053703450630/972747-20251126.png",
+        "size": "Del",
+        "category": "Main",
+        "sku": "1998603122695786501",
+        "price": 10.4,
+        "is_available": true,
+        "status": "Listed"
+      },
+      {
+        "name": "Handmade Fish Dumpling Meal.",
+        "image_url": "https://resto-images-sg.s3.ap-southeast-1.amazonaws.com/c400000210/b1985626053703450630/005427-20251212.jpeg",
+        "size": "Del",
+        "category": "Main",
+        "sku": "1999288282298769415",
+        "price": 10.4,
+        "is_available": true,
+        "status": "Listed"
+      },
+      {
+        "name": "Prawn Balls.",
+        "image_url": "https://resto-images-sg.s3.ap-southeast-1.amazonaws.com/c400000210/b1985626053703450630/059983-20251119.jpeg",
+        "size": "Del",
+        "category": "Ala Carte",
+        "sku": "1998605618214391815",
+        "price": 2.6,
+        "is_available": true,
+        "status": "Listed"
+      },
+      {
+        "name": "Pig Trotters.",
+        "image_url": "https://resto-images-sg.s3.ap-southeast-1.amazonaws.com/c400000210/b1985626053703450630/668927-20251119.jpeg",
+        "size": "Del",
+        "category": "Ala Carte",
+        "sku": "1998606160722444293",
+        "price": 2.0,
+        "is_available": true,
+        "status": "Listed"
+      },
+      {
+        "name": "Sauce Noodles.",
+        "image_url": "https://resto-images-sg.s3.ap-southeast-1.amazonaws.com/c400000210/b1985626053703450630/659960-20251118.jpeg",
+        "size": "Del",
+        "category": "Ala Carte",
+        "sku": "1998606471117717510",
+        "price": 1.3,
+        "is_available": true,
+        "status": "Listed"
+      },
+      {
+        "name": "Minced Pork.",
+        "image_url": "https://resto-images-sg.s3.ap-southeast-1.amazonaws.com/c400000210/b1985626053703450630/302942-20251118.jpeg",
+        "size": "Del",
+        "category": "Ala Carte",
+        "sku": "1998606565070127114",
+        "price": 2.6,
+        "is_available": true,
+        "status": "Listed"
+      },
+      {
+        "name": "Pork Slice.",
+        "image_url": "https://resto-images-sg.s3.ap-southeast-1.amazonaws.com/c400000210/b1985626053703450630/995404-20251118.jpeg",
+        "size": "Del",
+        "category": "Ala Carte",
+        "sku": "1998606668979818497",
+        "price": 2.6,
+        "is_available": true,
+        "status": "Listed"
+      },
+      {
+        "name": "Mushroom.",
+        "image_url": "https://resto-images-sg.s3.ap-southeast-1.amazonaws.com/c400000210/b1985626053703450630/754967-20251118.jpeg",
+        "size": "Del",
+        "category": "Ala Carte",
+        "sku": "1998606745983045637",
+        "price": 2.6,
+        "is_available": true,
+        "status": "Listed"
+      },
+      {
+        "name": "Pork Balls.",
+        "image_url": "https://resto-images-sg.s3.ap-southeast-1.amazonaws.com/c400000210/b1985626053703450630/332458-20251118.jpeg",
+        "size": "Del",
+        "category": "Ala Carte",
+        "sku": "1998606884864835588",
+        "price": 2.6,
+        "is_available": true,
+        "status": "Listed"
+      },
+      {
+        "name": "XL Prawn.",
+        "image_url": "https://resto-images-sg.s3.ap-southeast-1.amazonaws.com/c400000210/b1985626053703450630/470102-20251118.jpeg",
+        "size": "Del",
+        "category": "Ala Carte",
+        "sku": "1998606983221264385",
+        "price": 2.6,
+        "is_available": true,
+        "status": "Listed"
+      },
+      {
+        "name": "Abalone Slices.",
+        "image_url": "https://resto-images-sg.s3.ap-southeast-1.amazonaws.com/c400000210/b1985626053703450630/521676-20251118.jpeg",
+        "size": "Del",
+        "category": "Ala Carte",
+        "sku": "1998607122379882505",
+        "price": 2.6,
+        "is_available": true,
+        "status": "Listed"
+      },
+      {
+        "name": "Coke 500ml",
+        "image_url": "https://resto-images-sg.s3.ap-southeast-1.amazonaws.com/c400000210/b1985626053703450630/909235-20251210.jpeg",
+        "size": "Del",
+        "category": "Beverages",
+        "sku": "1998607796790415362",
+        "price": 2.5,
+        "is_available": true,
+        "status": "Listed"
+      },
+      {
+        "name": "Ice Lemon Tea 500ml",
+        "image_url": "https://resto-images-sg.s3.ap-southeast-1.amazonaws.com/c400000210/b1985626053703450630/491347-20251210.jpg",
+        "size": "Del",
+        "category": "Beverages",
+        "sku": "1998608038520737793",
+        "price": 2.5,
+        "is_available": true,
+        "status": "Listed"
+      },
+      {
+        "name": "Bandung 500ml",
+        "image_url": "https://resto-images-sg.s3.ap-southeast-1.amazonaws.com/c400000210/b1985626053703450630/480767-20251210.jpg",
+        "size": "Del",
+        "category": "Beverages",
+        "sku": "1998608392591294468",
+        "price": 2.5,
+        "is_available": true,
+        "status": "Listed"
+      },
+      {
+        "name": "Dasani 600ml",
+        "image_url": "https://resto-images-sg.s3.ap-southeast-1.amazonaws.com/c400000210/b1985626053703450630/543702-20251210.png",
+        "size": "Del",
+        "category": "Beverages",
+        "sku": "1998608597847953411",
+        "price": 1.5,
+        "is_available": true,
+        "status": "Listed"
+      },
+      {
+        "name": "Redbull",
+        "image_url": "https://resto-images-sg.s3.ap-southeast-1.amazonaws.com/c400000210/b1985626053703450630/335368-20251210.png",
+        "size": "Del",
+        "category": "Beverages",
+        "sku": "1998608850768678920",
+        "price": 2.0,
+        "is_available": true,
+        "status": "Listed"
+      }
+    ]
+  },
+  "total_items": 19,
+  "timestamp": "2026-01-13 09:53:18",
+  "message": "Test complete: 19 items from 1 stores"
+}

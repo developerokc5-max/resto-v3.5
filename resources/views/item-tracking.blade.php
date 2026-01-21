@@ -31,7 +31,7 @@
           <span class="text-sm font-medium">Items</span>
         </a>
         <a class="flex items-center gap-3 px-3 py-2 rounded-xl text-slate-700 hover:bg-slate-100 transition" href="/platforms">
-          <span class="text-sm font-medium">🌐 Platforms</span>
+          <span class="text-sm font-medium">Platforms</span>
         </a>
         <a class="flex items-center gap-3 px-3 py-2 rounded-xl bg-slate-900 text-white shadow-sm" href="/item-tracking">
           <span class="text-sm font-medium">History</span>
@@ -41,9 +41,9 @@
       <div class="mt-auto p-4">
         <div class="rounded-2xl bg-slate-50 border p-4">
           <div class="text-xs text-slate-500">Last sync</div>
-          <div class="font-semibold">{{ $lastSync ?? '—' }}</div>
-          <button class="mt-3 w-full rounded-xl bg-slate-900 text-white py-2 text-sm font-medium hover:opacity-90 transition">
-            Run Sync
+          <div class="font-semibold" id="lastSyncTime">{{ $lastSync ?? '—' }}</div>
+          <button id="runSyncBtn" onclick="runItemsSync()" class="mt-3 w-full rounded-xl bg-slate-900 text-white py-2 text-sm font-medium hover:opacity-90 transition disabled:opacity-50 disabled:cursor-not-allowed">
+            <span id="syncBtnText">Run Sync</span>
           </button>
         </div>
       </div>
@@ -193,5 +193,56 @@
       </div>
     </main>
   </div>
+
+  <script>
+    async function runItemsSync() {
+      const btn = document.getElementById('runSyncBtn');
+      const btnText = document.getElementById('syncBtnText');
+      const originalText = btnText.textContent;
+
+      try {
+        // Disable button and show loading state
+        btn.disabled = true;
+        btnText.textContent = 'Syncing...';
+
+        const response = await fetch('/api/sync/items/sync', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-TOKEN': '{{ csrf_token() }}'
+          }
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+          btnText.textContent = '✓ Sync Complete';
+          // Update last sync time
+          const lastSyncEl = document.getElementById('lastSyncTime');
+          if (lastSyncEl) {
+            const now = new Date();
+            lastSyncEl.textContent = now.toLocaleString();
+          }
+
+          // Reload page after 2 seconds to show new data
+          setTimeout(() => {
+            window.location.reload();
+          }, 2000);
+        } else {
+          throw new Error(data.message || 'Sync failed');
+        }
+      } catch (error) {
+        console.error('Sync error:', error);
+        btnText.textContent = '✗ Sync Failed';
+        alert('Failed to sync items: ' + error.message);
+
+        // Reset button after 3 seconds
+        setTimeout(() => {
+          btn.disabled = false;
+          btnText.textContent = originalText;
+        }, 3000);
+      }
+    }
+  </script>
 </body>
 </html>

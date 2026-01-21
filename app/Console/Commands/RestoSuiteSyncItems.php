@@ -175,6 +175,28 @@ class RestoSuiteSyncItems extends Command
                             'updated_at'  => now(),
                         ]);
                         $changesInserted++;
+
+                        // If is_active changed, also insert into item_status_history
+                        if (isset($change['is_active']) || isset($change['created'])) {
+                            $categoryName = '';
+                            if (!empty($it['category']['categoryName'])) {
+                                $categoryName = (string) $it['category']['categoryName'];
+                            }
+
+                            DB::table('item_status_history')->insert([
+                                'item_name'    => $name,
+                                'shop_id'      => $shopId,
+                                'shop_name'    => $shopName,
+                                'platform'     => 'restosuite',
+                                'is_available' => (bool) $isActive,
+                                'price'        => $price !== '' ? (float) $price : null,
+                                'category'     => $categoryName !== '' ? $categoryName : null,
+                                'image_url'    => $imageUrl !== '' ? $imageUrl : null,
+                                'changed_at'   => now(),
+                                'created_at'   => now(),
+                                'updated_at'   => now(),
+                            ]);
+                        }
                     }
                 }
             }
