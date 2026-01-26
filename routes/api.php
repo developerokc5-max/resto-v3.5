@@ -353,62 +353,56 @@ Route::prefix('sync')->group(function () {
 // Items Management API
 Route::prefix('v1/items')->group(function () {
 
-    // Trigger Items Sync
+    // Trigger Items Sync - Uses NEW scrape_items_sync.py
     Route::post('/sync', function (Request $request) {
+        // Increase timeout to 30 minutes (scraping all stores takes time)
+        set_time_limit(1800);
+
         try {
-            $scriptPath = base_path('_archive/scrapers/scrape_items_full.py');
+            // Use the NEW items sync scraper (isolated from other pages)
+            $scriptPath = base_path('item-test-trait-1/scrape_items_sync.py');
 
-            // Load .env variables for database connection
-            $env = [
-                'DB_HOST' => env('DB_HOST', '127.0.0.1'),
-                'DB_PORT' => env('DB_PORT', '3306'),
-                'DB_DATABASE' => env('DB_DATABASE', 'restodb'),
-                'DB_USERNAME' => env('DB_USERNAME', 'root'),
-                'DB_PASSWORD' => env('DB_PASSWORD', ''),
-            ];
-
-            // Build environment variables string
-            $envVars = '';
-            foreach ($env as $key => $value) {
-                if (strtoupper(substr(PHP_OS, 0, 3)) === 'WIN') {
-                    $envVars .= "set {$key}={$value} && ";
-                } else {
-                    $envVars .= "{$key}={$value} ";
-                }
-            }
-
-            // Run the Python scraper
-            if (strtoupper(substr(PHP_OS, 0, 3)) === 'WIN') {
-                // Windows
-                $command = "{$envVars}python \"{$scriptPath}\" 2>&1";
-            } else {
-                // Linux/Mac
-                $command = "{$envVars}python3 \"{$scriptPath}\" 2>&1";
-            }
-
-            exec($command, $output, $returnCode);
-
-            $outputText = implode("\n", $output);
-
-            if ($returnCode === 0 || str_contains($outputText, 'SYNC COMPLETE')) {
-                return response()->json([
-                    'success' => true,
-                    'message' => 'Items sync completed successfully',
-                    'output' => $outputText,
-                    'timestamp' => now()->toIso8601String(),
-                ]);
-            } else {
+            // Check if script exists
+            if (!file_exists($scriptPath)) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Items sync failed',
-                    'output' => $outputText,
-                    'return_code' => $returnCode,
+                    'message' => 'Scraper script not found',
+                    'path' => $scriptPath,
                 ], 500);
+            }
+
+            // Run the Python scraper in background
+            if (strtoupper(substr(PHP_OS, 0, 3)) === 'WIN') {
+                // Windows - run Python script
+                $logPath = storage_path('logs/items_scraper.log');
+                $command = "start /B python \"{$scriptPath}\" > \"{$logPath}\" 2>&1";
+                pclose(popen($command, 'r'));
+
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Items scraper started successfully',
+                    'note' => 'Scraping all outlets across 3 platforms. This may take 10-15 minutes.',
+                    'timestamp' => now()->toIso8601String(),
+                    'log_file' => $logPath,
+                ]);
+            } else {
+                // Linux/Mac - run in background
+                $logPath = storage_path('logs/items_scraper.log');
+                $command = "nohup python3 \"{$scriptPath}\" > \"{$logPath}\" 2>&1 &";
+                exec($command);
+
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Items scraper started successfully',
+                    'note' => 'Scraping all outlets across 3 platforms. This may take 10-15 minutes.',
+                    'timestamp' => now()->toIso8601String(),
+                    'log_file' => $logPath,
+                ]);
             }
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Items sync failed',
+                'message' => 'Failed to start items scraper',
                 'error' => $e->getMessage(),
             ], 500);
         }
