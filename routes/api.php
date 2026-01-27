@@ -106,84 +106,56 @@ Route::prefix('platform')->group(function () {
 // Sync API
 Route::prefix('sync')->group(function () {
 
-    // Trigger manual platform scraping - BULLETPROOF VERSION
+    // Trigger manual platform scraping - NEW VERSION
     Route::post('/scrape', function (Request $request) {
         // Increase timeout to 10 minutes for accurate scraping
         set_time_limit(600);
 
         try {
-            // Run the BULLETPROOF scraper (100% reliable, session-independent)
-            $scriptPath = base_path('_archive/scrapers/scrape_platform_bulletproof.py');
-            $command = "python \"{$scriptPath}\" 2>&1";
+            // Use the NEW platform sync scraper (writes directly to database)
+            $scriptPath = base_path('platform-test-trait-1/scrape_platform_sync.py');
 
-            exec($command, $output, $returnCode);
-            $rawOutput = implode("\n", $output);
-
-            if ($returnCode !== 0) {
+            // Check if script exists
+            if (!file_exists($scriptPath)) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Scraper execution failed',
-                    'error' => $rawOutput,
+                    'message' => 'Scraper script not found',
+                    'path' => $scriptPath,
                 ], 500);
             }
 
-            // Parse JSON output - extract JSON from potentially mixed output
-            $jsonStart = strpos($rawOutput, '{');
-            if ($jsonStart !== false) {
-                $jsonOutput = substr($rawOutput, $jsonStart);
-                $data = json_decode($jsonOutput, true);
+            // Run the Python scraper in background
+            if (strtoupper(substr(PHP_OS, 0, 3)) === 'WIN') {
+                // Windows - run Python script
+                $logPath = storage_path('logs/platform_scraper.log');
+                $command = "start /B python \"{$scriptPath}\" > \"{$logPath}\" 2>&1";
+                pclose(popen($command, 'r'));
+
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Platform scraper started successfully',
+                    'note' => 'Scraping all outlets across 3 platforms. This may take 5-10 minutes.',
+                    'timestamp' => now()->toIso8601String(),
+                    'log_file' => $logPath,
+                ]);
             } else {
-                $data = null;
-            }
+                // Linux/Mac - run in background
+                $logPath = storage_path('logs/platform_scraper.log');
+                $command = "nohup python3 \"{$scriptPath}\" > \"{$logPath}\" 2>&1 &";
+                exec($command);
 
-            if (!$data || !isset($data['success']) || !$data['success']) {
                 return response()->json([
-                    'success' => false,
-                    'message' => 'Failed to parse scraper output',
-                    'output' => $rawOutput,
-                ], 500);
+                    'success' => true,
+                    'message' => 'Platform scraper started successfully',
+                    'note' => 'Scraping all outlets across 3 platforms. This may take 5-10 minutes.',
+                    'timestamp' => now()->toIso8601String(),
+                    'log_file' => $logPath,
+                ]);
             }
-
-            // Save to cache
-            $cacheFile = storage_path('app/platform_data_cache.json');
-            file_put_contents($cacheFile, json_encode($data, JSON_PRETTY_PRINT));
-
-            // Update database
-            foreach ($data['shops'] as $shopId => $shopData) {
-                foreach (['grab', 'foodpanda', 'deliveroo'] as $platform) {
-                    $platformData = $shopData['platforms'][$platform];
-
-                    DB::table('platform_status')->updateOrInsert(
-                        [
-                            'shop_id' => $shopId,
-                            'platform' => $platform,
-                        ],
-                        [
-                            'store_name' => $shopData['name'],
-                            'is_online' => $platformData['online'],
-                            'items_synced' => $platformData['items_synced'],
-                            'last_checked_at' => now(),
-                            'updated_at' => now(),
-                        ]
-                    );
-                }
-            }
-
-            return response()->json([
-                'success' => true,
-                'message' => 'Platform scraping completed successfully',
-                'stats' => [
-                    'grab' => count($data['grab']),
-                    'foodpanda' => count($data['foodpanda']),
-                    'deliveroo' => count($data['deliveroo']),
-                    'total_shops' => count($data['shops']),
-                ],
-                'timestamp' => now()->toIso8601String(),
-            ]);
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Scraping failed',
+                'message' => 'Failed to start platform scraper',
                 'error' => $e->getMessage(),
             ], 500);
         }
