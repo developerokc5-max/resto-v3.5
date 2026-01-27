@@ -268,8 +268,19 @@ Route::get('/stores', function () {
 
 // Items Page - Real-time with grouped platforms and pagination
 Route::get('/items', function (Request $request) {
+    // Get filter parameters
+    $selectedRestaurant = $request->get('restaurant');
+
+    // Build query for items
+    $query = DB::table('items');
+
+    // Apply restaurant filter if provided
+    if ($selectedRestaurant) {
+        $query->where('shop_name', $selectedRestaurant);
+    }
+
     // Get all items from the items table
-    $allItems = DB::table('items')
+    $allItems = $query
         ->orderBy('shop_name')
         ->orderBy('name')
         ->get();
@@ -301,11 +312,10 @@ Route::get('/items', function (Request $request) {
 
     $itemsGrouped = array_values($itemsGrouped);
 
-    // Get unique restaurants
-    $restaurants = DB::table('items')
-        ->distinct('shop_name')
+    // Get ALL restaurants from shops table (including those without items)
+    $restaurants = DB::table('shops')
+        ->orderBy('shop_name')
         ->pluck('shop_name')
-        ->sort()
         ->values();
 
     // Get unique categories

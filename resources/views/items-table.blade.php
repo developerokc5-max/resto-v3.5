@@ -45,7 +45,7 @@
       <select id="restaurantFilter" class="px-4 py-2 border border-slate-300 rounded-xl focus:ring-2 focus:ring-slate-900 focus:border-transparent">
         <option value="">All Restaurants</option>
         @foreach($restaurants as $restaurant)
-          <option value="{{$restaurant}}">{{$restaurant}}</option>
+          <option value="{{$restaurant}}" {{request('restaurant') == $restaurant ? 'selected' : ''}}>{{$restaurant}}</option>
         @endforeach
       </select>
       <select id="categoryFilter" class="px-4 py-2 border border-slate-300 rounded-xl focus:ring-2 focus:ring-slate-900 focus:border-transparent">
@@ -220,7 +220,6 @@
 
   function filterItems() {
     const searchTerm = searchInput.value.toLowerCase();
-    const selectedRestaurant = restaurantFilter.value;
     const selectedCategory = categoryFilter.value;
 
     rows.forEach(row => {
@@ -231,10 +230,9 @@
       const matchesSearch = itemName.includes(searchTerm) ||
                            itemRestaurant.toLowerCase().includes(searchTerm) ||
                            itemCategory.toLowerCase().includes(searchTerm);
-      const matchesRestaurant = !selectedRestaurant || itemRestaurant === selectedRestaurant;
       const matchesCategory = !selectedCategory || itemCategory === selectedCategory;
 
-      if (matchesSearch && matchesRestaurant && matchesCategory) {
+      if (matchesSearch && matchesCategory) {
         row.style.display = '';
       } else {
         row.style.display = 'none';
@@ -243,8 +241,17 @@
   }
 
   searchInput.addEventListener('input', filterItems);
-  restaurantFilter.addEventListener('change', filterItems);
   categoryFilter.addEventListener('change', filterItems);
+
+  // Restaurant filter should reload page with query parameter
+  restaurantFilter.addEventListener('change', function() {
+    const selectedRestaurant = this.value;
+    if (selectedRestaurant) {
+      window.location.href = '?restaurant=' + encodeURIComponent(selectedRestaurant);
+    } else {
+      window.location.href = '/items';
+    }
+  });
 
   function showItemsInfo() {
     const lastUpdate = '{{ $lastUpdate ?? "Never" }}';

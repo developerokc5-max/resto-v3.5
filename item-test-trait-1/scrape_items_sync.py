@@ -220,6 +220,10 @@ def extract_items_from_table(page, shop_name, platform_name):
                 name_cell = cells[3] if len(cells) > 3 else None
                 name = name_cell.text_content().strip() if name_cell else "Unknown"
 
+                # Skip header rows (literal text from table headers)
+                if name in ['Item name', 'Unknown', ''] or name.startswith('Item name'):
+                    continue
+
                 # Get size name from column 4
                 brand_cell = cells[4] if len(cells) > 4 else None
                 brand = brand_cell.text_content().strip() if brand_cell else ""
@@ -446,7 +450,7 @@ BRANDS = [
 ]
 
 with sync_playwright() as p:
-    browser = p.chromium.launch(headless=False, slow_mo=800)
+    browser = p.chromium.launch(headless=True, slow_mo=800)
     page = browser.new_page()
     page.set_viewport_size({"width": 1920, "height": 1080})
 
@@ -465,14 +469,15 @@ with sync_playwright() as p:
         log(f"✗ Database connection failed: {str(e)}")
         sys.exit(1)
 
-    # Clear existing items table
-    log("Clearing old items from database...")
+    # Clear existing items and shops tables
+    log("Clearing old data from database...")
     try:
         cursor.execute("DELETE FROM items")
+        cursor.execute("DELETE FROM shops")
         db.commit()
-        log("✓ Old items cleared")
+        log("✓ Old data cleared")
     except Exception as e:
-        log(f"⚠ Error clearing items: {str(e)}")
+        log(f"⚠ Error clearing data: {str(e)}")
 
     # Login
     log(f"Navigating to {BASE_URL}/takeaway-product-mapping")
@@ -537,6 +542,7 @@ with sync_playwright() as p:
     total_outlets_clicked = 0
     clicked_outlet_names = set()  # Track what we've clicked to avoid duplicates
     all_collected_items = []  # Store all items from all outlets
+    all_outlets_info = []  # Store info about ALL outlets (with or without items)
 
     # Process each brand
     for idx, (brand_name, expected_count) in enumerate(BRANDS, 1):
@@ -601,9 +607,20 @@ with sync_playwright() as p:
                         items_from_outlet = scroll_and_capture_data(page, store_title)
 
                         # Collect items
+                        has_items = len(items_from_outlet) > 0
                         if items_from_outlet:
                             all_collected_items.extend(items_from_outlet)
                             log(f"  ✓ Collected {len(items_from_outlet)} items from {store_title}")
+                        else:
+                            log(f"  ⚠ No items collected from {store_title}")
+
+                        # Track ALL outlets (with or without items)
+                        all_outlets_info.append({
+                            'shop_id': store_title,
+                            'shop_name': store_title,
+                            'organization_name': 'ACHIEVERS RESOURCE CONSULTANCY PTE LTD',
+                            'has_items': has_items
+                        })
 
                         # Mark as clicked
                         clicked_outlet_names.add(store_title)
@@ -657,6 +674,45 @@ with sync_playwright() as p:
     page.wait_for_timeout(5000)
     browser.close()
     log("Browser closed")
+
+    # Save all outlets to shops table first
+    log("="*70)
+    log("SAVING OUTLETS TO SHOPS TABLE")
+    log(f"Total outlets found: {len(all_outlets_info)}")
+    log("="*70)
+
+    if all_outlets_info:
+        try:
+            insert_shop_query = """
+                INSERT INTO shops (shop_id, shop_name, organization_name, has_items, last_synced_at, created_at, updated_at)
+                VALUES (?, ?, ?, ?, datetime('now'), datetime('now'), datetime('now'))
+            """
+
+            shops_data = [
+                (
+                    outlet['shop_id'],
+                    outlet['shop_name'],
+                    outlet['organization_name'],
+                    1 if outlet['has_items'] else 0
+                )
+                for outlet in all_outlets_info
+            ]
+
+            cursor.executemany(insert_shop_query, shops_data)
+            db.commit()
+            log(f"✓ Saved {len(all_outlets_info)} outlets to shops table")
+
+            # Show breakdown
+            outlets_with_items = sum(1 for o in all_outlets_info if o['has_items'])
+            outlets_without_items = len(all_outlets_info) - outlets_with_items
+            log(f"  - {outlets_with_items} outlets with items")
+            log(f"  - {outlets_without_items} outlets without items")
+
+        except Exception as e:
+            log(f"✗ Error saving outlets: {str(e)}")
+            db.rollback()
+    else:
+        log("⚠ No outlets found to save")
 
     # Save all items to database
     log("="*70)

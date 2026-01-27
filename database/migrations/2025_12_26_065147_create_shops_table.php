@@ -13,7 +13,15 @@ return new class extends Migration
     {
         Schema::create('shops', function (Blueprint $table) {
             $table->id();
+            $table->string('shop_id')->unique(); // RestoSuite outlet ID
+            $table->string('shop_name');
+            $table->string('organization_name')->nullable();
+            $table->boolean('has_items')->default(false); // Track if outlet has any items
+            $table->timestamp('last_synced_at')->nullable();
             $table->timestamps();
+
+            $table->index('shop_id');
+            $table->index('shop_name');
         });
     }
 
