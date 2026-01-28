@@ -949,7 +949,9 @@ Route::get('/store/{shopId}/logs', function ($shopId) {
     $totalOffline = array_sum(array_column($platformData, 'offline_count'));
 
     // Check if we need to create a new log entry for today
-    $today = \Carbon\Carbon::now('Asia/Singapore')->startOfDay();
+    $nowSgt = \Carbon\Carbon::now('Asia/Singapore');
+    $today = $nowSgt->copy()->startOfDay();
+
     $existingLog = DB::table('store_status_logs')
         ->where('shop_id', $shopId)
         ->whereDate('logged_at', $today)
@@ -957,7 +959,6 @@ Route::get('/store/{shopId}/logs', function ($shopId) {
 
     if (!$existingLog) {
         // Create a new log entry for today
-        $nowSgt = \Carbon\Carbon::now('Asia/Singapore');
         DB::table('store_status_logs')->insert([
             'shop_id' => $shopId,
             'shop_name' => $shopInfo['name'],
@@ -969,6 +970,17 @@ Route::get('/store/{shopId}/logs', function ($shopId) {
             'created_at' => $nowSgt,
             'updated_at' => $nowSgt,
         ]);
+    } else {
+        // Update existing log with current time and status
+        DB::table('store_status_logs')
+            ->where('id', $existingLog->id)
+            ->update([
+                'platforms_online' => $onlinePlatforms,
+                'total_offline_items' => $totalOffline,
+                'platform_data' => json_encode($platformData),
+                'logged_at' => $nowSgt,
+                'updated_at' => $nowSgt,
+            ]);
     }
 
     // Get all historical logs for this store (newest first)
@@ -982,9 +994,13 @@ Route::get('/store/{shopId}/logs', function ($shopId) {
         $loggedAt = \Carbon\Carbon::parse($log->logged_at)->timezone('Asia/Singapore');
         $platformDataDecoded = json_decode($log->platform_data, true);
 
+        // For today's entry, always use current time
+        $isToday = $loggedAt->isToday();
+        $displayTime = $isToday ? $nowSgt : $loggedAt;
+
         $statusCards[] = [
             'id' => $historicalLogs->count() - $index, // Reverse numbering (newest = highest number)
-            'timestamp' => $loggedAt,
+            'timestamp' => $displayTime,
             'outlet_status' => $log->platforms_online === 3 ? 'All Online' : ($log->platforms_online === 0 ? 'All Offline' : 'Mixed'),
             'platforms_online' => $log->platforms_online,
             'total_offline_items' => $log->total_offline_items,
