@@ -21,7 +21,8 @@ TARGET_URL = f"{BASE_URL}/takeaway-store-binding"
 # Paths
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 LOG_FILE = os.path.join(SCRIPT_DIR, "scrape_platform_sync.log")
-DB_PATH = os.path.join(os.path.dirname(SCRIPT_DIR), "database", "database.sqlite")
+# Use the correct database path from Laravel config (resto-db-v3 not resto-db-v3.5)
+DB_PATH = r"C:\resto-db-v3\database\database.sqlite"
 
 def log(message):
     """Log to both file and stderr"""
