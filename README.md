@@ -403,7 +403,6 @@ Proprietary - Internal Use Only
 
 **Developed by**: Benson
 **Design & UI/UX**: Gabriel
-**Co-Authored-By**: Claude Sonnet 4.5 <noreply@anthropic.com>
 
 ---
 
