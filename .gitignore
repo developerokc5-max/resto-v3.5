@@ -24,6 +24,7 @@ Homestead.yaml
 Thumbs.db
 /.claude
 /composer.phar
+README.md
 
 # Database
 /database/database.sqlite
