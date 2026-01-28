@@ -921,7 +921,7 @@ Route::get('/store/{shopId}/logs', function ($shopId) {
     $shopMap = ShopHelper::getShopMap();
     $shopInfo = $shopMap[$shopId] ?? ['name' => 'Unknown Store', 'brand' => 'Unknown Brand'];
 
-    // Create current status card from items table
+    // Get current platform status
     $platformStatus = DB::table('platform_status')
         ->where('shop_id', $shopId)
         ->get()
@@ -948,14 +948,49 @@ Route::get('/store/{shopId}/logs', function ($shopId) {
     $onlinePlatforms = count(array_filter($platformData, fn($d) => $d['status'] === 'Online'));
     $totalOffline = array_sum(array_column($platformData, 'offline_count'));
 
-    $statusCards = [[
-        'timestamp' => now(),
-        'outlet_status' => $onlinePlatforms === 3 ? 'All Online' : ($onlinePlatforms === 0 ? 'All Offline' : 'Mixed'),
-        'platforms_online' => $onlinePlatforms,
-        'total_offline_items' => $totalOffline,
-        'platform_data' => $platformData,
-        'is_current' => true,
-    ]];
+    // Check if we need to create a new log entry for today
+    $today = \Carbon\Carbon::now('Asia/Singapore')->startOfDay();
+    $existingLog = DB::table('store_status_logs')
+        ->where('shop_id', $shopId)
+        ->whereDate('logged_at', $today)
+        ->first();
+
+    if (!$existingLog) {
+        // Create a new log entry for today
+        DB::table('store_status_logs')->insert([
+            'shop_id' => $shopId,
+            'shop_name' => $shopInfo['name'],
+            'platforms_online' => $onlinePlatforms,
+            'total_platforms' => 3,
+            'total_offline_items' => $totalOffline,
+            'platform_data' => json_encode($platformData),
+            'logged_at' => now('Asia/Singapore'),
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+    }
+
+    // Get all historical logs for this store (newest first)
+    $historicalLogs = DB::table('store_status_logs')
+        ->where('shop_id', $shopId)
+        ->orderBy('logged_at', 'desc')
+        ->get();
+
+    $statusCards = [];
+    foreach ($historicalLogs as $index => $log) {
+        $loggedAt = \Carbon\Carbon::parse($log->logged_at)->timezone('Asia/Singapore');
+        $platformDataDecoded = json_decode($log->platform_data, true);
+
+        $statusCards[] = [
+            'id' => $historicalLogs->count() - $index, // Reverse numbering (newest = highest number)
+            'timestamp' => $loggedAt,
+            'outlet_status' => $log->platforms_online === 3 ? 'All Online' : ($log->platforms_online === 0 ? 'All Offline' : 'Mixed'),
+            'platforms_online' => $log->platforms_online,
+            'total_offline_items' => $log->total_offline_items,
+            'platform_data' => $platformDataDecoded,
+            'is_current' => $index === 0, // First item is most recent
+        ];
+    }
 
     return view('store-logs', [
         'shopId' => $shopId,
