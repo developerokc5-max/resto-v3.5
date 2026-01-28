@@ -403,6 +403,7 @@ Proprietary - Internal Use Only
 
 **Developed by**: Benson
 **Design & UI/UX**: Gabriel
+**Built with ❤️ by Benson and Gabriel**
 
 ---
 
