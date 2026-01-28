@@ -38,7 +38,7 @@
             @foreach($statusCards as $index => $card)
                 @php
                     $isCurrent = isset($card['is_current']) && $card['is_current'];
-                    $cardNumber = count($statusCards) - $index;
+                    $cardNumber = $card['id'] ?? (count($statusCards) - $index);
                 @endphp
 
                 <!-- Status Card -->
