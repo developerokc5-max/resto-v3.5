@@ -143,6 +143,7 @@
         @if($item->image_url)
           <img src="{{$item->image_url}}" alt="{{$item->name}}"
                class="w-full h-full object-cover"
+               loading="lazy"
                onerror="this.src='https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=400'">
         @else
           <div class="w-full h-full flex items-center justify-center">
