@@ -15,9 +15,44 @@
     <aside class="w-72 hidden md:flex flex-col border-r bg-white relative z-20">
       <div class="px-6 py-5 flex items-center gap-3">
         <div class="h-10 w-10 rounded-xl bg-slate-900 text-white grid place-items-center font-bold">HO</div>
-        <div>
+        <div class="flex-1">
           <div class="font-semibold leading-tight">HawkerOps</div>
           <div class="text-xs text-slate-500">Store Management</div>
+        </div>
+        <button onclick="toggleInfoPopup()" class="h-6 w-6 rounded-full bg-slate-200 hover:bg-slate-300 text-slate-600 text-xs font-bold flex items-center justify-center transition">
+          i
+        </button>
+      </div>
+
+      <!-- Info Popup -->
+      <div id="infoPopup" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6">
+          <div class="flex items-center justify-between mb-4">
+            <h3 class="text-lg font-bold text-slate-900">App Guide</h3>
+            <button onclick="toggleInfoPopup()" class="text-slate-400 hover:text-slate-600 text-2xl leading-none">&times;</button>
+          </div>
+
+          <div class="space-y-4 text-sm">
+            <div>
+              <div class="font-semibold text-slate-900 mb-1">🔄 Run Sync Button</div>
+              <p class="text-slate-600">Refreshes data from the database. Updates platform status and item availability without running scrapers.</p>
+            </div>
+
+            <div>
+              <div class="font-semibold text-slate-900 mb-1">↻ Refresh Button</div>
+              <p class="text-slate-600">Reloads the current page to show the latest data from the database.</p>
+            </div>
+
+            <div>
+              <div class="font-semibold text-slate-900 mb-1">⚠️ Platforms Page Issue</div>
+              <p class="text-slate-600">Sometimes an entire column may show as offline. Simply refresh the page or press the button again to reload the correct status.</p>
+            </div>
+
+            <div>
+              <div class="font-semibold text-slate-900 mb-1">🕐 Auto-Refresh</div>
+              <p class="text-slate-600">Pages automatically reload every 5 minutes to keep data up-to-date.</p>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -156,6 +191,19 @@
     setTimeout(() => {
       window.location.reload();
     }, 300000);
+
+    // Toggle info popup
+    function toggleInfoPopup() {
+      const popup = document.getElementById('infoPopup');
+      popup.classList.toggle('hidden');
+    }
+
+    // Close popup when clicking outside
+    document.getElementById('infoPopup')?.addEventListener('click', function(e) {
+      if (e.target === this) {
+        toggleInfoPopup();
+      }
+    });
   </script>
 
   @yield('extra-scripts')
