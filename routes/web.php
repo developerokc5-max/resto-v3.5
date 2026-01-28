@@ -669,52 +669,6 @@ Route::get('/store/{shopId}', function ($shopId) {
     ]);
 });
 
-// History Page
-Route::get('/history', function () {
-    // Get today's date in SGT timezone
-    $today = \Carbon\Carbon::now('Asia/Singapore')->toDateString();
-
-    $lastSyncTime = DB::table('items')->max('updated_at');
-
-    // Get platform stats (current status, not changes)
-    $platformStats = DB::table('platform_status')
-        ->select(
-            DB::raw('COUNT(*) as total'),
-            DB::raw('SUM(CASE WHEN is_online = 1 THEN 1 ELSE 0 END) as online'),
-            DB::raw('SUM(CASE WHEN is_online = 0 THEN 1 ELSE 0 END) as offline')
-        )
-        ->first();
-
-    // Get item stats (current status from items table, not changes)
-    $itemStats = DB::table('items')
-        ->select(
-            DB::raw('COUNT(DISTINCT (name || "|" || category || "|" || shop_name)) as total'),
-            DB::raw('SUM(CASE WHEN is_available = 1 THEN 1 ELSE 0 END) as on_count'),
-            DB::raw('SUM(CASE WHEN is_available = 0 THEN 1 ELSE 0 END) as off_count')
-        )
-        ->first();
-
-    // Calculate unique items ON/OFF (divide by 3 since each item has 3 platform entries and round to integer)
-    $totalUniqueItems = (int) ($itemStats->total ?? 0);
-    $itemsOn = (int) round(($itemStats->on_count ?? 0) / 3);
-    $itemsOff = (int) round(($itemStats->off_count ?? 0) / 3);
-
-    return view('item-tracking', [
-        'platformStats' => [
-            'total' => $platformStats->total ?? 0,
-            'online' => $platformStats->online ?? 0,
-            'offline' => $platformStats->offline ?? 0,
-        ],
-        'itemStats' => [
-            'total' => $totalUniqueItems,
-            'on' => $itemsOn,
-            'off' => $itemsOff,
-        ],
-        'today' => \Carbon\Carbon::now('Asia/Singapore')->format('l, M j, Y'),
-        'lastSync' => $lastSyncTime ? \Carbon\Carbon::parse($lastSyncTime)->timezone('Asia/Singapore')->format('M j, Y h:i A') . ' SGT' : 'Never',
-    ]);
-});
-
 // HYBRID: Platform Status Page
 Route::get('/platforms', function () {
     $shopMap = ShopHelper::getShopMap();
