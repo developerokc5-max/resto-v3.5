@@ -32,7 +32,7 @@
             <button onclick="toggleInfoPopup()" class="text-slate-400 hover:text-slate-600 text-2xl leading-none">&times;</button>
           </div>
 
-          <div class="space-y-4 text-sm">
+          <div class="space-y-4 text-sm max-h-96 overflow-y-auto">
             <div>
               <div class="font-semibold text-slate-900 mb-1">🔄 Run Sync Button</div>
               <p class="text-slate-600">Refreshes data from the database. Updates platform status and item availability without running scrapers.</p>
@@ -51,6 +51,36 @@
             <div>
               <div class="font-semibold text-slate-900 mb-1">🕐 Auto-Refresh</div>
               <p class="text-slate-600">Pages automatically reload every 5 minutes to keep data up-to-date.</p>
+            </div>
+
+            <div>
+              <div class="font-semibold text-slate-900 mb-1">🏪 Store Details "View" Button</div>
+              <p class="text-slate-600">Click "View" on any store to see all menu items with their ACTIVE/INACTIVE status across all platforms.</p>
+            </div>
+
+            <div>
+              <div class="font-semibold text-slate-900 mb-1">📊 Status Indicators</div>
+              <p class="text-slate-600">Green = Online/Active, Red = Offline/Inactive, Yellow/Orange = Mixed status (some platforms down).</p>
+            </div>
+
+            <div>
+              <div class="font-semibold text-slate-900 mb-1">📝 Store Logs</div>
+              <p class="text-slate-600">Click on any store's "Logs" to see daily status history. New entry created each day with real-time updates throughout the day.</p>
+            </div>
+
+            <div>
+              <div class="font-semibold text-slate-900 mb-1">🔢 Items Count</div>
+              <p class="text-slate-600">Each menu item appears 3 times in the database (once per platform: Grab, FoodPanda, Deliveroo). Counts show unique items.</p>
+            </div>
+
+            <div>
+              <div class="font-semibold text-slate-900 mb-1">🌐 Platforms Coverage</div>
+              <p class="text-slate-600">System tracks 3 delivery platforms: Grab (Green), FoodPanda (Pink), Deliveroo (Blue). Total of 46 restaurant outlets monitored.</p>
+            </div>
+
+            <div>
+              <div class="font-semibold text-slate-900 mb-1">⏰ Timezone</div>
+              <p class="text-slate-600">All timestamps are displayed in Singapore Time (SGT, UTC+8).</p>
             </div>
           </div>
         </div>
