@@ -1245,3 +1245,104 @@ Route::get('/items-mock', function () {
         'items' => $items,
     ]);
 });
+
+// ========== NEW PAGES: ALERTS, REPORTS, SETTINGS ==========
+
+// Alerts Page
+Route::get('/alerts', function () {
+    // Mock alert data - will be replaced with real data later
+    $alerts = [
+        [
+            'type' => 'critical',
+            'title' => 'Platform Down: FoodPanda',
+            'message' => '3 stores are currently offline on FoodPanda platform',
+            'time' => '5 minutes ago',
+            'store' => 'Multiple stores',
+        ],
+        [
+            'type' => 'warning',
+            'title' => 'High Offline Items',
+            'message' => 'McDonald\'s Jurong Point has 25 items offline',
+            'time' => '12 minutes ago',
+            'store' => 'McDonald\'s Jurong Point',
+        ],
+    ];
+
+    $stats = [
+        'critical' => 1,
+        'warnings' => 1,
+        'info' => 0,
+        'resolved' => 5,
+    ];
+
+    return view('alerts', [
+        'alerts' => $alerts,
+        'stats' => $stats,
+        'lastSync' => \Carbon\Carbon::now('Asia/Singapore')->format('M j, Y h:i A') . ' SGT',
+    ]);
+});
+
+// Reports: Daily Trends
+Route::get('/reports/daily-trends', function () {
+    $trends = [
+        'avg_uptime' => '98.5',
+        'avg_offline' => '12',
+        'peak_hour' => '2 PM',
+        'incidents' => '8',
+    ];
+
+    return view('reports.daily-trends', [
+        'trends' => $trends,
+        'lastSync' => \Carbon\Carbon::now('Asia/Singapore')->format('M j, Y h:i A') . ' SGT',
+    ]);
+});
+
+// Reports: Platform Reliability
+Route::get('/reports/platform-reliability', function () {
+    return view('reports.platform-reliability', [
+        'lastSync' => \Carbon\Carbon::now('Asia/Singapore')->format('M j, Y h:i A') . ' SGT',
+    ]);
+});
+
+// Reports: Item Performance
+Route::get('/reports/item-performance', function () {
+    $itemStats = [
+        'total' => '2,450',
+        'frequent_offline' => '47',
+        'always_on' => '2,103',
+        'sometimes_off' => '300',
+    ];
+
+    return view('reports.item-performance', [
+        'itemStats' => $itemStats,
+        'lastSync' => \Carbon\Carbon::now('Asia/Singapore')->format('M j, Y h:i A') . ' SGT',
+    ]);
+});
+
+// Reports: Store Comparison
+Route::get('/reports/store-comparison', function () {
+    return view('reports.store-comparison', [
+        'lastSync' => \Carbon\Carbon::now('Asia/Singapore')->format('M j, Y h:i A') . ' SGT',
+    ]);
+});
+
+// Settings: Scraper Status
+Route::get('/settings/scraper-status', function () {
+    return view('settings.scraper-status', [
+        'lastSync' => \Carbon\Carbon::now('Asia/Singapore')->format('M j, Y h:i A') . ' SGT',
+    ]);
+});
+
+// Settings: Configuration
+Route::get('/settings/configuration', function () {
+    return view('settings.configuration', [
+        'lastSync' => \Carbon\Carbon::now('Asia/Singapore')->format('M j, Y h:i A') . ' SGT',
+    ]);
+});
+
+// Settings: Export Data
+Route::get('/settings/export', function () {
+    return view('settings.export', [
+        'lastSync' => \Carbon\Carbon::now('Asia/Singapore')->format('M j, Y h:i A') . ' SGT',
+    ]);
+});

@@ -86,19 +86,70 @@
         </div>
       </div>
 
-      <nav class="px-3 pb-6 space-y-1">
+      <nav class="px-3 pb-6 space-y-1 overflow-y-auto flex-1">
         <a class="flex items-center gap-3 px-3 py-2 rounded-xl @if(Request::is('/') || Request::is('dashboard')) bg-slate-900 text-white shadow-sm @else text-slate-700 hover:bg-slate-100 @endif transition" href="/">
-          <span class="text-sm font-medium">Overview</span>
+          <span class="text-sm font-medium">📊 Overview</span>
         </a>
         <a class="flex items-center gap-3 px-3 py-2 rounded-xl @if(Request::is('stores')) bg-slate-900 text-white shadow-sm @else text-slate-700 hover:bg-slate-100 @endif transition" href="/stores">
-          <span class="text-sm font-medium">Stores</span>
+          <span class="text-sm font-medium">🏪 Stores</span>
         </a>
         <a class="flex items-center gap-3 px-3 py-2 rounded-xl @if(Request::is('items')) bg-slate-900 text-white shadow-sm @else text-slate-700 hover:bg-slate-100 @endif transition" href="/items">
-          <span class="text-sm font-medium">Items</span>
+          <span class="text-sm font-medium">📦 Items</span>
         </a>
         <a class="flex items-center gap-3 px-3 py-2 rounded-xl @if(Request::is('platforms')) bg-slate-900 text-white shadow-sm @else text-slate-700 hover:bg-slate-100 @endif transition" href="/platforms">
-          <span class="text-sm font-medium">Platforms</span>
+          <span class="text-sm font-medium">🌐 Platforms</span>
         </a>
+        <a class="flex items-center gap-3 px-3 py-2 rounded-xl @if(Request::is('alerts')) bg-slate-900 text-white shadow-sm @else text-slate-700 hover:bg-slate-100 @endif transition" href="/alerts">
+          <span class="text-sm font-medium">🔔 Alerts</span>
+        </a>
+
+        <!-- Divider -->
+        <div class="border-t border-slate-200 my-2"></div>
+
+        <!-- Reports Section -->
+        <div class="space-y-1">
+          <button onclick="toggleSection('reports')" class="flex items-center justify-between w-full px-3 py-2 rounded-xl text-slate-700 hover:bg-slate-100 transition">
+            <span class="text-sm font-medium">📈 Reports</span>
+            <svg id="reports-arrow" class="w-4 h-4 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+            </svg>
+          </button>
+          <div id="reports-section" class="hidden pl-4 space-y-1">
+            <a class="flex items-center gap-2 px-3 py-2 rounded-lg @if(Request::is('reports/daily-trends')) bg-slate-100 text-slate-900 @else text-slate-600 hover:bg-slate-50 @endif transition text-sm" href="/reports/daily-trends">
+              Daily Trends
+            </a>
+            <a class="flex items-center gap-2 px-3 py-2 rounded-lg @if(Request::is('reports/platform-reliability')) bg-slate-100 text-slate-900 @else text-slate-600 hover:bg-slate-50 @endif transition text-sm" href="/reports/platform-reliability">
+              Platform Reliability
+            </a>
+            <a class="flex items-center gap-2 px-3 py-2 rounded-lg @if(Request::is('reports/item-performance')) bg-slate-100 text-slate-900 @else text-slate-600 hover:bg-slate-50 @endif transition text-sm" href="/reports/item-performance">
+              Item Performance
+            </a>
+            <a class="flex items-center gap-2 px-3 py-2 rounded-lg @if(Request::is('reports/store-comparison')) bg-slate-100 text-slate-900 @else text-slate-600 hover:bg-slate-50 @endif transition text-sm" href="/reports/store-comparison">
+              Store Comparison
+            </a>
+          </div>
+        </div>
+
+        <!-- Settings Section -->
+        <div class="space-y-1">
+          <button onclick="toggleSection('settings')" class="flex items-center justify-between w-full px-3 py-2 rounded-xl text-slate-700 hover:bg-slate-100 transition">
+            <span class="text-sm font-medium">⚙️ Settings</span>
+            <svg id="settings-arrow" class="w-4 h-4 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+            </svg>
+          </button>
+          <div id="settings-section" class="hidden pl-4 space-y-1">
+            <a class="flex items-center gap-2 px-3 py-2 rounded-lg @if(Request::is('settings/scraper-status')) bg-slate-100 text-slate-900 @else text-slate-600 hover:bg-slate-50 @endif transition text-sm" href="/settings/scraper-status">
+              Scraper Status
+            </a>
+            <a class="flex items-center gap-2 px-3 py-2 rounded-lg @if(Request::is('settings/configuration')) bg-slate-100 text-slate-900 @else text-slate-600 hover:bg-slate-50 @endif transition text-sm" href="/settings/configuration">
+              Configuration
+            </a>
+            <a class="flex items-center gap-2 px-3 py-2 rounded-lg @if(Request::is('settings/export')) bg-slate-100 text-slate-900 @else text-slate-600 hover:bg-slate-50 @endif transition text-sm" href="/settings/export">
+              Export Data
+            </a>
+          </div>
+        </div>
       </nav>
 
       <div class="mt-auto p-4">
@@ -234,6 +285,15 @@
         toggleInfoPopup();
       }
     });
+
+    // Toggle sidebar sections
+    function toggleSection(sectionName) {
+      const section = document.getElementById(sectionName + '-section');
+      const arrow = document.getElementById(sectionName + '-arrow');
+
+      section.classList.toggle('hidden');
+      arrow.classList.toggle('rotate-180');
+    }
   </script>
 
   @yield('extra-scripts')
