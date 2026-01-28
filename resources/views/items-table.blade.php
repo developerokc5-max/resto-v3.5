@@ -157,8 +157,15 @@
         Showing {{($currentPage - 1) * $perPage + 1}} - {{min($currentPage * $perPage, $totalItems)}} of {{$totalItems}} items
       </div>
       <div class="flex items-center gap-2">
+        @php
+          // Build query string to preserve filters
+          $queryParams = request()->except('page');
+          $queryString = http_build_query($queryParams);
+          $queryPrefix = $queryString ? '&' : '';
+        @endphp
+
         @if($currentPage > 1)
-          <a href="?page={{$currentPage - 1}}" class="px-4 py-2 border border-slate-300 rounded-xl text-sm font-medium hover:bg-slate-50 transition">
+          <a href="?page={{$currentPage - 1}}{{$queryPrefix}}{{$queryString}}" class="px-4 py-2 border border-slate-300 rounded-xl text-sm font-medium hover:bg-slate-50 transition">
             Previous
           </a>
         @else
@@ -174,7 +181,7 @@
           @endphp
 
           @if($startPage > 1)
-            <a href="?page=1" class="px-3 py-2 border border-slate-300 rounded-lg text-sm hover:bg-slate-50 transition">1</a>
+            <a href="?page=1{{$queryPrefix}}{{$queryString}}" class="px-3 py-2 border border-slate-300 rounded-lg text-sm hover:bg-slate-50 transition">1</a>
             @if($startPage > 2)
               <span class="px-2 text-slate-400">...</span>
             @endif
@@ -184,7 +191,7 @@
             @if($i == $currentPage)
               <span class="px-3 py-2 bg-slate-900 text-white rounded-lg text-sm font-medium">{{$i}}</span>
             @else
-              <a href="?page={{$i}}" class="px-3 py-2 border border-slate-300 rounded-lg text-sm hover:bg-slate-50 transition">{{$i}}</a>
+              <a href="?page={{$i}}{{$queryPrefix}}{{$queryString}}" class="px-3 py-2 border border-slate-300 rounded-lg text-sm hover:bg-slate-50 transition">{{$i}}</a>
             @endif
           @endfor
 
@@ -192,12 +199,12 @@
             @if($endPage < $totalPages - 1)
               <span class="px-2 text-slate-400">...</span>
             @endif
-            <a href="?page={{$totalPages}}" class="px-3 py-2 border border-slate-300 rounded-lg text-sm hover:bg-slate-50 transition">{{$totalPages}}</a>
+            <a href="?page={{$totalPages}}{{$queryPrefix}}{{$queryString}}" class="px-3 py-2 border border-slate-300 rounded-lg text-sm hover:bg-slate-50 transition">{{$totalPages}}</a>
           @endif
         </div>
 
         @if($currentPage < $totalPages)
-          <a href="?page={{$currentPage + 1}}" class="px-4 py-2 border border-slate-300 rounded-xl text-sm font-medium hover:bg-slate-50 transition">
+          <a href="?page={{$currentPage + 1}}{{$queryPrefix}}{{$queryString}}" class="px-4 py-2 border border-slate-300 rounded-xl text-sm font-medium hover:bg-slate-50 transition">
             Next
           </a>
         @else
