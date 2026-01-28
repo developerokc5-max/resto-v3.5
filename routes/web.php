@@ -957,6 +957,7 @@ Route::get('/store/{shopId}/logs', function ($shopId) {
 
     if (!$existingLog) {
         // Create a new log entry for today
+        $nowSgt = \Carbon\Carbon::now('Asia/Singapore');
         DB::table('store_status_logs')->insert([
             'shop_id' => $shopId,
             'shop_name' => $shopInfo['name'],
@@ -964,9 +965,9 @@ Route::get('/store/{shopId}/logs', function ($shopId) {
             'total_platforms' => 3,
             'total_offline_items' => $totalOffline,
             'platform_data' => json_encode($platformData),
-            'logged_at' => now('Asia/Singapore'),
-            'created_at' => now(),
-            'updated_at' => now(),
+            'logged_at' => $nowSgt,
+            'created_at' => $nowSgt,
+            'updated_at' => $nowSgt,
         ]);
     }
 
