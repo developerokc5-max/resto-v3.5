@@ -47,7 +47,7 @@
         <a class="flex items-center gap-3 px-3 py-2 rounded-xl text-slate-700 hover:bg-slate-100 transition" href="/platforms">
           <span class="text-sm font-medium">Platforms</span>
         </a>
-        <a class="flex items-center gap-3 px-3 py-2 rounded-xl text-slate-700 hover:bg-slate-100 transition" href="/item-tracking">
+        <a class="flex items-center gap-3 px-3 py-2 rounded-xl text-slate-700 hover:bg-slate-100 transition" href="/history">
           <span class="text-sm font-medium">History</span>
         </a>
       </nav>
@@ -57,7 +57,7 @@
           <div class="text-xs text-slate-500">Last Updated (SGT)</div>
           <div class="text-xs font-semibold" id="lastSyncTime">{{ $lastSync ?? '—' }}</div>
           <button onclick="triggerSync()" id="syncBtn" class="mt-3 w-full rounded-xl bg-slate-900 text-white py-2 text-sm font-medium hover:opacity-90 transition">
-            Run Sync
+            Refresh Data
           </button>
         </div>
       </div>
@@ -405,79 +405,18 @@
       window.location.href = `/store/${shopId}`;
     }
 
-    // Trigger RestoSuite API sync (HYBRID: API first, then scrape)
-    async function triggerSync() {
+    // Refresh Overview - reads from existing database (no scraping)
+    function triggerSync() {
       const btn = document.getElementById('syncBtn');
       const originalText = btn.textContent;
       btn.disabled = true;
-      btn.textContent = 'Syncing API...';
+      btn.textContent = 'Refreshing...';
 
-      try {
-        // STEP 1: Try RestoSuite API first
-        const apiResponse = await fetch('/api/sync/resosuite', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Accept': 'application/json'
-          }
-        });
-
-        const apiData = await apiResponse.json();
-
-        if (apiData.success) {
-          btn.textContent = 'Scraping platforms...';
-
-          // STEP 2: Then scrape platform status
-          const scrapeResponse = await fetch('/api/sync/scrape', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Accept': 'application/json'
-            }
-          });
-
-          const scrapeData = await scrapeResponse.json();
-
-          if (scrapeData.success) {
-            alert('✅ Hybrid sync completed!\n\n' +
-                  '✓ RestoSuite API synced\n' +
-                  '✓ Platform status scraped\n\n' +
-                  'Reloading dashboard...');
-            setTimeout(() => window.location.reload(), 1000);
-          } else {
-            alert('⚠️ Partial success:\n\n' +
-                  '✓ RestoSuite API synced\n' +
-                  '✗ Platform scraping failed: ' + scrapeData.message);
-            setTimeout(() => window.location.reload(), 2000);
-          }
-        } else {
-          alert('❌ API sync failed: ' + apiData.message + '\n\nTrying platform scraping only...');
-
-          // Fallback: Try scraping if API fails
-          btn.textContent = 'Scraping platforms...';
-          const scrapeResponse = await fetch('/api/sync/scrape', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Accept': 'application/json'
-            }
-          });
-
-          const scrapeData = await scrapeResponse.json();
-
-          if (scrapeData.success) {
-            alert('✅ Platform scraping completed (API unavailable)');
-            setTimeout(() => window.location.reload(), 1000);
-          } else {
-            alert('❌ Both sync methods failed');
-          }
-        }
-      } catch (error) {
-        alert('❌ Error: ' + error.message);
-      } finally {
-        btn.disabled = false;
-        btn.textContent = originalText;
-      }
+      // Simply reload the page to show latest database data
+      // Data is already updated by Platform and Items page scrapers
+      setTimeout(() => {
+        window.location.reload();
+      }, 500);
     }
 
     // Filter stores by search (for table view)

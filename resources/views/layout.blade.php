@@ -34,7 +34,7 @@
         <a class="flex items-center gap-3 px-3 py-2 rounded-xl @if(Request::is('platforms')) bg-slate-900 text-white shadow-sm @else text-slate-700 hover:bg-slate-100 @endif transition" href="/platforms">
           <span class="text-sm font-medium">Platforms</span>
         </a>
-        <a class="flex items-center gap-3 px-3 py-2 rounded-xl @if(Request::is('item-tracking')) bg-slate-900 text-white shadow-sm @else text-slate-700 hover:bg-slate-100 @endif transition" href="/item-tracking">
+        <a class="flex items-center gap-3 px-3 py-2 rounded-xl @if(Request::is('history')) bg-slate-900 text-white shadow-sm @else text-slate-700 hover:bg-slate-100 @endif transition" href="/history">
           <span class="text-sm font-medium">History</span>
         </a>
       </nav>

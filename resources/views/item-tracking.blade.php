@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Item Tracking History - HawkerOps</title>
+  <title>History - HawkerOps</title>
   <script src="https://cdn.tailwindcss.com"></script>
 </head>
 
@@ -33,7 +33,7 @@
         <a class="flex items-center gap-3 px-3 py-2 rounded-xl text-slate-700 hover:bg-slate-100 transition" href="/platforms">
           <span class="text-sm font-medium">Platforms</span>
         </a>
-        <a class="flex items-center gap-3 px-3 py-2 rounded-xl bg-slate-900 text-white shadow-sm" href="/item-tracking">
+        <a class="flex items-center gap-3 px-3 py-2 rounded-xl bg-slate-900 text-white shadow-sm" href="/history">
           <span class="text-sm font-medium">History</span>
         </a>
       </nav>
@@ -41,9 +41,9 @@
       <div class="mt-auto p-4">
         <div class="rounded-2xl bg-slate-50 border p-4">
           <div class="text-xs text-slate-500">Last sync</div>
-          <div class="font-semibold" id="lastSyncTime">{{ $lastSync ?? '—' }}</div>
-          <button id="runSyncBtn" onclick="runItemsSync()" class="mt-3 w-full rounded-xl bg-slate-900 text-white py-2 text-sm font-medium hover:opacity-90 transition disabled:opacity-50 disabled:cursor-not-allowed">
-            <span id="syncBtnText">Run Sync</span>
+          <div class="text-sm font-semibold" id="lastSyncTime">{{ $lastSync ?? '—' }}</div>
+          <button onclick="window.location.reload()" class="mt-3 w-full rounded-xl bg-slate-900 text-white py-2 text-sm font-medium hover:opacity-90 transition">
+            Refresh Data
           </button>
         </div>
       </div>
@@ -55,8 +55,8 @@
       <header class="sticky top-0 z-10 bg-white/80 backdrop-blur border-b">
         <div class="px-4 md:px-8 py-4 flex items-center justify-between gap-3">
           <div>
-            <h1 class="text-xl font-semibold">Item Tracking History</h1>
-            <p class="text-sm text-slate-500">Monitor when items are turned ON/OFF across all stores</p>
+            <h1 class="text-xl font-semibold">History</h1>
+            <p class="text-sm text-slate-500">Activity log of outlet and item status changes</p>
           </div>
 
           <div class="flex items-center gap-2">
@@ -74,121 +74,61 @@
 
       <div class="px-4 md:px-8 py-6 space-y-6">
 
-        <!-- Stats -->
-        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <div class="bg-white border rounded-2xl p-5 shadow-sm">
-            <div class="text-sm text-slate-500">Total Changes Today</div>
-            <div class="mt-2 text-3xl font-semibold">{{ count($changes ?? []) }}</div>
-          </div>
-
-          <div class="bg-white border rounded-2xl p-5 shadow-sm">
-            <div class="text-sm text-slate-500">Items Turned OFF</div>
-            <div class="mt-2 text-3xl font-semibold text-red-600">{{ $stats['turned_off'] ?? 0 }}</div>
-          </div>
-
-          <div class="bg-white border rounded-2xl p-5 shadow-sm">
-            <div class="text-sm text-slate-500">Items Turned ON</div>
-            <div class="mt-2 text-3xl font-semibold text-emerald-600">{{ $stats['turned_on'] ?? 0 }}</div>
-          </div>
+        <!-- Date Display -->
+        <div class="bg-gradient-to-r from-slate-900 to-slate-700 rounded-2xl p-6 text-white">
+          <div class="text-sm opacity-80">Showing changes for</div>
+          <div class="text-2xl font-bold mt-1">{{ $today ?? 'Today' }}</div>
         </div>
 
-        <!-- Changes Timeline -->
-        <div class="bg-white border rounded-2xl overflow-hidden">
-          <div class="px-6 py-4 border-b bg-slate-50">
-            <h2 class="font-semibold text-slate-900">Recent Changes</h2>
-          </div>
-
-          <div class="divide-y">
-            @forelse($changes ?? [] as $change)
-              <div class="px-6 py-4 hover:bg-slate-50 transition">
-                <div class="flex items-start gap-4">
-                  <!-- Food Icon -->
-                  <div class="flex-shrink-0 w-12 h-12 rounded-xl bg-slate-100 flex items-center justify-center text-2xl">
-                    @php
-                      $name = strtolower($change['item_name'] ?? '');
-                      $emoji = '🍽️';
-                      if (str_contains($name, 'chicken') || str_contains($name, 'chix')) $emoji = '🍗';
-                      elseif (str_contains($name, 'rice')) $emoji = '🍚';
-                      elseif (str_contains($name, 'nood') || str_contains($name, 'mee')) $emoji = '🍜';
-                      elseif (str_contains($name, 'drink')) $emoji = '🥤';
-                      elseif (str_contains($name, 'porridge')) $emoji = '🥣';
-                    @endphp
-                    {{ $emoji }}
-                  </div>
-
-                  <!-- Change Details -->
-                  <div class="flex-1 min-w-0">
-                    <div class="flex items-start justify-between gap-4 mb-2">
-                      <div>
-                        <h3 class="font-semibold text-slate-900">{{ $change['item_name'] ?? 'Unknown Item' }}</h3>
-                        <p class="text-sm text-slate-500">{{ $change['shop_name'] ?? 'Unknown Store' }} • Shop ID: {{ $change['shop_id'] ?? '' }}</p>
-                      </div>
-                      <div class="text-xs text-slate-500 whitespace-nowrap">
-                        {{ $change['timestamp'] ?? '—' }}
-                      </div>
-                    </div>
-
-                    <!-- Change Details -->
-                    <div class="space-y-2">
-                      @if(isset($change['changes']['is_active']))
-                        <div class="flex items-center gap-3">
-                          <span class="text-sm text-slate-600">Status:</span>
-                          <div class="flex items-center gap-2">
-                            @if($change['changes']['is_active']['from'] == 1)
-                              <span class="px-2 py-1 rounded text-xs font-medium bg-emerald-100 text-emerald-700">ON</span>
-                              <span class="text-slate-400">→</span>
-                              <span class="px-2 py-1 rounded text-xs font-medium bg-red-100 text-red-700">OFF</span>
-                              <span class="ml-2 px-2 py-1 rounded-full text-xs font-medium bg-red-50 text-red-600">⚠️ Item Disabled</span>
-                            @else
-                              <span class="px-2 py-1 rounded text-xs font-medium bg-red-100 text-red-700">OFF</span>
-                              <span class="text-slate-400">→</span>
-                              <span class="px-2 py-1 rounded text-xs font-medium bg-emerald-100 text-emerald-700">ON</span>
-                              <span class="ml-2 px-2 py-1 rounded-full text-xs font-medium bg-emerald-50 text-emerald-600">✓ Item Enabled</span>
-                            @endif
-                          </div>
-                        </div>
-                      @endif
-
-                      @if(isset($change['changes']['price']))
-                        <div class="flex items-center gap-3">
-                          <span class="text-sm text-slate-600">Price:</span>
-                          <div class="flex items-center gap-2">
-                            <span class="text-sm font-mono">${{ number_format($change['changes']['price']['from'] ?? 0, 2) }}</span>
-                            <span class="text-slate-400">→</span>
-                            <span class="text-sm font-mono font-semibold">${{ number_format($change['changes']['price']['to'] ?? 0, 2) }}</span>
-                          </div>
-                        </div>
-                      @endif
-
-                      @if(isset($change['changes']['name']))
-                        <div class="flex items-center gap-3">
-                          <span class="text-sm text-slate-600">Name:</span>
-                          <div class="flex items-center gap-2">
-                            <span class="text-sm text-slate-500">{{ $change['changes']['name']['from'] }}</span>
-                            <span class="text-slate-400">→</span>
-                            <span class="text-sm font-medium">{{ $change['changes']['name']['to'] }}</span>
-                          </div>
-                        </div>
-                      @endif
-
-                      @if(isset($change['changes']['created']) && $change['changes']['created'])
-                        <div class="inline-flex items-center gap-2 px-2 py-1 rounded-full text-xs font-medium bg-blue-50 text-blue-600">
-                          ✨ New Item Added
-                        </div>
-                      @endif
-                    </div>
-                  </div>
+        <!-- Summary Card -->
+        <div class="bg-white border rounded-2xl shadow-sm overflow-hidden">
+          <div class="grid grid-cols-1 md:grid-cols-2 divide-y md:divide-y-0 md:divide-x">
+            <!-- Platforms Section -->
+            <div class="p-6">
+              <h3 class="text-sm font-medium text-slate-500 mb-4">Platforms</h3>
+              <div class="space-y-3">
+                <div class="flex items-center justify-between">
+                  <span class="text-sm text-slate-600">ON:</span>
+                  <span class="text-3xl font-bold text-green-600">{{ $platformStats['online'] ?? 0 }}</span>
+                </div>
+                <div class="flex items-center justify-between">
+                  <span class="text-sm text-slate-600">OFF:</span>
+                  <span class="text-3xl font-bold text-red-600">{{ $platformStats['offline'] ?? 0 }}</span>
+                </div>
+                <div class="flex items-center justify-between pt-3 border-t">
+                  <span class="text-sm font-semibold text-slate-700">Total:</span>
+                  <span class="text-2xl font-bold text-slate-900">{{ $platformStats['total'] ?? 0 }}</span>
                 </div>
               </div>
-            @empty
-              <div class="px-6 py-12 text-center">
-                <div class="text-6xl mb-4">📊</div>
-                <h3 class="text-lg font-semibold text-slate-900 mb-2">No Changes Recorded</h3>
-                <p class="text-sm text-slate-500">Item changes will appear here when items are turned ON/OFF or modified</p>
+              <a href="/platforms" target="_blank" class="mt-4 block w-full text-center px-4 py-2.5 bg-slate-900 text-white rounded-xl text-sm font-semibold hover:opacity-90 transition">
+                View Platforms →
+              </a>
+            </div>
+
+            <!-- Items Section -->
+            <div class="p-6">
+              <h3 class="text-sm font-medium text-slate-500 mb-4">Items</h3>
+              <div class="space-y-3">
+                <div class="flex items-center justify-between">
+                  <span class="text-sm text-slate-600">ON:</span>
+                  <span class="text-3xl font-bold text-green-600">{{ $itemStats['on'] ?? 0 }}</span>
+                </div>
+                <div class="flex items-center justify-between">
+                  <span class="text-sm text-slate-600">OFF:</span>
+                  <span class="text-3xl font-bold text-red-600">{{ $itemStats['off'] ?? 0 }}</span>
+                </div>
+                <div class="flex items-center justify-between pt-3 border-t">
+                  <span class="text-sm font-semibold text-slate-700">Total:</span>
+                  <span class="text-2xl font-bold text-slate-900">{{ $itemStats['total'] ?? 0 }}</span>
+                </div>
               </div>
-            @endforelse
+              <a href="/items" target="_blank" class="mt-4 block w-full text-center px-4 py-2.5 bg-slate-900 text-white rounded-xl text-sm font-semibold hover:opacity-90 transition">
+                View Items →
+              </a>
+            </div>
           </div>
         </div>
+
 
       </div>
     </main>

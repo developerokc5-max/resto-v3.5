@@ -33,17 +33,17 @@
         <a class="flex items-center gap-3 px-3 py-2 rounded-xl text-slate-700 hover:bg-slate-100 transition" href="/platforms">
           <span class="text-sm font-medium">Platforms</span>
         </a>
-        <a class="flex items-center gap-3 px-3 py-2 rounded-xl text-slate-700 hover:bg-slate-100 transition" href="/item-tracking">
+        <a class="flex items-center gap-3 px-3 py-2 rounded-xl text-slate-700 hover:bg-slate-100 transition" href="/history">
           <span class="text-sm font-medium">History</span>
         </a>
       </nav>
 
       <div class="mt-auto p-4">
         <div class="rounded-2xl bg-slate-50 border p-4">
-          <div class="text-xs text-slate-500">Last sync</div>
-          <div class="font-semibold">{{ $lastSync ?? '—' }}</div>
-          <button class="mt-3 w-full rounded-xl bg-slate-900 text-white py-2 text-sm font-medium hover:opacity-90 transition">
-            Run Sync
+          <div class="text-xs text-slate-500">Last Updated (SGT)</div>
+          <div class="text-xs font-semibold">{{ $lastSync ?? '—' }}</div>
+          <button onclick="refreshStores()" id="syncBtn" class="mt-3 w-full rounded-xl bg-slate-900 text-white py-2 text-sm font-medium hover:opacity-90 transition">
+            Refresh Data
           </button>
         </div>
       </div>
@@ -79,7 +79,6 @@
               <thead class="bg-slate-50 border-b">
                 <tr>
                   <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Store</th>
-                  <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Brand</th>
                   <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Shop ID</th>
                   <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Status</th>
                   <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Total Items</th>
@@ -95,15 +94,22 @@
                     <div class="font-medium text-slate-900">{{ $store['store'] }}</div>
                   </td>
                   <td class="px-6 py-4 whitespace-nowrap">
-                    <div class="text-sm text-slate-600">{{ $store['brand'] }}</div>
-                  </td>
-                  <td class="px-6 py-4 whitespace-nowrap">
                     <div class="text-sm font-mono text-slate-500">{{ $store['shop_id'] }}</div>
                   </td>
                   <td class="px-6 py-4 whitespace-nowrap">
-                    <span class="px-2.5 py-1 rounded-full text-xs font-medium bg-emerald-50 text-emerald-700 border border-emerald-100">
-                      {{ $store['status'] }}
-                    </span>
+                    @if($store['status'] === 'all_online')
+                      <span class="px-2.5 py-1 rounded-full text-xs font-medium bg-emerald-50 text-emerald-700 border border-emerald-200">
+                        ✓ {{ $store['status_text'] }}
+                      </span>
+                    @elseif($store['status'] === 'all_offline')
+                      <span class="px-2.5 py-1 rounded-full text-xs font-medium bg-red-50 text-red-700 border border-red-200">
+                        ✕ {{ $store['status_text'] }}
+                      </span>
+                    @else
+                      <span class="px-2.5 py-1 rounded-full text-xs font-medium bg-amber-50 text-amber-700 border border-amber-200">
+                        ⚠ {{ $store['status_text'] }}
+                      </span>
+                    @endif
                   </td>
                   <td class="px-6 py-4 whitespace-nowrap">
                     <div class="text-sm text-slate-900">{{ $store['total_items'] ?? 0 }}</div>
@@ -137,5 +143,21 @@
       </div>
     </main>
   </div>
+
+  <script>
+    // Refresh Stores - reads from existing database (no scraping)
+    function refreshStores() {
+      const btn = document.getElementById('syncBtn');
+      const originalText = btn.textContent;
+      btn.disabled = true;
+      btn.textContent = 'Refreshing...';
+
+      // Simply reload the page to show latest database data
+      // Data is already updated by Platform and Items page scrapers
+      setTimeout(() => {
+        window.location.reload();
+      }, 500);
+    }
+  </script>
 </body>
 </html>

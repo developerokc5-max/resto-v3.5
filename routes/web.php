@@ -89,6 +89,17 @@ Route::get('/dashboard', function () {
 
     if ($storeStats->count() > 0) {
         // We have RestoSuite API data - use it as primary source
+
+        // Get offline items count per shop per platform from items table
+        $offlineItemsCounts = DB::table('items')
+            ->select('shop_name', 'platform', DB::raw('COUNT(*) as offline_count'))
+            ->where('is_available', 0)
+            ->groupBy('shop_name', 'platform')
+            ->get()
+            ->keyBy(function ($item) {
+                return $item->shop_name . '|' . $item->platform;
+            });
+
         foreach ($storeStats as $stat) {
             $shopInfo = $shopMap[$stat->shop_id] ?? ['name' => 'Unknown', 'brand' => 'Unknown'];
 
@@ -102,6 +113,11 @@ Route::get('/dashboard', function () {
                 ->where('shop_id', $stat->shop_id)
                 ->get()
                 ->keyBy('platform');
+
+            // Get offline items count for each platform
+            $grabOffline = $offlineItemsCounts->get($shopInfo['name'] . '|grab')?->offline_count ?? 0;
+            $foodpandaOffline = $offlineItemsCounts->get($shopInfo['name'] . '|foodpanda')?->offline_count ?? 0;
+            $deliverooOffline = $offlineItemsCounts->get($shopInfo['name'] . '|deliveroo')?->offline_count ?? 0;
 
             $stores[] = [
                 'brand' => $shopInfo['brand'],
@@ -119,16 +135,19 @@ Route::get('/dashboard', function () {
                         'online' => $platformStatus->get('grab')?->is_online ?? null,
                         'items_synced' => $platformStatus->get('grab')?->items_synced ?? 0,
                         'last_checked' => $platformStatus->get('grab')?->last_checked_at ?? null,
+                        'offline_items' => (int) $grabOffline,
                     ],
                     'foodpanda' => [
                         'online' => $platformStatus->get('foodpanda')?->is_online ?? null,
                         'items_synced' => $platformStatus->get('foodpanda')?->items_synced ?? 0,
                         'last_checked' => $platformStatus->get('foodpanda')?->last_checked_at ?? null,
+                        'offline_items' => (int) $foodpandaOffline,
                     ],
                     'deliveroo' => [
                         'online' => $platformStatus->get('deliveroo')?->is_online ?? null,
                         'items_synced' => $platformStatus->get('deliveroo')?->items_synced ?? 0,
                         'last_checked' => $platformStatus->get('deliveroo')?->last_checked_at ?? null,
+                        'offline_items' => (int) $deliverooOffline,
                     ],
                 ],
             ];
@@ -139,6 +158,16 @@ Route::get('/dashboard', function () {
             ->orderBy('shop_id')
             ->get();
 
+        // Get offline items count per shop per platform from items table
+        $offlineItemsCounts = DB::table('items')
+            ->select('shop_name', 'platform', DB::raw('COUNT(*) as offline_count'))
+            ->where('is_available', 0)
+            ->groupBy('shop_name', 'platform')
+            ->get()
+            ->keyBy(function ($item) {
+                return $item->shop_name . '|' . $item->platform;
+            });
+
         // Group by shop_id
         $shopsPlatforms = [];
         foreach ($platformStatuses as $status) {
@@ -148,15 +177,20 @@ Route::get('/dashboard', function () {
                     'shop_id' => $status->shop_id,
                     'brand' => $shopInfo['brand'],
                     'store' => $shopInfo['name'],
+                    'store_name' => $status->store_name,
                     'platforms' => [],
                 ];
             }
+
+            // Get offline items count for this shop + platform
+            $offlineKey = $status->store_name . '|' . $status->platform;
+            $offlineCount = $offlineItemsCounts->get($offlineKey)?->offline_count ?? 0;
 
             $shopsPlatforms[$status->shop_id]['platforms'][$status->platform] = [
                 'online' => (bool) $status->is_online,
                 'items_synced' => $status->items_synced ?? 0,
                 'last_checked' => $status->last_checked_at,
-                'offline_items' => 0, // Not tracked in platform_status alone
+                'offline_items' => (int) $offlineCount,
             ];
         }
 
@@ -218,51 +252,146 @@ Route::get('/dashboard', function () {
 Route::get('/stores', function () {
     $shopMap = ShopHelper::getShopMap();
 
-    // Filter out testing outlets
-    $testingShopIds = [];
-    foreach ($shopMap as $shopId => $info) {
-        if (stripos($info['name'], 'testing') !== false || stripos($info['name'], 'office testing') !== false) {
-            $testingShopIds[] = $shopId;
-        }
-    }
-
-    $storeStats = DB::table('restosuite_item_snapshots as s')
-        ->select(
-            's.shop_id',
-            DB::raw('COUNT(*) as total_items'),
-            DB::raw('SUM(CASE WHEN s.is_active = 0 THEN 1 ELSE 0 END) as items_off'),
-            DB::raw('MAX(s.updated_at) as last_sync')
-        )
-        ->whereNotIn('s.shop_id', $testingShopIds)
-        ->groupBy('s.shop_id')
+    // Get all shops from shops table (populated by items scraper)
+    $allShops = DB::table('shops')
+        ->orderBy('shop_name')
         ->get();
 
     $stores = [];
-    foreach ($storeStats as $stat) {
-        $shopInfo = $shopMap[$stat->shop_id] ?? ['name' => 'Unknown', 'brand' => 'Unknown'];
+    foreach ($allShops as $shop) {
+        // Get items count for this shop from items table
+        // Since items table has 3 rows per unique item (one per platform: grab, foodpanda, deliveroo)
+        // we need to count distinct items by name+category, then get the total across all platforms
+        $totalUniqueItems = DB::table('items')
+            ->where('shop_name', $shop->shop_name)
+            ->select(DB::raw('COUNT(DISTINCT (name || "|" || category)) as count'))
+            ->value('count');
 
-        $recentChanges = DB::table('restosuite_item_changes')
-            ->where('shop_id', $stat->shop_id)
-            ->whereDate('created_at', today())
-            ->count();
+        // For items_off, count how many unique items have at least one platform unavailable
+        $itemsOffCount = DB::table('items')
+            ->where('shop_name', $shop->shop_name)
+            ->where('is_available', 0)
+            ->select(DB::raw('COUNT(DISTINCT (name || "|" || category)) as count'))
+            ->value('count');
+
+        // Get platform status for this shop (match by store_name since shops table uses shop_name)
+        $platformStatus = DB::table('platform_status')
+            ->where('store_name', $shop->shop_name)
+            ->get()
+            ->keyBy('platform');
+
+        // Count online/offline platforms
+        $onlineCount = 0;
+        $offlineCount = 0;
+        foreach (['grab', 'foodpanda', 'deliveroo'] as $platform) {
+            if ($platformStatus->has($platform)) {
+                if ($platformStatus->get($platform)->is_online) {
+                    $onlineCount++;
+                } else {
+                    $offlineCount++;
+                }
+            }
+        }
+
+        // Determine overall status
+        if ($onlineCount === 3) {
+            $status = 'all_online';
+            $statusText = 'All Platforms Online';
+        } elseif ($onlineCount === 0) {
+            $status = 'all_offline';
+            $statusText = 'All Platforms Offline';
+        } else {
+            $status = 'partial_offline';
+            $statusText = "{$offlineCount}/3 Offline";
+        }
+
+        $shopInfo = $shopMap[$shop->shop_id] ?? ['name' => $shop->shop_name, 'brand' => $shop->organization_name ?? 'Unknown'];
 
         $stores[] = [
             'brand' => $shopInfo['brand'],
             'store' => $shopInfo['name'],
-            'shop_id' => $stat->shop_id,
-            'status' => 'OPERATING',
-            'total_items' => (int) $stat->total_items,
-            'items_off' => (int) $stat->items_off,
-            'alerts' => $recentChanges,
-            'last_change' => $stat->last_sync ? \Carbon\Carbon::parse($stat->last_sync)->diffForHumans() : '—',
+            'shop_id' => $shop->shop_id,
+            'status' => $status,
+            'status_text' => $statusText,
+            'platforms_online' => $onlineCount,
+            'platforms_offline' => $offlineCount,
+            'total_items' => (int) ($totalUniqueItems ?? 0),
+            'items_off' => (int) ($itemsOffCount ?? 0),
+            'alerts' => 0,
+            'last_change' => $shop->last_synced_at ? \Carbon\Carbon::parse($shop->last_synced_at)->diffForHumans() : '—',
         ];
     }
 
-    $lastSyncTime = DB::table('restosuite_item_snapshots')->max('updated_at');
+    // Get last sync time from shops or platform_status table
+    $lastSyncTime = DB::table('shops')->max('last_synced_at');
+    if (!$lastSyncTime) {
+        $lastSyncTime = DB::table('platform_status')->max('last_checked_at');
+    }
 
     return view('stores', [
         'stores' => $stores,
         'lastSync' => $lastSyncTime ? \Carbon\Carbon::parse($lastSyncTime)->timezone('Asia/Singapore')->format('M j, Y h:i A') . ' SGT' : 'Never',
+    ]);
+});
+
+// Store Detail Page - Show all items for a specific store
+Route::get('/store/{shop_id}', function ($shop_id) {
+    $shopMap = ShopHelper::getShopMap();
+
+    // Get shop info
+    $shop = DB::table('shops')->where('shop_id', $shop_id)->first();
+
+    if (!$shop) {
+        abort(404, 'Store not found');
+    }
+
+    $shopInfo = $shopMap[$shop_id] ?? ['name' => $shop->shop_name, 'brand' => 'Unknown'];
+
+    // Get all items for this shop grouped by name+category (across all platforms)
+    $items = DB::table('items')
+        ->where('shop_name', $shop->shop_name)
+        ->orderBy('category')
+        ->orderBy('name')
+        ->get();
+
+    // Group items by unique item (name + category)
+    $groupedItems = [];
+    foreach ($items as $item) {
+        $key = $item->name . '|' . $item->category;
+
+        if (!isset($groupedItems[$key])) {
+            $groupedItems[$key] = [
+                'name' => $item->name,
+                'category' => $item->category,
+                'image_url' => $item->image_url,
+                'price' => $item->price,
+                'platforms' => [],
+                'all_active' => true,
+            ];
+        }
+
+        $groupedItems[$key]['platforms'][$item->platform] = [
+            'is_available' => (bool) $item->is_available,
+            'price' => $item->price,
+        ];
+
+        // If any platform is unavailable, mark as not all active
+        if (!$item->is_available) {
+            $groupedItems[$key]['all_active'] = false;
+        }
+    }
+
+    // Get platform status
+    $platformStatus = DB::table('platform_status')
+        ->where('store_name', $shop->shop_name)
+        ->get()
+        ->keyBy('platform');
+
+    return view('store-detail', [
+        'shop' => $shop,
+        'shopInfo' => $shopInfo,
+        'items' => array_values($groupedItems),
+        'platformStatus' => $platformStatus,
     ]);
 });
 
@@ -540,63 +669,48 @@ Route::get('/store/{shopId}', function ($shopId) {
     ]);
 });
 
-// Item Tracking History Page
-Route::get('/item-tracking', function () {
-    $shopMap = ShopHelper::getShopMap();
+// History Page
+Route::get('/history', function () {
+    // Get today's date in SGT timezone
+    $today = \Carbon\Carbon::now('Asia/Singapore')->toDateString();
 
-    // Filter out testing outlets
-    $testingShopIds = [];
-    foreach ($shopMap as $shopId => $info) {
-        if (stripos($info['name'], 'testing') !== false || stripos($info['name'], 'office testing') !== false) {
-            $testingShopIds[] = $shopId;
-        }
-    }
+    $lastSyncTime = DB::table('items')->max('updated_at');
 
-    $changes = DB::table('restosuite_item_changes as c')
-        ->join('restosuite_item_snapshots as s', function ($join) {
-            $join->on('c.shop_id', '=', 's.shop_id')
-                 ->on('c.item_id', '=', 's.item_id');
-        })
-        ->select('c.*', 's.name as item_name')
-        ->whereNotIn('c.shop_id', $testingShopIds)
-        ->whereDate('c.created_at', today())
-        ->orderBy('c.created_at', 'desc')
-        ->limit(50)
-        ->get();
+    // Get platform stats (current status, not changes)
+    $platformStats = DB::table('platform_status')
+        ->select(
+            DB::raw('COUNT(*) as total'),
+            DB::raw('SUM(CASE WHEN is_online = 1 THEN 1 ELSE 0 END) as online'),
+            DB::raw('SUM(CASE WHEN is_online = 0 THEN 1 ELSE 0 END) as offline')
+        )
+        ->first();
 
-    $changesArray = [];
-    $turnedOff = 0;
-    $turnedOn = 0;
+    // Get item stats (current status from items table, not changes)
+    $itemStats = DB::table('items')
+        ->select(
+            DB::raw('COUNT(DISTINCT (name || "|" || category || "|" || shop_name)) as total'),
+            DB::raw('SUM(CASE WHEN is_available = 1 THEN 1 ELSE 0 END) as on_count'),
+            DB::raw('SUM(CASE WHEN is_available = 0 THEN 1 ELSE 0 END) as off_count')
+        )
+        ->first();
 
-    foreach ($changes as $change) {
-        $shopInfo = $shopMap[$change->shop_id] ?? ['name' => 'Unknown Store', 'brand' => ''];
-        $changeData = json_decode($change->change_json, true);
-
-        if (isset($changeData['is_active'])) {
-            if ($changeData['is_active']['to'] == 0) {
-                $turnedOff++;
-            } else {
-                $turnedOn++;
-            }
-        }
-
-        $changesArray[] = [
-            'shop_id' => $change->shop_id,
-            'shop_name' => $shopInfo['name'],
-            'item_name' => $change->item_name,
-            'changes' => $changeData,
-            'timestamp' => $change->created_at ? \Carbon\Carbon::parse($change->created_at)->diffForHumans() : '—',
-        ];
-    }
-
-    $lastSyncTime = DB::table('restosuite_item_snapshots')->max('updated_at');
+    // Calculate unique items ON/OFF (divide by 3 since each item has 3 platform entries and round to integer)
+    $totalUniqueItems = (int) ($itemStats->total ?? 0);
+    $itemsOn = (int) round(($itemStats->on_count ?? 0) / 3);
+    $itemsOff = (int) round(($itemStats->off_count ?? 0) / 3);
 
     return view('item-tracking', [
-        'changes' => $changesArray,
-        'stats' => [
-            'turned_off' => $turnedOff,
-            'turned_on' => $turnedOn,
+        'platformStats' => [
+            'total' => $platformStats->total ?? 0,
+            'online' => $platformStats->online ?? 0,
+            'offline' => $platformStats->offline ?? 0,
         ],
+        'itemStats' => [
+            'total' => $totalUniqueItems,
+            'on' => $itemsOn,
+            'off' => $itemsOff,
+        ],
+        'today' => \Carbon\Carbon::now('Asia/Singapore')->format('l, M j, Y'),
         'lastSync' => $lastSyncTime ? \Carbon\Carbon::parse($lastSyncTime)->timezone('Asia/Singapore')->format('M j, Y h:i A') . ' SGT' : 'Never',
     ]);
 });
