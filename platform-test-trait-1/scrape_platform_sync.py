@@ -22,7 +22,7 @@ TARGET_URL = f"{BASE_URL}/takeaway-store-binding"
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 LOG_FILE = os.path.join(SCRIPT_DIR, "scrape_platform_sync.log")
 # Use the correct database path from Laravel config (resto-db-v3 not resto-db-v3.5)
-DB_PATH = r"C:\resto-db-v3\database\database.sqlite"
+DB_PATH = r"C:\resto-db-v3.5\database\database.sqlite"
 
 def log(message):
     """Log to both file and stderr"""
@@ -90,23 +90,40 @@ def select_organization_group(page):
         screenshot_path = os.path.join(SCRIPT_DIR, "debug_before_org_select.png")
         page.screenshot(path=screenshot_path)
 
-        # Method 1: Click the organization selector in header
-        log("  Clicking organization dropdown...")
+        # FAILSAFE: Click the STORE dropdown (NOT the org icon/name)
+        # Target: div.flex.items-center.justify-start.cursor-pointer.rounded-md with down arrow icon
+        log("  Clicking STORE dropdown (not org icon)...")
         try:
-            # Look for the organization button/dropdown in header
-            org_selector = page.query_selector('[class*="organization"]')
-            if org_selector:
-                org_selector.click()
+            # Target the specific store dropdown element by its unique class combination
+            # This is the element with: flex items-center justify-start cursor-pointer rounded-md px-[11px] py-[4px] hover:bg-[#f1f2f5]
+            store_dropdown = page.query_selector('div.flex.items-center.justify-start.cursor-pointer.rounded-md')
+
+            if store_dropdown:
+                # FAILSAFE: Verify this element has the down arrow SVG icon (anticon-down)
+                has_down_arrow = store_dropdown.query_selector('span.anticon-down, [data-icon="down"]')
+                if has_down_arrow:
+                    store_dropdown.click()
+                    log("  ✓ Store dropdown clicked (verified by down arrow)")
+                else:
+                    log("  ⚠ Element found but no down arrow - searching more...")
+                    # Find all matching elements and pick the one with down arrow
+                    all_dropdowns = page.query_selector_all('div.flex.items-center.cursor-pointer.rounded-md')
+                    for dropdown in all_dropdowns:
+                        if dropdown.query_selector('[data-icon="down"]'):
+                            dropdown.click()
+                            log("  ✓ Store dropdown clicked (found via iteration)")
+                            break
             else:
-                # Try clicking text that contains organization name
-                page.click("text=/ACHIEVERS RESOURCE/i", timeout=5000)
+                # Fallback: use CSS selector for the specific hover style
+                page.click('div.flex.items-center.justify-start.cursor-pointer.rounded-md.px-\\[11px\\].py-\\[4px\\]', timeout=5000)
+                log("  ✓ Store dropdown clicked (via CSS)")
 
             page.wait_for_timeout(1500)
             log("  ✓ Dropdown opened")
         except Exception as e:
             log(f"  Trying alternative selector... ({e})")
-            # Alternative: click any element with org name
-            page.click("text=ACHIEVERS", timeout=3000)
+            # Last resort: find element with down arrow that's NOT the org selector
+            page.click('div:has(> span.anticon-down):not(:has(.ant-avatar))', timeout=3000)
             page.wait_for_timeout(1500)
 
         # Take screenshot after dropdown (only in non-headless mode)
@@ -357,7 +374,7 @@ def main():
 
     with sync_playwright() as p:
         # Launch browser in HEADLESS mode (runs in background)
-        browser = p.chromium.launch(headless=True)  # Production-ready: runs silently
+        browser = p.chromium.launch(headless=True)  # Production mode: runs silently
         context = browser.new_context(viewport={"width": 1920, "height": 1080})
         page = context.new_page()
 

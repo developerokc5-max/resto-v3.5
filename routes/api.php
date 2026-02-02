@@ -325,14 +325,14 @@ Route::prefix('sync')->group(function () {
 // Items Management API
 Route::prefix('v1/items')->group(function () {
 
-    // Trigger Items Sync - Uses NEW scrape_items_sync.py
+    // Trigger Items Sync - Uses V2 PARALLEL scraper (faster ~40min instead of 1hr+)
     Route::post('/sync', function (Request $request) {
-        // Increase timeout to 30 minutes (scraping all stores takes time)
-        set_time_limit(1800);
+        // Increase timeout to 45 minutes (parallel scraping is faster)
+        set_time_limit(2700);
 
         try {
-            // Use the NEW items sync scraper (isolated from other pages)
-            $scriptPath = base_path('item-test-trait-1/scrape_items_sync.py');
+            // Use the V2 PARALLEL items sync scraper (3 workers, much faster)
+            $scriptPath = base_path('item-test-trait-1/scrape_items_sync_v2.py');
 
             // Check if script exists
             if (!file_exists($scriptPath)) {
@@ -352,8 +352,8 @@ Route::prefix('v1/items')->group(function () {
 
                 return response()->json([
                     'success' => true,
-                    'message' => 'Items scraper started successfully',
-                    'note' => 'Scraping all outlets across 3 platforms. This may take 10-15 minutes.',
+                    'message' => 'V2 parallel scraper started (3 workers)',
+                    'note' => 'Scraping all outlets across 3 platforms with parallel workers. ~40 minutes.',
                     'timestamp' => now()->toIso8601String(),
                     'log_file' => $logPath,
                 ]);
@@ -365,8 +365,8 @@ Route::prefix('v1/items')->group(function () {
 
                 return response()->json([
                     'success' => true,
-                    'message' => 'Items scraper started successfully',
-                    'note' => 'Scraping all outlets across 3 platforms. This may take 10-15 minutes.',
+                    'message' => 'V2 parallel scraper started (3 workers)',
+                    'note' => 'Scraping all outlets across 3 platforms with parallel workers. ~40 minutes.',
                     'timestamp' => now()->toIso8601String(),
                     'log_file' => $logPath,
                 ]);
