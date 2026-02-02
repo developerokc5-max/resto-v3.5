@@ -109,7 +109,7 @@ Route::get('/dashboard', function () {
     if ($storeStats->count() > 0) {
         // We have RestoSuite API data - use it as primary source
 
-        // Get offline items count per shop per platform from items table
+        // Get offline items count per shop per platform from items table (BATCH QUERY)
         $offlineItemsCounts = DB::table('items')
             ->select('shop_name', 'platform', DB::raw('COUNT(*) as offline_count'))
             ->where('is_available', 0)
@@ -119,18 +119,26 @@ Route::get('/dashboard', function () {
                 return $item->shop_name . '|' . $item->platform;
             });
 
+        // BATCH: Get all recent changes counts in one query (fixes N+1)
+        $allRecentChanges = DB::table('restosuite_item_changes')
+            ->select('shop_id', DB::raw('COUNT(*) as change_count'))
+            ->whereDate('created_at', today())
+            ->groupBy('shop_id')
+            ->pluck('change_count', 'shop_id');
+
+        // BATCH: Get all platform statuses in one query (fixes N+1)
+        $allPlatformStatuses = DB::table('platform_status')
+            ->get()
+            ->groupBy('shop_id');
+
         foreach ($storeStats as $stat) {
             $shopInfo = $shopMap[$stat->shop_id] ?? ['name' => 'Unknown', 'brand' => 'Unknown'];
 
-            $recentChanges = DB::table('restosuite_item_changes')
-                ->where('shop_id', $stat->shop_id)
-                ->whereDate('created_at', today())
-                ->count();
+            // Use batched data instead of querying in loop
+            $recentChanges = $allRecentChanges[$stat->shop_id] ?? 0;
 
-            // Get platform status for this shop
-            $platformStatus = DB::table('platform_status')
-                ->where('shop_id', $stat->shop_id)
-                ->get()
+            // Use batched platform status (no query in loop)
+            $platformStatus = collect($allPlatformStatuses[$stat->shop_id] ?? [])
                 ->keyBy('platform');
 
             // Get offline items count for each platform
@@ -276,27 +284,32 @@ Route::get('/stores', function () {
         ->orderBy('shop_name')
         ->get();
 
+    // BATCH: Get all item counts per shop in one query (fixes N+1)
+    $allItemCounts = DB::table('items')
+        ->select('shop_name', DB::raw('COUNT(DISTINCT (name || "|" || category)) as total_count'))
+        ->groupBy('shop_name')
+        ->pluck('total_count', 'shop_name');
+
+    // BATCH: Get all offline item counts per shop in one query (fixes N+1)
+    $allOfflineCounts = DB::table('items')
+        ->select('shop_name', DB::raw('COUNT(DISTINCT (name || "|" || category)) as offline_count'))
+        ->where('is_available', 0)
+        ->groupBy('shop_name')
+        ->pluck('offline_count', 'shop_name');
+
+    // BATCH: Get all platform statuses in one query (fixes N+1)
+    $allPlatformStatuses = DB::table('platform_status')
+        ->get()
+        ->groupBy('store_name');
+
     $stores = [];
     foreach ($allShops as $shop) {
-        // Get items count for this shop from items table
-        // Since items table has 3 rows per unique item (one per platform: grab, foodpanda, deliveroo)
-        // we need to count distinct items by name+category, then get the total across all platforms
-        $totalUniqueItems = DB::table('items')
-            ->where('shop_name', $shop->shop_name)
-            ->select(DB::raw('COUNT(DISTINCT (name || "|" || category)) as count'))
-            ->value('count');
+        // Use batched data instead of querying in loop
+        $totalUniqueItems = $allItemCounts[$shop->shop_name] ?? 0;
+        $itemsOffCount = $allOfflineCounts[$shop->shop_name] ?? 0;
 
-        // For items_off, count how many unique items have at least one platform unavailable
-        $itemsOffCount = DB::table('items')
-            ->where('shop_name', $shop->shop_name)
-            ->where('is_available', 0)
-            ->select(DB::raw('COUNT(DISTINCT (name || "|" || category)) as count'))
-            ->value('count');
-
-        // Get platform status for this shop (match by store_name since shops table uses shop_name)
-        $platformStatus = DB::table('platform_status')
-            ->where('store_name', $shop->shop_name)
-            ->get()
+        // Use batched platform status (no query in loop)
+        $platformStatus = collect($allPlatformStatuses[$shop->shop_name] ?? [])
             ->keyBy('platform');
 
         // Count online/offline platforms
@@ -418,15 +431,16 @@ Route::get('/store/{shop_id}', function ($shop_id) {
 Route::get('/items', function (Request $request) {
     // Get filter parameters
     $selectedRestaurant = $request->get('restaurant');
-    $currentPage = $request->get('page', 1);
+    $currentPage = (int) $request->get('page', 1);
 
-    // Create unique cache key based on filters
-    $cacheKey = 'items_data_' . md5($selectedRestaurant);
+    // Create unique cache key based on filters - cache grouped items for 10 minutes
+    $cacheKey = 'items_grouped_' . md5($selectedRestaurant ?? 'all');
 
-    // Cache items query for 5 minutes (300 seconds)
-    $allItems = Cache::remember($cacheKey, 300, function () use ($selectedRestaurant) {
-        // Build query for items
-        $query = DB::table('items');
+    // Cache the GROUPED items (not raw items) for better performance
+    $itemsGrouped = Cache::remember($cacheKey, 600, function () use ($selectedRestaurant) {
+        // Build query for items - only select needed columns
+        $query = DB::table('items')
+            ->select('shop_name', 'name', 'category', 'price', 'image_url', 'sku', 'platform', 'is_available');
 
         // Apply restaurant filter if provided
         if ($selectedRestaurant) {
@@ -434,38 +448,38 @@ Route::get('/items', function (Request $request) {
         }
 
         // Get all items from the items table
-        return $query
+        $allItems = $query
             ->orderBy('shop_name')
             ->orderBy('name')
             ->get();
-    });
 
-    // Group items by shop + name to show all 3 platforms together
-    $itemsGrouped = [];
-    foreach ($allItems as $item) {
-        $key = $item->shop_name . '|' . $item->name;
+        // Group items by shop + name to show all 3 platforms together
+        $grouped = [];
+        foreach ($allItems as $item) {
+            $key = $item->shop_name . '|' . $item->name;
 
-        if (!isset($itemsGrouped[$key])) {
-            $itemsGrouped[$key] = [
-                'shop_name' => $item->shop_name,
-                'name' => $item->name,
-                'category' => $item->category,
-                'price' => $item->price,
-                'image_url' => $item->image_url,
-                'sku' => $item->sku,
-                'platforms' => [
-                    'grab' => false,
-                    'foodpanda' => false,
-                    'deliveroo' => false,
-                ],
-            ];
+            if (!isset($grouped[$key])) {
+                $grouped[$key] = [
+                    'shop_name' => $item->shop_name,
+                    'name' => $item->name,
+                    'category' => $item->category,
+                    'price' => $item->price,
+                    'image_url' => $item->image_url,
+                    'sku' => $item->sku,
+                    'platforms' => [
+                        'grab' => false,
+                        'foodpanda' => false,
+                        'deliveroo' => false,
+                    ],
+                ];
+            }
+
+            // Set platform availability
+            $grouped[$key]['platforms'][$item->platform] = (bool)$item->is_available;
         }
 
-        // Set platform availability
-        $itemsGrouped[$key]['platforms'][$item->platform] = (bool)$item->is_available;
-    }
-
-    $itemsGrouped = array_values($itemsGrouped);
+        return array_values($grouped);
+    });
 
     // Get ALL restaurants from shops table (including those without items)
     $restaurants = DB::table('shops')

@@ -220,8 +220,8 @@ def extract_items_from_table(page, shop_name, platform_name):
                 name_cell = cells[3] if len(cells) > 3 else None
                 name = name_cell.text_content().strip() if name_cell else "Unknown"
 
-                # Skip header rows (literal text from table headers)
-                if name in ['Item name', 'Unknown', ''] or name.startswith('Item name'):
+                # Skip header rows (case-insensitive check)
+                if name.lower() in ['item name', 'unknown', ''] or name.lower().startswith('item name'):
                     continue
 
                 # Get size name from column 4
@@ -231,6 +231,10 @@ def extract_items_from_table(page, shop_name, platform_name):
                 # Get menu group (category) from column 6
                 category_cell = cells[6] if len(cells) > 6 else None
                 category = category_cell.text_content().strip() if category_cell else ""
+
+                # Skip if category is a header value
+                if category.lower() == 'menu group':
+                    continue
 
                 # Get SKU from column 7
                 sku_cell = cells[7] if len(cells) > 7 else None

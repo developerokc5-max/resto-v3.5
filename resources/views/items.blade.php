@@ -6,7 +6,7 @@
 @section('page-description', 'Browse all items across your restaurants and delivery platforms')
 
 @section('extra-head')
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+{{-- Font Awesome loaded in layout.blade.php --}}
 <style>
     .item-card {
         transition: all 0.3s ease;

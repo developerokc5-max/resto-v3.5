@@ -35,3 +35,7 @@ README.md
 **/*_debug.png
 **/debug_*.html
 **/*_debug.html
+
+# API documentation files
+~$*.docx
+RESTOSUITE_API_REQUIREMENTS_ENDPOINTS.md.pdf
