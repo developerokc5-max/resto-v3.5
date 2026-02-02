@@ -30,6 +30,8 @@ README.md
 /database/database.sqlite
 /database/*.sqlite
 
-# Debug images from scrapers
+# Debug images and HTML files from scrapers
 **/debug_*.png
 **/*_debug.png
+**/debug_*.html
+**/*_debug.html
