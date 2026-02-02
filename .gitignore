@@ -35,6 +35,7 @@ README.md
 **/*_debug.png
 **/debug_*.html
 **/*_debug.html
+**/all_outlets_clicked.png
 
 # API documentation files
 ~$*.docx
