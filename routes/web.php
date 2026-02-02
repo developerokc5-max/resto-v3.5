@@ -3,6 +3,7 @@
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use App\Helpers\ShopHelper;
 
 Route::get('/', function () {
@@ -17,50 +18,66 @@ Route::get('/dashboard', function () {
     $testingShopIds = []; // Empty array - no exclusions
 
     // HYBRID: Get real data from database (ALL stores)
-    // Try RestoSuite API data first
-    $totalStores = DB::table('restosuite_item_snapshots')
-        ->distinct('shop_id')
-        ->count('shop_id');
+    // Try RestoSuite API data first - with caching
+    $totalStores = Cache::remember('dashboard_total_stores', 300, function () {
+        return DB::table('restosuite_item_snapshots')
+            ->distinct('shop_id')
+            ->count('shop_id');
+    });
 
     // Fallback to platform_status if no API data
     if ($totalStores == 0) {
-        $totalStores = DB::table('platform_status')
-            ->distinct('shop_id')
-            ->count('shop_id');
+        $totalStores = Cache::remember('dashboard_platform_stores', 300, function () {
+            return DB::table('platform_status')
+                ->distinct('shop_id')
+                ->count('shop_id');
+        });
     }
 
-    // HYBRID: Items OFF - count from items table
-    $totalItemsOff = DB::table('items')
-        ->where('is_available', 0)
-        ->count();
+    // HYBRID: Items OFF - count from items table - with caching
+    $totalItemsOff = Cache::remember('dashboard_items_off', 300, function () {
+        return DB::table('items')
+            ->where('is_available', 0)
+            ->count();
+    });
 
     // If no data in items table, fallback to offline platforms count
     if ($totalItemsOff == 0) {
-        $totalItemsOff = DB::table('platform_status')
-            ->where('is_online', 0)
-            ->count();
+        $totalItemsOff = Cache::remember('dashboard_offline_platforms', 300, function () {
+            return DB::table('platform_status')
+                ->where('is_online', 0)
+                ->count();
+        });
     }
 
-    // HYBRID: Active Alerts - count stores with at least one offline platform
-    $totalChanges = DB::table('restosuite_item_changes')
-        ->whereDate('created_at', today())
-        ->count();
+    // HYBRID: Active Alerts - count stores with at least one offline platform - with caching
+    $totalChanges = Cache::remember('dashboard_changes_today', 300, function () {
+        return DB::table('restosuite_item_changes')
+            ->whereDate('created_at', today())
+            ->count();
+    });
 
     // If no API data, count stores with offline platforms
     if ($totalChanges == 0) {
-        $totalChanges = DB::table('platform_status')
-            ->where('is_online', 0)
-            ->distinct('shop_id')
-            ->count('shop_id');
+        $totalChanges = Cache::remember('dashboard_offline_shop_count', 300, function () {
+            return DB::table('platform_status')
+                ->where('is_online', 0)
+                ->distinct('shop_id')
+                ->count('shop_id');
+        });
     }
 
-    // HYBRID: Platform stats
-    $platformsOnline = DB::table('platform_status')
-        ->where('is_online', 1)
-        ->count();
+    // HYBRID: Platform stats - with caching
+    $platformsOnline = Cache::remember('dashboard_platforms_online', 300, function () {
+        return DB::table('platform_status')
+            ->where('is_online', 1)
+            ->count();
+    });
 
-    $platformsTotal = DB::table('platform_status')
-        ->count();
+    $platformsTotal = Cache::remember('dashboard_platforms_total', 300, function () {
+        return DB::table('platform_status')
+            ->count();
+    });
 
     $kpis = [
         'stores_online' => $totalStores,
@@ -74,16 +91,18 @@ Route::get('/dashboard', function () {
     ];
 
     // HYBRID: Get stores from either RestoSuite API or Platform Status
-    // Try RestoSuite data first
-    $storeStats = DB::table('restosuite_item_snapshots as s')
-        ->select(
-            's.shop_id',
-            DB::raw('COUNT(*) as total_items'),
-            DB::raw('SUM(CASE WHEN s.is_active = 0 THEN 1 ELSE 0 END) as items_off'),
-            DB::raw('MAX(s.updated_at) as last_sync')
-        )
-        ->groupBy('s.shop_id')
-        ->get();
+    // Try RestoSuite data first - with caching
+    $storeStats = Cache::remember('dashboard_store_stats', 300, function () {
+        return DB::table('restosuite_item_snapshots as s')
+            ->select(
+                's.shop_id',
+                DB::raw('COUNT(*) as total_items'),
+                DB::raw('SUM(CASE WHEN s.is_active = 0 THEN 1 ELSE 0 END) as items_off'),
+                DB::raw('MAX(s.updated_at) as last_sync')
+            )
+            ->groupBy('s.shop_id')
+            ->get();
+    });
 
     $stores = [];
 
@@ -399,20 +418,27 @@ Route::get('/store/{shop_id}', function ($shop_id) {
 Route::get('/items', function (Request $request) {
     // Get filter parameters
     $selectedRestaurant = $request->get('restaurant');
+    $currentPage = $request->get('page', 1);
 
-    // Build query for items
-    $query = DB::table('items');
+    // Create unique cache key based on filters
+    $cacheKey = 'items_data_' . md5($selectedRestaurant);
 
-    // Apply restaurant filter if provided
-    if ($selectedRestaurant) {
-        $query->where('shop_name', $selectedRestaurant);
-    }
+    // Cache items query for 5 minutes (300 seconds)
+    $allItems = Cache::remember($cacheKey, 300, function () use ($selectedRestaurant) {
+        // Build query for items
+        $query = DB::table('items');
 
-    // Get all items from the items table
-    $allItems = $query
-        ->orderBy('shop_name')
-        ->orderBy('name')
-        ->get();
+        // Apply restaurant filter if provided
+        if ($selectedRestaurant) {
+            $query->where('shop_name', $selectedRestaurant);
+        }
+
+        // Get all items from the items table
+        return $query
+            ->orderBy('shop_name')
+            ->orderBy('name')
+            ->get();
+    });
 
     // Group items by shop + name to show all 3 platforms together
     $itemsGrouped = [];
@@ -447,13 +473,15 @@ Route::get('/items', function (Request $request) {
         ->pluck('shop_name')
         ->values();
 
-    // Get unique categories
-    $categories = DB::table('items')
-        ->distinct('category')
-        ->whereNotNull('category')
-        ->pluck('category')
-        ->sort()
-        ->values();
+    // Get unique categories - with caching
+    $categories = Cache::remember('items_categories', 300, function () {
+        return DB::table('items')
+            ->distinct('category')
+            ->whereNotNull('category')
+            ->pluck('category')
+            ->sort()
+            ->values();
+    });
 
     // Calculate stats
     $stats = [
@@ -466,13 +494,14 @@ Route::get('/items', function (Request $request) {
 
     // Pagination - 50 items per page
     $perPage = 50;
-    $currentPage = $request->get('page', 1);
     $offset = ($currentPage - 1) * $perPage;
     $itemsPaginated = array_slice($itemsGrouped, $offset, $perPage);
     $totalPages = ceil(count($itemsGrouped) / $perPage);
 
-    // Get last update time from items table
-    $lastUpdateTime = DB::table('items')->max('updated_at');
+    // Get last update time from items table - with caching
+    $lastUpdateTime = Cache::remember('items_last_update', 300, function () {
+        return DB::table('items')->max('updated_at');
+    });
 
     return view('items-table', [
         'items' => $itemsPaginated,
