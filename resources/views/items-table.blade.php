@@ -82,6 +82,7 @@
                 @if($item['image_url'])
                   <img src="{{$item['image_url']}}" alt="{{$item['name']}}"
                        class="w-12 h-12 object-cover rounded-lg"
+                       loading="lazy"
                        onerror="this.src='https://via.placeholder.com/48?text=No+Image'">
                 @else
                   <div class="w-12 h-12 bg-slate-200 rounded-lg flex items-center justify-center">

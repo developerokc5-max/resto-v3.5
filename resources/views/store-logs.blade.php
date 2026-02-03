@@ -23,7 +23,7 @@
 
             <div class="space-y-4 text-sm max-h-96 overflow-y-auto">
                 <div>
-                    <div class="font-semibold text-slate-900 mb-1">🔄 Run Sync Button</div>
+                    <div class="font-semibold text-slate-900 mb-1">🔄 Refresh Data Button</div>
                     <p class="text-slate-600">Refreshes data from the database. Updates platform status and item availability without running scrapers.</p>
                 </div>
 
@@ -192,7 +192,7 @@
                                         <div class="text-left">
                                             <h4 class="font-bold text-slate-900 text-base">{{ $data['name'] }}</h4>
                                             @if(isset($data['last_checked']) && $data['last_checked'])
-                                                <p class="text-xs text-slate-600">Checked {{ \Carbon\Carbon::parse($data['last_checked'])->diffForHumans() }}</p>
+                                                <p class="text-xs text-slate-600">Checked {{ \Carbon\Carbon::parse($data['last_checked'])->format('M d, Y \a\t g:i A') }}</p>
                                             @else
                                                 <p class="text-xs text-slate-500">Not checked yet</p>
                                             @endif
@@ -234,7 +234,7 @@
                                                     <div class="bg-white border-2 border-slate-200 rounded-lg p-3 hover:border-slate-300 transition">
                                                         <div class="flex gap-3">
                                                             @if(isset($itemData->image_url) && $itemData->image_url)
-                                                                <img src="{{ $itemData->image_url }}" alt="{{ $itemData->name }}" class="w-16 h-16 rounded-lg object-cover border border-slate-200" onerror="this.style.display='none'">
+                                                                <img src="{{ $itemData->image_url }}" alt="{{ $itemData->name }}" class="w-16 h-16 rounded-lg object-cover border border-slate-200" loading="lazy" onerror="this.style.display='none'">
                                                             @endif
                                                             <div class="flex-1 min-w-0">
                                                                 <h6 class="font-bold text-slate-900 text-sm mb-1 line-clamp-2">{{ $itemData->name }}</h6>

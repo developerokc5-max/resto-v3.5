@@ -47,29 +47,32 @@
           </tr>
         </thead>
         <tbody>
-          @for($i = 1; $i <= 10; $i++)
+          @forelse($topOfflineItems as $index => $item)
           <tr class="border-b border-slate-100 hover:bg-slate-50">
             <td class="py-3 px-4 text-sm">
-              <span class="font-bold text-slate-900">#{{ $i }}</span>
+              <span class="font-bold text-slate-900">#{{ $index + 1 }}</span>
             </td>
             <td class="py-3 px-4">
-              <div class="font-medium text-slate-900">Sample Item {{ $i }}</div>
-              <div class="text-xs text-slate-500">Category Name</div>
+              <div class="font-medium text-slate-900">{{ $item->name }}</div>
+              <div class="text-xs text-slate-500">{{ ucfirst($item->platform) }}</div>
             </td>
-            <td class="py-3 px-4 text-sm text-slate-700">Store Name {{ $i }}</td>
+            <td class="py-3 px-4 text-sm text-slate-700">{{ $item->shop_name }}</td>
             <td class="py-3 px-4 text-center">
-              <span class="px-3 py-1 bg-red-100 text-red-700 rounded-full text-sm font-bold">{{ 15 - $i }}</span>
+              <span class="px-3 py-1 bg-red-100 text-red-700 rounded-full text-sm font-bold">{{ $item->offline_count }}</span>
             </td>
             <td class="py-3 px-4 text-center text-sm">
-              <div class="flex items-center justify-center gap-1">
-                <span class="w-6 h-6 bg-green-500 rounded text-white text-xs flex items-center justify-center">G</span>
-                <span class="w-6 h-6 bg-pink-500 rounded text-white text-xs flex items-center justify-center">F</span>
-                <span class="w-6 h-6 bg-cyan-500 rounded text-white text-xs flex items-center justify-center">D</span>
-              </div>
+              <span class="w-6 h-6 rounded text-white text-xs flex items-center justify-center"
+                style="background-color: {{ $item->platform === 'grab' ? '#22c55e' : ($item->platform === 'foodpanda' ? '#ec4899' : '#06b6d4') }}">
+                {{ strtoupper(substr($item->platform, 0, 1)) }}
+              </span>
             </td>
-            <td class="py-3 px-4 text-right text-sm text-slate-700">{{ 2 + $i }}h {{ 15 + $i }}m</td>
+            <td class="py-3 px-4 text-right text-sm text-slate-700">-</td>
           </tr>
-          @endfor
+          @empty
+          <tr>
+            <td colspan="6" class="py-6 text-center text-slate-500">No offline items found</td>
+          </tr>
+          @endforelse
         </tbody>
       </table>
     </div>
@@ -79,29 +82,35 @@
   <section class="bg-white rounded-2xl shadow-sm p-6">
     <h2 class="text-xl font-bold text-slate-900 mb-4">Performance by Category</h2>
 
+    @if($categoryData->count() > 0)
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-      @foreach(['Main Dishes', 'Beverages', 'Sides', 'Desserts', 'Add-ons', 'Specials'] as $category)
+      @foreach($categoryData as $category => $data)
       <div class="border-2 border-slate-200 rounded-xl p-4 hover:border-slate-300 transition">
         <div class="flex items-center justify-between mb-3">
-          <h3 class="font-bold text-slate-900">{{ $category }}</h3>
+          <h3 class="font-bold text-slate-900">{{ $category ?? 'Uncategorized' }}</h3>
           <span class="text-2xl">🍱</span>
         </div>
         <div class="space-y-2">
           <div class="flex items-center justify-between text-sm">
             <span class="text-slate-600">Total Items</span>
-            <span class="font-bold text-slate-900">{{ rand(150, 450) }}</span>
+            <span class="font-bold text-slate-900">{{ $data->total_items }}</span>
           </div>
           <div class="flex items-center justify-between text-sm">
             <span class="text-slate-600">Avg Availability</span>
-            <span class="font-bold text-green-700">{{ rand(95, 99) }}.{{ rand(0, 9) }}%</span>
+            <span class="font-bold text-green-700">{{ $data->availability_percentage }}%</span>
           </div>
           <div class="flex items-center justify-between text-sm">
             <span class="text-slate-600">Offline Now</span>
-            <span class="font-bold text-red-700">{{ rand(0, 15) }}</span>
+            <span class="font-bold text-red-700">{{ $data->offline_count }}</span>
           </div>
         </div>
       </div>
       @endforeach
     </div>
+    @else
+    <div class="text-center py-8 text-slate-500">
+      <p>No category data available. Items table may be empty.</p>
+    </div>
+    @endif
   </section>
 @endsection

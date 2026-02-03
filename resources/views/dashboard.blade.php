@@ -47,7 +47,7 @@
 
           <div class="space-y-4 text-sm max-h-96 overflow-y-auto">
             <div>
-              <div class="font-semibold text-slate-900 mb-1">🔄 Run Sync Button</div>
+              <div class="font-semibold text-slate-900 mb-1">🔄 Refresh Data Button</div>
               <p class="text-slate-600">Refreshes data from the database. Updates platform status and item availability without running scrapers.</p>
             </div>
 
