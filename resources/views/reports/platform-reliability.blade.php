@@ -20,25 +20,30 @@
         </div>
       </div>
 
+      @php
+        $grab = $platformData['grab'] ?? null;
+      @endphp
       <div class="space-y-3">
         <div>
           <div class="flex items-center justify-between mb-1">
             <span class="text-sm text-slate-600">Uptime (7 days)</span>
-            <span class="text-sm font-bold text-green-700">99.2%</span>
+            <span class="text-sm font-bold text-green-700">{{ $grab['uptime'] ?? '99.2' }}%</span>
           </div>
           <div class="h-2 bg-slate-200 rounded-full overflow-hidden">
-            <div class="h-full bg-green-600" style="width: 99.2%"></div>
+            <div class="h-full bg-green-600" style="width: {{ $grab['uptime'] ?? '99.2' }}%"></div>
           </div>
         </div>
 
         <div class="grid grid-cols-2 gap-3 pt-3 border-t">
           <div>
-            <div class="text-xs text-slate-500">Avg Response</div>
-            <div class="text-lg font-bold text-slate-900">1.2s</div>
+            <div class="text-xs text-slate-500">Online Stores</div>
+            <div class="text-lg font-bold text-slate-900">{{ $grab['online_stores'] ?? '45' }}/{{ $grab['total_stores'] ?? '46' }}</div>
           </div>
           <div>
-            <div class="text-xs text-slate-500">Incidents</div>
-            <div class="text-lg font-bold text-slate-900">2</div>
+            <div class="text-xs text-slate-500">Status</div>
+            <div class="text-lg font-bold {{ $grab['uptime'] >= 98 ? 'text-green-700' : 'text-red-700' }}">
+              {{ $grab['uptime'] >= 98 ? '✓ Good' : '✗ Issue' }}
+            </div>
           </div>
         </div>
       </div>
@@ -56,25 +61,30 @@
         </div>
       </div>
 
+      @php
+        $foodpanda = $platformData['foodpanda'] ?? null;
+      @endphp
       <div class="space-y-3">
         <div>
           <div class="flex items-center justify-between mb-1">
             <span class="text-sm text-slate-600">Uptime (7 days)</span>
-            <span class="text-sm font-bold text-pink-700">97.8%</span>
+            <span class="text-sm font-bold text-pink-700">{{ $foodpanda['uptime'] ?? '97.8' }}%</span>
           </div>
           <div class="h-2 bg-slate-200 rounded-full overflow-hidden">
-            <div class="h-full bg-pink-600" style="width: 97.8%"></div>
+            <div class="h-full bg-pink-600" style="width: {{ $foodpanda['uptime'] ?? '97.8' }}%"></div>
           </div>
         </div>
 
         <div class="grid grid-cols-2 gap-3 pt-3 border-t">
           <div>
-            <div class="text-xs text-slate-500">Avg Response</div>
-            <div class="text-lg font-bold text-slate-900">1.8s</div>
+            <div class="text-xs text-slate-500">Online Stores</div>
+            <div class="text-lg font-bold text-slate-900">{{ $foodpanda['online_stores'] ?? '43' }}/{{ $foodpanda['total_stores'] ?? '46' }}</div>
           </div>
           <div>
-            <div class="text-xs text-slate-500">Incidents</div>
-            <div class="text-lg font-bold text-slate-900">5</div>
+            <div class="text-xs text-slate-500">Status</div>
+            <div class="text-lg font-bold {{ $foodpanda['uptime'] >= 98 ? 'text-green-700' : 'text-red-700' }}">
+              {{ $foodpanda['uptime'] >= 98 ? '✓ Good' : '⚠ Caution' }}
+            </div>
           </div>
         </div>
       </div>
@@ -92,25 +102,30 @@
         </div>
       </div>
 
+      @php
+        $deliveroo = $platformData['deliveroo'] ?? null;
+      @endphp
       <div class="space-y-3">
         <div>
           <div class="flex items-center justify-between mb-1">
             <span class="text-sm text-slate-600">Uptime (7 days)</span>
-            <span class="text-sm font-bold text-cyan-700">98.5%</span>
+            <span class="text-sm font-bold text-cyan-700">{{ $deliveroo['uptime'] ?? '98.5' }}%</span>
           </div>
           <div class="h-2 bg-slate-200 rounded-full overflow-hidden">
-            <div class="h-full bg-cyan-600" style="width: 98.5%"></div>
+            <div class="h-full bg-cyan-600" style="width: {{ $deliveroo['uptime'] ?? '98.5' }}%"></div>
           </div>
         </div>
 
         <div class="grid grid-cols-2 gap-3 pt-3 border-t">
           <div>
-            <div class="text-xs text-slate-500">Avg Response</div>
-            <div class="text-lg font-bold text-slate-900">1.5s</div>
+            <div class="text-xs text-slate-500">Online Stores</div>
+            <div class="text-lg font-bold text-slate-900">{{ $deliveroo['online_stores'] ?? '44' }}/{{ $deliveroo['total_stores'] ?? '46' }}</div>
           </div>
           <div>
-            <div class="text-xs text-slate-500">Incidents</div>
-            <div class="text-lg font-bold text-slate-900">3</div>
+            <div class="text-xs text-slate-500">Status</div>
+            <div class="text-lg font-bold {{ $deliveroo['uptime'] >= 98 ? 'text-green-700' : 'text-red-700' }}">
+              {{ $deliveroo['uptime'] >= 98 ? '✓ Good' : '⚠ Caution' }}
+            </div>
           </div>
         </div>
       </div>

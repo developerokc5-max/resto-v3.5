@@ -40,7 +40,7 @@
 
           <div class="space-y-4 text-sm max-h-96 overflow-y-auto">
             <div>
-              <div class="font-semibold text-slate-900 mb-1">🔄 Run Sync Button</div>
+              <div class="font-semibold text-slate-900 mb-1">🔄 Refresh Data Button</div>
               <p class="text-slate-600">Refreshes data from the database. Updates platform status and item availability without running scrapers.</p>
             </div>
 
@@ -163,10 +163,29 @@
           <div class="text-xs text-slate-500">Last Updated (SGT)</div>
           <div class="text-xs font-semibold" id="lastSyncTime">{{ $lastSync ?? 'Never' }}</div>
           <button onclick="triggerSync()" id="syncBtn" class="mt-3 w-full rounded-xl bg-slate-900 text-white py-2 text-sm font-medium hover:opacity-90 transition">
-            Run Sync
+            <span id="syncBtnText">Refresh Data</span>
           </button>
         </div>
       </div>
+
+      <script>
+        // Determine button text based on current page
+        function updateSyncButtonText() {
+          const path = window.location.pathname;
+          const btnText = document.getElementById('syncBtnText');
+
+          if (path === '/items' || path === '/platforms') {
+            btnText.textContent = 'Run Sync';
+          } else {
+            btnText.textContent = 'Refresh Data';
+          }
+        }
+
+        // Update on page load
+        document.addEventListener('DOMContentLoaded', updateSyncButtonText);
+        // Also update immediately in case DOM is already ready
+        updateSyncButtonText();
+      </script>
     </aside>
 
     <!-- Main -->
