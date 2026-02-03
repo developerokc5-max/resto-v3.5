@@ -40,3 +40,4 @@ README.md
 # API documentation files
 ~$*.docx
 RESTOSUITE_API_REQUIREMENTS_ENDPOINTS.md.pdf
+__pycache__/
