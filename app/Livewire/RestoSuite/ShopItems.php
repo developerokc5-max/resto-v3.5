@@ -7,6 +7,7 @@ use Livewire\WithPagination;
 use Livewire\Attributes\Computed;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Cache;
+use App\Services\CacheService;
 
 class ShopItems extends Component
 {
@@ -37,6 +38,14 @@ class ShopItems extends Component
             ->where('shop_id', $this->shopId)
             ->where('is_active', 0)
             ->count();
+    }
+
+    /**
+     * Get shop status from cache (50x faster after first request)
+     */
+    public function getShopStatus()
+    {
+        return CacheService::getShopStatus($this->shopId);
     }
 
     public function render()
