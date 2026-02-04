@@ -258,10 +258,14 @@ Route::get('/stores', function () {
         ];
     }
 
-    // Get last sync time from shops or platform_status table
-    $lastSyncTime = DB::table('shops')->max('last_synced_at');
+    // Get last sync time - use same source as dashboard for consistency
+    $lastSyncTime = DB::table('restosuite_item_snapshots')
+        ->max('updated_at');
+
     if (!$lastSyncTime) {
-        $lastSyncTime = DB::table('platform_status')->max('last_checked_at');
+        // Fallback to platform_status last_checked_at
+        $lastSyncTime = DB::table('platform_status')
+            ->max('last_checked_at');
     }
 
     return view('stores', [
@@ -598,14 +602,14 @@ Route::get('/store/{shopId}', function ($shopId) {
         'offline_count' => $offlineCount,
     ];
 
-    $lastSyncTime = DB::table('platform_status')
+    $lastSyncTime = DB::table('restosuite_item_snapshots')
         ->where('shop_id', $shopId)
-        ->max('last_checked_at');
+        ->max('updated_at');
 
     if (!$lastSyncTime) {
-        $lastSyncTime = DB::table('restosuite_item_snapshots')
+        $lastSyncTime = DB::table('platform_status')
             ->where('shop_id', $shopId)
-            ->max('updated_at');
+            ->max('last_checked_at');
     }
 
     return view('store-detail', [
