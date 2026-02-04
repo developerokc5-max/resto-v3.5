@@ -5,9 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
 
     <title>{{ $title ?? 'HawkerOps' }}</title>
-
-    {{-- Favicon --}}
-    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16'><rect x='1' y='2' width='14' height='10' rx='1.5' fill='%231e3a5f' stroke='%233b82f6' stroke-width='1'/><rect x='2.5' y='3.5' width='11' height='7' rx='0.5' fill='%230f172a'/><polyline points='3.5,7 5,7 6,5 7.5,9 9,6 10.5,7 12.5,7' fill='none' stroke='%2322c55e' stroke-width='1.2' stroke-linecap='round' stroke-linejoin='round'/><rect x='6.5' y='12' width='3' height='1.5' fill='%233b82f6'/><rect x='5' y='13.5' width='6' height='1' rx='0.5' fill='%233b82f6'/></svg>" />
+    <link rel="icon" href="{{ asset('favicon.svg') }}" type="image/svg+xml" />
 
     {{-- Vite --}}
     @vite(['resources/css/app.css', 'resources/js/app.js'])
