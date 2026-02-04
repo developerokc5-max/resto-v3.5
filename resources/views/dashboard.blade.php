@@ -37,102 +37,6 @@
         </button>
       </div>
 
-      <!-- Info Popup (Only visible when opened) -->
-      <div id="infoPopup" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 pointer-events-none">
-        <div class="bg-white rounded-2xl shadow-2xl max-w-5xl w-full p-8 max-h-[90vh] overflow-y-auto pointer-events-auto">
-          <div class="flex items-center justify-between mb-6 sticky top-0 bg-white pb-4">
-            <div>
-              <h3 class="text-3xl font-bold text-slate-900">📖 HawkerOps Guide</h3>
-              <p class="text-sm text-slate-500 mt-1">Complete guide to using the store management system</p>
-            </div>
-            <button onclick="toggleInfoPopup()" class="text-slate-400 hover:text-slate-600 text-3xl leading-none hover:bg-slate-100 w-8 h-8 flex items-center justify-center rounded-lg transition flex-shrink-0">&times;</button>
-          </div>
-
-          <!-- Two Column Layout -->
-          <div class="grid grid-cols-2 gap-4 text-sm">
-            <!-- LEFT COLUMN -->
-            <div>
-              <div class="bg-blue-50 border-l-4 border-blue-500 p-4 rounded-lg mb-4">
-                <div class="font-semibold text-slate-900 mb-2">🔄 Refresh Data Button</div>
-                <p class="text-slate-600 text-xs leading-relaxed">Located in the left sidebar. Refreshes data from the database and updates platform status and item availability without running scrapers. Useful for quick data updates.</p>
-              </div>
-
-              <div class="bg-green-50 border-l-4 border-green-500 p-4 rounded-lg mb-4">
-                <div class="font-semibold text-slate-900 mb-2">↻ Reload Button</div>
-                <p class="text-slate-600 text-xs leading-relaxed">Located in the top-right corner. Reloads the entire page to show the latest data from the database. Use when data seems outdated.</p>
-              </div>
-
-              <div class="bg-orange-50 border-l-4 border-orange-500 p-4 rounded-lg mb-4">
-                <div class="font-semibold text-slate-900 mb-2">⚠️ Troubleshooting</div>
-                <p class="text-slate-600 text-xs leading-relaxed">If an entire column shows as offline or data seems incorrect, simply refresh the page. This resolves most display issues with platform status.</p>
-              </div>
-
-              <div class="bg-purple-50 border-l-4 border-purple-500 p-4 rounded-lg mb-4">
-                <div class="font-semibold text-slate-900 mb-2">🕐 Auto-Refresh</div>
-                <p class="text-slate-600 text-xs leading-relaxed">Pages automatically reload every 5 minutes to keep data current. No action needed - happens in the background.</p>
-              </div>
-
-              <div class="bg-indigo-50 border-l-4 border-indigo-500 p-4 rounded-lg mb-4">
-                <div class="font-semibold text-slate-900 mb-2">🏪 Store Actions</div>
-                <p class="text-slate-600 text-xs leading-relaxed"><strong>View Items:</strong> See all menu items with their status (Active/Inactive) across all platforms. <strong>View Logs:</strong> Check daily status history and changes.</p>
-              </div>
-
-              <div class="bg-cyan-50 border-l-4 border-cyan-500 p-4 rounded-lg">
-                <div class="font-semibold text-slate-900 mb-2">🎨 Filter Buttons</div>
-                <p class="text-slate-600 text-xs leading-relaxed"><strong>All Stores:</strong> Show all outlets. <strong>All Online:</strong> Only all 3 platforms online. <strong>Partial Offline:</strong> 1-2 platforms down. <strong>All Offline:</strong> All 3 platforms down.</p>
-              </div>
-            </div>
-
-            <!-- RIGHT COLUMN -->
-            <div>
-              <div class="bg-pink-50 border-l-4 border-pink-500 p-4 rounded-lg mb-4">
-                <div class="font-semibold text-slate-900 mb-2">📊 Status Indicators</div>
-                <div class="text-slate-600 text-xs leading-relaxed space-y-1">
-                  <p><strong>🟢 Green Badge:</strong> All 3 platforms online - Fully operational</p>
-                  <p><strong>🟡 Orange Badge:</strong> 1-2 platforms offline - Partial service</p>
-                  <p><strong>🔴 Red Badge:</strong> All 3 platforms offline - No service</p>
-                </div>
-              </div>
-
-              <div class="bg-yellow-50 border-l-4 border-yellow-500 p-4 rounded-lg mb-4">
-                <div class="font-semibold text-slate-900 mb-2">🔢 Item Information</div>
-                <p class="text-slate-600 text-xs leading-relaxed">Each menu item appears 3 times (Grab, FoodPanda, Deliveroo). Total item count shows unique items. Offline count shows items unavailable per platform.</p>
-              </div>
-
-              <div class="bg-red-50 border-l-4 border-red-500 p-4 rounded-lg mb-4">
-                <div class="font-semibold text-slate-900 mb-2">🌐 Platforms Monitored</div>
-                <div class="text-slate-600 text-xs leading-relaxed space-y-1">
-                  <p><strong>🟢 Grab:</strong> Green indicators, food delivery service</p>
-                  <p><strong>🩷 FoodPanda:</strong> Pink indicators, delivery platform</p>
-                  <p><strong>🔵 Deliveroo:</strong> Cyan indicators, premium delivery</p>
-                </div>
-              </div>
-
-              <div class="bg-slate-50 border-l-4 border-slate-500 p-4 rounded-lg mb-4">
-                <div class="font-semibold text-slate-900 mb-2">📈 Dashboard Cards</div>
-                <div class="text-slate-600 text-xs leading-relaxed space-y-1">
-                  <p><strong>Stores Online:</strong> Number of outlets currently online</p>
-                  <p><strong>Items OFF:</strong> Total items offline across all platforms</p>
-                  <p><strong>Active Alerts:</strong> Critical status changes requiring attention</p>
-                  <p><strong>Platforms Status:</strong> Online vs total platform availability</p>
-                </div>
-              </div>
-
-              <div class="bg-teal-50 border-l-4 border-teal-500 p-4 rounded-lg mb-4">
-                <div class="font-semibold text-slate-900 mb-2">📍 Timezone & Location</div>
-                <p class="text-slate-600 text-xs leading-relaxed"><strong>Timezone:</strong> All timestamps in Singapore Time (SGT, UTC+8). <strong>Coverage:</strong> 46 restaurant outlets across Singapore monitored in real-time.</p>
-              </div>
-
-              <div class="bg-green-50 border-l-4 border-green-500 p-4 rounded-lg">
-                <div class="font-semibold text-slate-900 mb-2">⚡ Performance</div>
-                <p class="text-slate-600 text-xs leading-relaxed">Dashboard optimized for speed - loads in under 1 second. 99% fewer database queries. Real-time updates with gzip compression. Supports 30+ concurrent users.</p>
-              </div>
-            </div>
-          </div>
-          </div>
-        </div>
-      </div>
-
       <nav class="px-3 pb-6 space-y-1 overflow-y-auto flex-1">
         <a class="flex items-center gap-3 px-3 py-2 rounded-xl bg-slate-900 text-white shadow-sm" href="/dashboard">
           <span class="text-sm font-medium">📊 Overview</span>
@@ -477,6 +381,101 @@
 
       </div>
     </main>
+  </div>
+
+  <!-- Info Popup (Outside main container) -->
+  <div id="infoPopup" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 pointer-events-none">
+    <div class="bg-white rounded-2xl shadow-2xl max-w-5xl w-full p-8 max-h-[90vh] overflow-y-auto pointer-events-auto">
+      <div class="flex items-center justify-between mb-6 sticky top-0 bg-white pb-4">
+        <div>
+          <h3 class="text-3xl font-bold text-slate-900">📖 HawkerOps Guide</h3>
+          <p class="text-sm text-slate-500 mt-1">Complete guide to using the store management system</p>
+        </div>
+        <button onclick="toggleInfoPopup()" class="text-slate-400 hover:text-slate-600 text-3xl leading-none hover:bg-slate-100 w-8 h-8 flex items-center justify-center rounded-lg transition flex-shrink-0">&times;</button>
+      </div>
+
+      <!-- Two Column Layout -->
+      <div class="grid grid-cols-2 gap-4 text-sm">
+        <!-- LEFT COLUMN -->
+        <div>
+          <div class="bg-blue-50 border-l-4 border-blue-500 p-4 rounded-lg mb-4">
+            <div class="font-semibold text-slate-900 mb-2">🔄 Refresh Data Button</div>
+            <p class="text-slate-600 text-xs leading-relaxed">Located in the left sidebar. Refreshes data from the database and updates platform status and item availability without running scrapers. Useful for quick data updates.</p>
+          </div>
+
+          <div class="bg-green-50 border-l-4 border-green-500 p-4 rounded-lg mb-4">
+            <div class="font-semibold text-slate-900 mb-2">↻ Reload Button</div>
+            <p class="text-slate-600 text-xs leading-relaxed">Located in the top-right corner. Reloads the entire page to show the latest data from the database. Use when data seems outdated.</p>
+          </div>
+
+          <div class="bg-orange-50 border-l-4 border-orange-500 p-4 rounded-lg mb-4">
+            <div class="font-semibold text-slate-900 mb-2">⚠️ Troubleshooting</div>
+            <p class="text-slate-600 text-xs leading-relaxed">If an entire column shows as offline or data seems incorrect, simply refresh the page. This resolves most display issues with platform status.</p>
+          </div>
+
+          <div class="bg-purple-50 border-l-4 border-purple-500 p-4 rounded-lg mb-4">
+            <div class="font-semibold text-slate-900 mb-2">🕐 Auto-Refresh</div>
+            <p class="text-slate-600 text-xs leading-relaxed">Pages automatically reload every 5 minutes to keep data current. No action needed - happens in the background.</p>
+          </div>
+
+          <div class="bg-indigo-50 border-l-4 border-indigo-500 p-4 rounded-lg mb-4">
+            <div class="font-semibold text-slate-900 mb-2">🏪 Store Actions</div>
+            <p class="text-slate-600 text-xs leading-relaxed"><strong>View Items:</strong> See all menu items with their status (Active/Inactive) across all platforms. <strong>View Logs:</strong> Check daily status history and changes.</p>
+          </div>
+
+          <div class="bg-cyan-50 border-l-4 border-cyan-500 p-4 rounded-lg">
+            <div class="font-semibold text-slate-900 mb-2">🎨 Filter Buttons</div>
+            <p class="text-slate-600 text-xs leading-relaxed"><strong>All Stores:</strong> Show all outlets. <strong>All Online:</strong> Only all 3 platforms online. <strong>Partial Offline:</strong> 1-2 platforms down. <strong>All Offline:</strong> All 3 platforms down.</p>
+          </div>
+        </div>
+
+        <!-- RIGHT COLUMN -->
+        <div>
+          <div class="bg-pink-50 border-l-4 border-pink-500 p-4 rounded-lg mb-4">
+            <div class="font-semibold text-slate-900 mb-2">📊 Status Indicators</div>
+            <div class="text-slate-600 text-xs leading-relaxed space-y-1">
+              <p><strong>🟢 Green Badge:</strong> All 3 platforms online - Fully operational</p>
+              <p><strong>🟡 Orange Badge:</strong> 1-2 platforms offline - Partial service</p>
+              <p><strong>🔴 Red Badge:</strong> All 3 platforms offline - No service</p>
+            </div>
+          </div>
+
+          <div class="bg-yellow-50 border-l-4 border-yellow-500 p-4 rounded-lg mb-4">
+            <div class="font-semibold text-slate-900 mb-2">🔢 Item Information</div>
+            <p class="text-slate-600 text-xs leading-relaxed">Each menu item appears 3 times (Grab, FoodPanda, Deliveroo). Total item count shows unique items. Offline count shows items unavailable per platform.</p>
+          </div>
+
+          <div class="bg-red-50 border-l-4 border-red-500 p-4 rounded-lg mb-4">
+            <div class="font-semibold text-slate-900 mb-2">🌐 Platforms Monitored</div>
+            <div class="text-slate-600 text-xs leading-relaxed space-y-1">
+              <p><strong>🟢 Grab:</strong> Green indicators, food delivery service</p>
+              <p><strong>🩷 FoodPanda:</strong> Pink indicators, delivery platform</p>
+              <p><strong>🔵 Deliveroo:</strong> Cyan indicators, premium delivery</p>
+            </div>
+          </div>
+
+          <div class="bg-slate-50 border-l-4 border-slate-500 p-4 rounded-lg mb-4">
+            <div class="font-semibold text-slate-900 mb-2">📈 Dashboard Cards</div>
+            <div class="text-slate-600 text-xs leading-relaxed space-y-1">
+              <p><strong>Stores Online:</strong> Number of outlets currently online</p>
+              <p><strong>Items OFF:</strong> Total items offline across all platforms</p>
+              <p><strong>Active Alerts:</strong> Critical status changes requiring attention</p>
+              <p><strong>Platforms Status:</strong> Online vs total platform availability</p>
+            </div>
+          </div>
+
+          <div class="bg-teal-50 border-l-4 border-teal-500 p-4 rounded-lg mb-4">
+            <div class="font-semibold text-slate-900 mb-2">📍 Timezone & Location</div>
+            <p class="text-slate-600 text-xs leading-relaxed"><strong>Timezone:</strong> All timestamps in Singapore Time (SGT, UTC+8). <strong>Coverage:</strong> 46 restaurant outlets across Singapore monitored in real-time.</p>
+          </div>
+
+          <div class="bg-green-50 border-l-4 border-green-500 p-4 rounded-lg">
+            <div class="font-semibold text-slate-900 mb-2">⚡ Performance</div>
+            <p class="text-slate-600 text-xs leading-relaxed">Dashboard optimized for speed - loads in under 1 second. 99% fewer database queries. Real-time updates with gzip compression. Supports 30+ concurrent users.</p>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 
   <script>
