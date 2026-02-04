@@ -9,7 +9,7 @@
   <div class="flex items-center gap-3">
     <div class="text-right">
       <div class="text-xs text-slate-500">Last Updated</div>
-      <div class="text-sm font-semibold">{{ $lastScrape ?? '—' }}</div>
+      <div class="text-sm font-semibold text-slate-900 break-words leading-tight">{{ $lastScrape ?? '—' }}</div>
     </div>
     <button onclick="showSyncInfo()" class="p-2 rounded-xl bg-slate-100 hover:bg-slate-200 transition" title="Sync Information">
       <svg class="w-5 h-5 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">

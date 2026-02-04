@@ -188,7 +188,7 @@
       <div class="mt-auto p-4">
         <div class="rounded-2xl bg-slate-50 border p-4">
           <div class="text-xs text-slate-500">Last Updated (SGT)</div>
-          <div class="text-xs font-semibold">{{ $lastSync ?? '—' }}</div>
+          <div class="text-sm font-semibold text-slate-900 break-words leading-tight">{{ $lastSync ?? '—' }}</div>
           <button onclick="refreshStores()" id="syncBtn" class="mt-3 w-full rounded-xl bg-slate-900 text-white py-2 text-sm font-medium hover:opacity-90 transition">
             Refresh Data
           </button>
