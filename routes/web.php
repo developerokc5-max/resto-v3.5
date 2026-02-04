@@ -175,7 +175,7 @@ Route::get('/dashboard', function () {
     return view('dashboard', [
         'kpis' => $kpis,
         'stores' => $stores,
-        'lastSync' => $lastSyncTime ? \Carbon\Carbon::parse($lastSyncTime)->timezone('Asia/Singapore')->format('M j, Y h:i A') . ' SGT' : 'Never',
+        'lastSync' => $lastSyncTime ? \Carbon\Carbon::parse($lastSyncTime)->setTimezone('Asia/Singapore')->format('M j, Y g:i A') . ' SGT' : 'Never',
     ]);
 });
 
@@ -266,7 +266,7 @@ Route::get('/stores', function () {
 
     return view('stores', [
         'stores' => $stores,
-        'lastSync' => $lastSyncTime ? \Carbon\Carbon::parse($lastSyncTime)->timezone('Asia/Singapore')->format('M j, Y h:i A') . ' SGT' : 'Never',
+        'lastSync' => $lastSyncTime ? \Carbon\Carbon::parse($lastSyncTime)->setTimezone('Asia/Singapore')->format('M j, Y g:i A') . ' SGT' : 'Never',
     ]);
 });
 
@@ -430,7 +430,7 @@ Route::get('/items', function (Request $request) {
         'totalPages' => $totalPages,
         'perPage' => $perPage,
         'totalItems' => count($itemsGrouped),
-        'lastUpdate' => $lastUpdateTime ? \Carbon\Carbon::parse($lastUpdateTime)->timezone('Asia/Singapore')->format('M j, Y h:i A') . ' SGT' : 'Never',
+        'lastUpdate' => $lastUpdateTime ? \Carbon\Carbon::parse($lastUpdateTime)->setTimezone('Asia/Singapore')->format('M j, Y g:i A') . ' SGT' : 'Never',
     ]);
 });
 
@@ -611,7 +611,7 @@ Route::get('/store/{shopId}', function ($shopId) {
     return view('store-detail', [
         'store' => $store,
         'items' => $itemsArray,
-        'lastSync' => $lastSyncTime ? \Carbon\Carbon::parse($lastSyncTime)->timezone('Asia/Singapore')->format('M j, Y h:i A') . ' SGT' : 'Never',
+        'lastSync' => $lastSyncTime ? \Carbon\Carbon::parse($lastSyncTime)->setTimezone('Asia/Singapore')->format('M j, Y g:i A') . ' SGT' : 'Never',
         'lastSyncAgo' => $lastSyncTime ? \Carbon\Carbon::parse($lastSyncTime)->diffForHumans() : 'Never',
     ]);
 });
@@ -690,7 +690,7 @@ Route::get('/platforms', function () {
             'percentage' => $totalPlatforms > 0 ? round(($onlinePlatforms / $totalPlatforms) * 100, 2) : 0,
         ],
         'platformStats' => $platformStats,
-        'lastScrape' => $lastScrapeTime ? \Carbon\Carbon::parse($lastScrapeTime)->timezone('Asia/Singapore')->format('M j, Y h:i A') . ' SGT' : 'Never',
+        'lastScrape' => $lastScrapeTime ? \Carbon\Carbon::parse($lastScrapeTime)->setTimezone('Asia/Singapore')->format('M j, Y g:i A') . ' SGT' : 'Never',
     ]);
 });
 
@@ -858,7 +858,7 @@ Route::get('/offline-items', function () {
             'online_platforms' => $onlinePlatforms,
             'offline_platforms' => $offlinePlatforms,
         ],
-        'lastScrape' => $lastScrapeTime ? \Carbon\Carbon::parse($lastScrapeTime)->timezone('Asia/Singapore')->format('M j, Y h:i A') . ' SGT' : 'Never',
+        'lastScrape' => $lastScrapeTime ? \Carbon\Carbon::parse($lastScrapeTime)->setTimezone('Asia/Singapore')->format('M j, Y g:i A') . ' SGT' : 'Never',
         'lastScrapeAgo' => $lastScrapeTime ? \Carbon\Carbon::parse($lastScrapeTime)->diffForHumans() : 'Never',
     ]);
 });
@@ -927,7 +927,7 @@ Route::get('/store/{shopId}/logs', function ($shopId) {
 
     $statusCards = [];
     foreach ($historicalLogs as $index => $log) {
-        $loggedAt = \Carbon\Carbon::parse($log->logged_at)->timezone('Asia/Singapore');
+        $loggedAt = \Carbon\Carbon::parse($log->logged_at)->setTimezone('Asia/Singapore');
         $platformDataDecoded = json_decode($log->platform_data, true);
 
         // For today's entry, always use current time (check against SGT date)
@@ -1260,7 +1260,7 @@ Route::get('/alerts', function () {
     return view('alerts', [
         'alerts' => $alerts,
         'stats' => $stats,
-        'lastSync' => \Carbon\Carbon::now('Asia/Singapore')->format('M j, Y h:i A') . ' SGT',
+        'lastSync' => \Carbon\Carbon::now('Asia/Singapore')->format('M j, Y g:i A') . ' SGT',
     ]);
 });
 
@@ -1311,7 +1311,7 @@ Route::get('/reports/daily-trends', function () {
 
     return view('reports.daily-trends', [
         'trends' => $trends,
-        'lastSync' => \Carbon\Carbon::now('Asia/Singapore')->format('M j, Y h:i A') . ' SGT',
+        'lastSync' => \Carbon\Carbon::now('Asia/Singapore')->format('M j, Y g:i A') . ' SGT',
     ]);
 });
 
@@ -1351,7 +1351,7 @@ Route::get('/reports/platform-reliability', function () {
 
     return view('reports.platform-reliability', [
         'platformData' => $platformData,
-        'lastSync' => \Carbon\Carbon::now('Asia/Singapore')->format('M j, Y h:i A') . ' SGT',
+        'lastSync' => \Carbon\Carbon::now('Asia/Singapore')->format('M j, Y g:i A') . ' SGT',
     ]);
 });
 
@@ -1410,7 +1410,7 @@ Route::get('/reports/item-performance', function () {
         'itemStats' => $itemStats,
         'topOfflineItems' => $topOfflineItems,
         'categoryData' => $categoryData,
-        'lastSync' => \Carbon\Carbon::now('Asia/Singapore')->format('M j, Y h:i A') . ' SGT',
+        'lastSync' => \Carbon\Carbon::now('Asia/Singapore')->format('M j, Y g:i A') . ' SGT',
     ]);
 });
 
@@ -1522,7 +1522,7 @@ Route::get('/reports/store-comparison', function () {
     return view('reports.store-comparison', [
         'stores' => $stores,
         'allStoresData' => collect($allStoresData),
-        'lastSync' => \Carbon\Carbon::now('Asia/Singapore')->format('M j, Y h:i A') . ' SGT',
+        'lastSync' => \Carbon\Carbon::now('Asia/Singapore')->format('M j, Y g:i A') . ' SGT',
     ]);
 });
 
@@ -1590,7 +1590,7 @@ Route::get('/settings/scraper-status', function () {
     return view('settings.scraper-status', [
         'scraperStatus' => $scraperStatus,
         'logs' => $scraperLogs,
-        'lastSync' => \Carbon\Carbon::now('Asia/Singapore')->format('M j, Y h:i A') . ' SGT',
+        'lastSync' => \Carbon\Carbon::now('Asia/Singapore')->format('M j, Y g:i A') . ' SGT',
     ]);
 });
 
@@ -1611,7 +1611,7 @@ Route::get('/settings/configuration', function () {
         'timezone' => $configs->get('timezone')?->value ?? 'Asia/Singapore',
         'dateFormat' => $configs->get('date_format')?->value ?? 'DD/MM/YYYY',
         'showItemImages' => (bool) ($configs->get('show_item_images')?->value ?? true),
-        'lastSync' => \Carbon\Carbon::now('Asia/Singapore')->format('M j, Y h:i A') . ' SGT',
+        'lastSync' => \Carbon\Carbon::now('Asia/Singapore')->format('M j, Y g:i A') . ' SGT',
     ]);
 });
 
@@ -1635,7 +1635,7 @@ Route::post('/settings/configuration', function (\Illuminate\Http\Request $reque
 // Settings: Export Data
 Route::get('/settings/export', function () {
     return view('settings.export', [
-        'lastSync' => \Carbon\Carbon::now('Asia/Singapore')->format('M j, Y h:i A') . ' SGT',
+        'lastSync' => \Carbon\Carbon::now('Asia/Singapore')->format('M j, Y g:i A') . ' SGT',
     ]);
 });
 
