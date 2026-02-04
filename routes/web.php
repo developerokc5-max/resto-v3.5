@@ -891,25 +891,25 @@ Route::get('/store/{shopId}/logs', function ($shopId) {
     $nowSgt = \Carbon\Carbon::now('Asia/Singapore');
     $todaySgtDate = $nowSgt->format('Y-m-d');
     $todayUtcStart = $nowSgt->copy()->startOfDay()->setTimezone('UTC');
+    $tomorrowUtcStart = $todayUtcStart->copy()->addDay();
 
     // Use updateOrInsert to ensure only one entry per day (prevents duplicates)
-    DB::table('store_status_logs')->updateOrInsert(
-        [
-            'shop_id' => $shopId,
-            // Match by date to prevent multiple entries per day
-            DB::raw("DATE(logged_at AT TIME ZONE 'UTC' AT TIME ZONE 'Asia/Singapore')") => $todaySgtDate,
-        ],
-        [
-            'shop_name' => $shopInfo['name'],
-            'platforms_online' => $onlinePlatforms,
-            'total_platforms' => 3,
-            'total_offline_items' => $totalOffline,
-            'platform_data' => json_encode($platformData),
-            'logged_at' => $todayUtcStart,
-            'created_at' => $todayUtcStart,
-            'updated_at' => $todayUtcStart,
-        ]
-    );
+    // Match logs within today's SGT date range (in UTC terms)
+    DB::table('store_status_logs')->where('shop_id', $shopId)
+        ->whereBetween('logged_at', [$todayUtcStart, $tomorrowUtcStart])
+        ->delete();
+
+    DB::table('store_status_logs')->insert([
+        'shop_id' => $shopId,
+        'shop_name' => $shopInfo['name'],
+        'platforms_online' => $onlinePlatforms,
+        'total_platforms' => 3,
+        'total_offline_items' => $totalOffline,
+        'platform_data' => json_encode($platformData),
+        'logged_at' => $todayUtcStart,
+        'created_at' => $todayUtcStart,
+        'updated_at' => $todayUtcStart,
+    ]);
 
     // Get all historical logs for this store (newest first)
     $historicalLogs = DB::table('store_status_logs')
