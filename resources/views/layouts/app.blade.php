@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
 
     <title>{{ $title ?? 'HawkerOps' }}</title>
-    <link rel="icon" href="{{ asset('favicon.svg') }}" type="image/svg+xml" />
+    <link rel="icon" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxNiIgaGVpZ2h0PSIxNiIgdmlld0JveD0iMCAwIDE2IDE2Ij48cmVjdCB4PSIxIiB5PSIyIiB3aWR0aD0iMTQiIGhlaWdodD0iMTAiIHJ4PSIxLjUiIGZpbGw9IiMxZTNhNWYiIHN0cm9rZT0iIzNiODJmNiIgc3Ryb2tlLXdpZHRoPSIxIi8+PHJlY3QgeD0iMi41IiB5PSIzLjUiIHdpZHRoPSIxMSIgaGVpZ2h0PSI3IiByeD0iMC41IiBmaWxsPSIjMGYxNzJhIi8+PHBvbHlsaW5lIHBvaW50cz0iMy41LDcgNSw3IDYsNSA3LjUsOSA5LDYgMTAuNSw3IDEyLjUsNyIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjMjJjNTVlIiBzdHJva2Utd2lkdGg9IjEuMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIi8+PHJlY3QgeD0iNi41IiB5PSIxMiIgd2lkdGg9IjMiIGhlaWdodD0iMS41IiBmaWxsPSIjM2I4MmY2Ii8+PHJlY3QgeD0iNSIgeT0iMTMuNSIgd2lkdGg9IjYiIGhlaWdodD0iMSIgcng9IjAuNSIgZmlsbD0iIzNiODJmNiIvPjwvc3ZnPg==" type="image/svg+xml" />
 
     {{-- Vite --}}
     @vite(['resources/css/app.css', 'resources/js/app.js'])
