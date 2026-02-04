@@ -4,6 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>@yield('title', 'HawkerOps Dashboard')</title>
+  <link rel="icon" type="image/png" href="/favicon.png" />
   {{-- Preconnect to CDNs for faster loading --}}
   <link rel="preconnect" href="https://cdn.tailwindcss.com">
   <link rel="preconnect" href="https://cdnjs.cloudflare.com">
