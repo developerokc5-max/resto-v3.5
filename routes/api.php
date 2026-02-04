@@ -449,39 +449,74 @@ Route::prefix('v1/items')->group(function () {
         }
     });
 
-    // Get all items with platform status
-    Route::get('/list', function () {
-        $items = DB::table('items')
+    // Get all items with platform status - PAGINATED
+    Route::get('/list', function (Request $request) {
+        $perPage = (int)$request->query('per_page', 50);
+        $page = (int)$request->query('page', 1);
+
+        // Limit per_page to max 500 to prevent abuse
+        $perPage = min($perPage, 500);
+        $perPage = max($perPage, 1);
+
+        $query = DB::table('items')
             ->select('id', 'item_id', 'shop_name', 'name', 'sku', 'category', 'price', 'is_available', 'platform')
             ->orderBy('shop_name')
-            ->orderBy('name')
-            ->get();
+            ->orderBy('name');
+
+        $total = $query->count();
+        $items = $query->forPage($page, $perPage)->get();
+        $totalPages = ceil($total / $perPage);
 
         return response()->json([
             'success' => true,
             'data' => $items,
-            'count' => $items->count(),
+            'pagination' => [
+                'total' => $total,
+                'per_page' => $perPage,
+                'current_page' => $page,
+                'last_page' => $totalPages,
+                'from' => ($page - 1) * $perPage + 1,
+                'to' => min($page * $perPage, $total),
+            ],
         ]);
     });
 
-    // Get items for specific shop
-    Route::get('/shop/{shopName}', function ($shopName) {
-        $items = DB::table('items')
-            ->where('shop_name', $shopName)
-            ->orderBy('name')
-            ->get();
+    // Get items for specific shop - PAGINATED
+    Route::get('/shop/{shopName}', function ($shopName, Request $request) {
+        $perPage = (int)$request->query('per_page', 50);
+        $page = (int)$request->query('page', 1);
 
-        if ($items->isEmpty()) {
+        // Limit per_page to max 500 to prevent abuse
+        $perPage = min($perPage, 500);
+        $perPage = max($perPage, 1);
+
+        $query = DB::table('items')
+            ->where('shop_name', $shopName)
+            ->orderBy('name');
+
+        $total = $query->count();
+
+        if ($total === 0) {
             return response()->json([
                 'success' => false,
                 'message' => 'No items found for this shop',
             ], 404);
         }
 
+        $items = $query->forPage($page, $perPage)->get();
+        $totalPages = ceil($total / $perPage);
+
         return response()->json([
             'success' => true,
             'data' => $items,
-            'count' => $items->count(),
+            'pagination' => [
+                'total' => $total,
+                'per_page' => $perPage,
+                'current_page' => $page,
+                'last_page' => $totalPages,
+                'from' => ($page - 1) * $perPage + 1,
+                'to' => min($page * $perPage, $total),
+            ],
         ]);
     });
 
