@@ -401,6 +401,9 @@ Route::prefix('v1/items')->group(function () {
                 // Get updated item info
                 $item = DB::table('items')->where('id', $validated['item_id'])->first();
 
+                // Invalidate cache to show real-time changes
+                \App\Helpers\CacheOptimizationHelper::invalidateDashboardCaches();
+
                 return response()->json([
                     'success' => true,
                     'message' => 'Item status updated successfully',
@@ -484,6 +487,9 @@ Route::prefix('v1/items')->group(function () {
                     'updated_at' => now(),
                 ]);
 
+            // Invalidate cache to show real-time changes
+            \App\Helpers\CacheOptimizationHelper::invalidateDashboardCaches();
+
             return response()->json([
                 'success' => true,
                 'message' => "Updated {$updated} items successfully",
@@ -501,17 +507,25 @@ Route::prefix('v1/items')->group(function () {
 
 // Health check
 Route::get('/health', function () {
-    $lastSync = DB::table('platform_status')->max('last_checked_at');
-    $totalShops = DB::table('platform_status')->distinct('shop_id')->count('shop_id');
-    $onlinePlatforms = DB::table('platform_status')->where('is_online', 1)->count();
-    $totalPlatforms = DB::table('platform_status')->count();
+    // Single consolidated query instead of 4 separate queries
+    $stats = DB::table('platform_status')
+        ->select(
+            DB::raw('MAX(last_checked_at) as last_sync'),
+            DB::raw('COUNT(DISTINCT shop_id) as total_shops'),
+            DB::raw('SUM(CASE WHEN is_online = 1 THEN 1 ELSE 0 END) as online_platforms'),
+            DB::raw('COUNT(*) as total_platforms')
+        )
+        ->first();
+
+    $totalPlatforms = $stats->total_platforms ?? 0;
+    $onlinePlatforms = $stats->online_platforms ?? 0;
 
     return response()->json([
         'status' => 'healthy',
         'timestamp' => now()->toIso8601String(),
         'hybrid_system' => [
-            'last_scrape' => $lastSync,
-            'shops_monitored' => $totalShops,
+            'last_scrape' => $stats->last_sync,
+            'shops_monitored' => $stats->total_shops ?? 0,
             'platforms_online' => $onlinePlatforms,
             'platforms_total' => $totalPlatforms,
             'online_percentage' => $totalPlatforms > 0 ? round(($onlinePlatforms / $totalPlatforms) * 100, 2) : 0,

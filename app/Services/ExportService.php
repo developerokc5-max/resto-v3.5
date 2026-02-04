@@ -13,22 +13,36 @@ class ExportService
     public static function exportOverviewReport()
     {
         $shopMap = app('ShopHelper')->getShopMap();
+        $shopIds = array_keys($shopMap);
+
+        // Single query for all platform statuses
+        $platformStatusMap = DB::table('platform_status')
+            ->whereIn('shop_id', $shopIds)
+            ->select('shop_id', 'platform', 'is_online')
+            ->get()
+            ->groupBy('shop_id');
+
+        // Single query for all items with aggregation
+        $itemStats = DB::table('items')
+            ->whereIn('shop_name', array_values(array_column($shopMap, 'name')))
+            ->select(
+                'shop_name',
+                DB::raw('COUNT(*) as total_items'),
+                DB::raw('SUM(CASE WHEN is_available = 0 THEN 1 ELSE 0 END) as offline_items')
+            )
+            ->groupBy('shop_name')
+            ->get()
+            ->keyBy('shop_name');
 
         $data = [];
         foreach ($shopMap as $shopId => $shop) {
-            $platformStatus = DB::table('platform_status')
-                ->where('shop_id', $shopId)
-                ->select('platform', 'is_online')
-                ->get();
+            $platformStatuses = $platformStatusMap->get($shopId, collect());
+            $onlinePlatforms = $platformStatuses->where('is_online', 1)->count();
+            $totalPlatforms = $platformStatuses->count();
 
-            $onlinePlatforms = $platformStatus->where('is_online', 1)->count();
-            $totalPlatforms = $platformStatus->count();
-
-            $items = DB::table('items')->where('shop_name', $shop['name'])->count();
-            $offlineItems = DB::table('items')
-                ->where('shop_name', $shop['name'])
-                ->where('is_available', 0)
-                ->count();
+            $stats = $itemStats->get($shop['name'], (object)['total_items' => 0, 'offline_items' => 0]);
+            $items = $stats->total_items ?? 0;
+            $offlineItems = $stats->offline_items ?? 0;
 
             $availability = $items > 0 ? round(((($items - $offlineItems) / $items) * 100), 2) : 0;
 
@@ -182,34 +196,52 @@ class ExportService
     public static function exportAnalyticsReport($dateFrom = null, $dateTo = null)
     {
         $shopMap = app('ShopHelper')->getShopMap();
+        $shopIds = array_keys($shopMap);
+        $shopNames = array_values(array_column($shopMap, 'name'));
 
-        $query = DB::table('store_status_logs');
+        // Single query for all logs with aggregation
+        $logsQuery = DB::table('store_status_logs');
 
         if ($dateFrom) {
-            $query->whereDate('created_at', '>=', $dateFrom);
+            $logsQuery->whereDate('created_at', '>=', $dateFrom);
         }
         if ($dateTo) {
-            $query->whereDate('created_at', '<=', $dateTo);
+            $logsQuery->whereDate('created_at', '<=', $dateTo);
         }
 
-        $logs = $query->get();
+        $logsStats = $logsQuery
+            ->whereIn('shop_id', $shopIds)
+            ->select(
+                'shop_id',
+                DB::raw('COUNT(*) as total_logs'),
+                DB::raw('SUM(CASE WHEN is_now_online = 1 THEN 1 ELSE 0 END) as online_logs')
+            )
+            ->groupBy('shop_id')
+            ->get()
+            ->keyBy('shop_id');
+
+        // Single query for all items with aggregation
+        $itemStats = DB::table('items')
+            ->whereIn('shop_name', $shopNames)
+            ->select(
+                'shop_name',
+                DB::raw('COUNT(*) as total_items'),
+                DB::raw('SUM(CASE WHEN is_available = 0 THEN 1 ELSE 0 END) as offline_items')
+            )
+            ->groupBy('shop_name')
+            ->get()
+            ->keyBy('shop_name');
 
         $data = [];
         foreach ($shopMap as $shopId => $shop) {
-            $shopLogs = $logs->where('shop_id', $shopId);
-            $totalLogs = $shopLogs->count();
-            $onlineLogs = $shopLogs->where('is_now_online', 1)->count();
-
+            $logStats = $logsStats->get($shopId, (object)['total_logs' => 0, 'online_logs' => 0]);
+            $totalLogs = $logStats->total_logs ?? 0;
+            $onlineLogs = $logStats->online_logs ?? 0;
             $uptime = $totalLogs > 0 ? round(($onlineLogs / $totalLogs) * 100, 2) : 0;
 
-            $offlineItems = DB::table('items')
-                ->where('shop_name', $shop['name'])
-                ->where('is_available', 0)
-                ->count();
-
-            $totalItems = DB::table('items')
-                ->where('shop_name', $shop['name'])
-                ->count();
+            $stats = $itemStats->get($shop['name'], (object)['total_items' => 0, 'offline_items' => 0]);
+            $totalItems = $stats->total_items ?? 0;
+            $offlineItems = $stats->offline_items ?? 0;
 
             $data[] = [
                 'Store' => $shop['name'],
@@ -218,7 +250,7 @@ class ExportService
                 'Total Items' => $totalItems,
                 'Offline Items' => $offlineItems,
                 'Availability %' => $totalItems > 0 ? round(((($totalItems - $offlineItems) / $totalItems) * 100), 2) : 0,
-                'Incidents (7d)' => $shopLogs->count(),
+                'Incidents (7d)' => $totalLogs,
             ];
         }
 

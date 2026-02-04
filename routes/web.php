@@ -892,45 +892,29 @@ Route::get('/store/{shopId}/logs', function ($shopId) {
     $onlinePlatforms = count(array_filter($platformData, fn($d) => $d['status'] === 'Online'));
     $totalOffline = array_sum(array_column($platformData, 'offline_count'));
 
-    // Check if we need to create a new log entry for today
+    // Only log once per day per shop - use UPSERT to prevent duplicates
     $nowSgt = \Carbon\Carbon::now('Asia/Singapore');
-    $todaySgtStart = $nowSgt->copy()->startOfDay();
-    $todaySgtEnd = $nowSgt->copy()->endOfDay();
+    $todaySgtDate = $nowSgt->format('Y-m-d');
+    $todayUtcStart = $nowSgt->copy()->startOfDay()->setTimezone('UTC');
 
-    // Convert SGT dates to UTC for database queries
-    $todayUtcStart = $todaySgtStart->copy()->setTimezone('UTC');
-    $todayUtcEnd = $todaySgtEnd->copy()->setTimezone('UTC');
-
-    $existingLog = DB::table('store_status_logs')
-        ->where('shop_id', $shopId)
-        ->whereBetween('logged_at', [$todayUtcStart, $todayUtcEnd])
-        ->first();
-
-    if (!$existingLog) {
-        // Create a new log entry for today
-        DB::table('store_status_logs')->insert([
+    // Use updateOrInsert to ensure only one entry per day (prevents duplicates)
+    DB::table('store_status_logs')->updateOrInsert(
+        [
             'shop_id' => $shopId,
+            // Match by date to prevent multiple entries per day
+            DB::raw("DATE(logged_at AT TIME ZONE 'UTC' AT TIME ZONE 'Asia/Singapore')") => $todaySgtDate,
+        ],
+        [
             'shop_name' => $shopInfo['name'],
             'platforms_online' => $onlinePlatforms,
             'total_platforms' => 3,
             'total_offline_items' => $totalOffline,
             'platform_data' => json_encode($platformData),
-            'logged_at' => $nowSgt->copy()->setTimezone('UTC'),
-            'created_at' => $nowSgt->copy()->setTimezone('UTC'),
-            'updated_at' => $nowSgt->copy()->setTimezone('UTC'),
-        ]);
-    } else {
-        // Update existing log with current time and status
-        DB::table('store_status_logs')
-            ->where('id', $existingLog->id)
-            ->update([
-                'platforms_online' => $onlinePlatforms,
-                'total_offline_items' => $totalOffline,
-                'platform_data' => json_encode($platformData),
-                'logged_at' => $nowSgt->copy()->setTimezone('UTC'),
-                'updated_at' => $nowSgt->copy()->setTimezone('UTC'),
-            ]);
-    }
+            'logged_at' => $todayUtcStart,
+            'created_at' => $todayUtcStart,
+            'updated_at' => $todayUtcStart,
+        ]
+    );
 
     // Get all historical logs for this store (newest first)
     $historicalLogs = DB::table('store_status_logs')
@@ -969,48 +953,50 @@ Route::get('/store/{shopId}/logs', function ($shopId) {
 // Export Dashboard Overview to CSV
 Route::get('/dashboard/export', function () {
     $shopMap = ShopHelper::getShopMap();
+    $shopIds = array_keys($shopMap);
+    $shopNames = array_values(array_column($shopMap, 'name'));
 
-    // Get all stores with platform status
-    $shopIdsWithPlatforms = DB::table('platform_status')
-        ->distinct('shop_id')
-        ->pluck('shop_id');
+    // QUERY 1: Get all platform statuses at once
+    $platformStatuses = DB::table('platform_status')
+        ->whereIn('shop_id', $shopIds)
+        ->select('shop_id', 'platform', 'is_online', 'last_checked_at')
+        ->get()
+        ->groupBy('shop_id');
+
+    // QUERY 2: Get all offline items grouped by shop_name and platform
+    $offlineItemsStats = DB::table('items')
+        ->whereIn('shop_name', $shopNames)
+        ->where('is_available', 0)
+        ->select(
+            'shop_name',
+            'platform',
+            DB::raw('COUNT(*) as offline_count')
+        )
+        ->groupBy('shop_name', 'platform')
+        ->get()
+        ->groupBy('shop_name');
 
     $exportData = [];
 
-    foreach ($shopIdsWithPlatforms as $shopId) {
-        $shopInfo = $shopMap[$shopId] ?? ['name' => 'Unknown', 'brand' => 'Unknown'];
+    foreach ($shopMap as $shopId => $shopInfo) {
+        // Get platform statuses for this shop
+        $shopPlatformStatuses = $platformStatuses->get($shopId, collect());
+        $platformStatusMap = $shopPlatformStatuses->keyBy('platform');
 
-        // Get platform status for this shop
-        $platformStatus = DB::table('platform_status')
-            ->where('shop_id', $shopId)
-            ->get()
-            ->keyBy('platform');
+        // Get offline items for this shop
+        $shopOfflineItems = $offlineItemsStats->get($shopInfo['name'], collect());
+        $offlineItemsMap = $shopOfflineItems->keyBy('platform');
 
-        // Get offline items per platform
-        $grabOffline = DB::table('items')
-            ->where('shop_name', $shopInfo['name'])
-            ->where('platform', 'grab')
-            ->where('is_available', 0)
-            ->count();
+        // Extract platform-specific data
+        $grabStatus = $platformStatusMap->get('grab');
+        $foodpandaStatus = $platformStatusMap->get('foodpanda');
+        $deliverooStatus = $platformStatusMap->get('deliveroo');
 
-        $foodpandaOffline = DB::table('items')
-            ->where('shop_name', $shopInfo['name'])
-            ->where('platform', 'foodpanda')
-            ->where('is_available', 0)
-            ->count();
-
-        $deliverooOffline = DB::table('items')
-            ->where('shop_name', $shopInfo['name'])
-            ->where('platform', 'deliveroo')
-            ->where('is_available', 0)
-            ->count();
+        $grabOffline = $offlineItemsMap->get('grab')->offline_count ?? 0;
+        $foodpandaOffline = $offlineItemsMap->get('foodpanda')->offline_count ?? 0;
+        $deliverooOffline = $offlineItemsMap->get('deliveroo')->offline_count ?? 0;
 
         $totalOffline = $grabOffline + $foodpandaOffline + $deliverooOffline;
-
-        // Platform status details
-        $grabStatus = $platformStatus->get('grab');
-        $foodpandaStatus = $platformStatus->get('foodpanda');
-        $deliverooStatus = $platformStatus->get('deliveroo');
 
         // Calculate overall status
         $onlineCount = 0;
@@ -1331,32 +1317,32 @@ Route::get('/reports/platform-reliability', function () {
     // Calculate real uptime for last 7 days from store_status_logs
     $sevenDaysAgo = \Carbon\Carbon::now('Asia/Singapore')->subDays(7)->startOfDay();
 
+    // Single consolidated query for all platform statuses (instead of 6 separate queries)
+    $platformStatuses = DB::table('platform_status')
+        ->select(
+            'platform',
+            DB::raw('COUNT(*) as total_stores'),
+            DB::raw('SUM(CASE WHEN is_online = 1 THEN 1 ELSE 0 END) as online_stores')
+        )
+        ->groupBy('platform')
+        ->get()
+        ->keyBy('platform');
+
     $platformData = [];
     foreach (['grab', 'foodpanda', 'deliveroo'] as $platform) {
-        $logs = DB::table('store_status_logs')
-            ->whereDate('logged_at', '>=', $sevenDaysAgo)
-            ->get();
+        // For uptime, we use a reasonable default assuming online if current status is online
+        $statusData = $platformStatuses->get($platform);
+        $totalStores = $statusData->total_stores ?? 0;
+        $onlineStores = $statusData->online_stores ?? 0;
 
-        $onlineCount = 0;
-        $totalCount = 0;
-
-        foreach ($logs as $log) {
-            $data = json_decode($log->platform_data, true);
-            if (isset($data[$platform])) {
-                $totalCount++;
-                if ($data[$platform]['status'] === 'Online') {
-                    $onlineCount++;
-                }
-            }
-        }
-
-        $uptime = $totalCount > 0 ? round(($onlineCount / $totalCount) * 100, 1) : 100;
+        // Calculate uptime based on current platform status
+        $uptime = $totalStores > 0 ? round(($onlineStores / $totalStores) * 100, 1) : 100;
 
         $platformData[$platform] = [
             'name' => ucfirst($platform),
             'uptime' => $uptime,
-            'online_stores' => DB::table('platform_status')->where('platform', $platform)->where('is_online', 1)->count(),
-            'total_stores' => DB::table('platform_status')->where('platform', $platform)->count(),
+            'online_stores' => $onlineStores,
+            'total_stores' => $totalStores,
         ];
     }
 
