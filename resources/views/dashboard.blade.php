@@ -39,59 +39,59 @@
 
       <!-- Info Popup -->
       <div id="infoPopup" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-        <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6">
-          <div class="flex items-center justify-between mb-4">
-            <h3 class="text-lg font-bold text-slate-900">App Guide</h3>
-            <button onclick="toggleInfoPopup()" class="text-slate-400 hover:text-slate-600 text-2xl leading-none">&times;</button>
+        <div class="bg-white rounded-2xl shadow-2xl max-w-2xl w-full p-8">
+          <div class="flex items-center justify-between mb-6">
+            <h3 class="text-2xl font-bold text-slate-900">📖 App Guide</h3>
+            <button onclick="toggleInfoPopup()" class="text-slate-400 hover:text-slate-600 text-3xl leading-none hover:bg-slate-100 w-8 h-8 flex items-center justify-center rounded-lg transition">&times;</button>
           </div>
 
-          <div class="space-y-4 text-sm max-h-96 overflow-y-auto">
-            <div>
+          <div class="space-y-3 text-sm max-h-[70vh] overflow-y-auto pr-4">
+            <div class="bg-blue-50 border-l-4 border-blue-500 p-4 rounded-lg">
               <div class="font-semibold text-slate-900 mb-1">🔄 Refresh Data Button</div>
               <p class="text-slate-600">Refreshes data from the database. Updates platform status and item availability without running scrapers.</p>
             </div>
 
-            <div>
+            <div class="bg-green-50 border-l-4 border-green-500 p-4 rounded-lg">
               <div class="font-semibold text-slate-900 mb-1">↻ Refresh Button</div>
               <p class="text-slate-600">Reloads the current page to show the latest data from the database.</p>
             </div>
 
-            <div>
+            <div class="bg-orange-50 border-l-4 border-orange-500 p-4 rounded-lg">
               <div class="font-semibold text-slate-900 mb-1">⚠️ Platforms Page Issue</div>
               <p class="text-slate-600">Sometimes an entire column may show as offline. Simply refresh the page or press the button again to reload the correct status.</p>
             </div>
 
-            <div>
+            <div class="bg-purple-50 border-l-4 border-purple-500 p-4 rounded-lg">
               <div class="font-semibold text-slate-900 mb-1">🕐 Auto-Refresh</div>
               <p class="text-slate-600">Pages automatically reload every 5 minutes to keep data up-to-date.</p>
             </div>
 
-            <div>
+            <div class="bg-indigo-50 border-l-4 border-indigo-500 p-4 rounded-lg">
               <div class="font-semibold text-slate-900 mb-1">🏪 Store Details "View" Button</div>
-              <p class="text-slate-600">Click "View" on any store to see all menu items with their ACTIVE/INACTIVE status across all platforms.</p>
+              <p class="text-slate-600">Click "View Items" or "View Logs" on any store to see all menu items with their ACTIVE/INACTIVE status or daily history.</p>
             </div>
 
-            <div>
+            <div class="bg-cyan-50 border-l-4 border-cyan-500 p-4 rounded-lg">
               <div class="font-semibold text-slate-900 mb-1">📊 Status Indicators</div>
               <p class="text-slate-600">Green = Online/Active, Red = Offline/Inactive, Yellow/Orange = Mixed status (some platforms down).</p>
             </div>
 
-            <div>
+            <div class="bg-pink-50 border-l-4 border-pink-500 p-4 rounded-lg">
               <div class="font-semibold text-slate-900 mb-1">📝 Store Logs</div>
-              <p class="text-slate-600">Click on any store's "Logs" to see daily status history. New entry created each day with real-time updates throughout the day.</p>
+              <p class="text-slate-600">Click "View Logs" on any store to see daily status history. New entry created each day with real-time updates throughout the day.</p>
             </div>
 
-            <div>
+            <div class="bg-yellow-50 border-l-4 border-yellow-500 p-4 rounded-lg">
               <div class="font-semibold text-slate-900 mb-1">🔢 Items Count</div>
               <p class="text-slate-600">Each menu item appears 3 times in the database (once per platform: Grab, FoodPanda, Deliveroo). Counts show unique items.</p>
             </div>
 
-            <div>
+            <div class="bg-red-50 border-l-4 border-red-500 p-4 rounded-lg">
               <div class="font-semibold text-slate-900 mb-1">🌐 Platforms Coverage</div>
               <p class="text-slate-600">System tracks 3 delivery platforms: Grab (Green), FoodPanda (Pink), Deliveroo (Blue). Total of 46 restaurant outlets monitored.</p>
             </div>
 
-            <div>
+            <div class="bg-slate-50 border-l-4 border-slate-500 p-4 rounded-lg">
               <div class="font-semibold text-slate-900 mb-1">⏰ Timezone</div>
               <p class="text-slate-600">All timestamps are displayed in Singapore Time (SGT, UTC+8).</p>
             </div>
