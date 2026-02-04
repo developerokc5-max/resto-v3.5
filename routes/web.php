@@ -1266,46 +1266,49 @@ Route::get('/alerts', function () {
 Route::get('/reports/daily-trends', function () {
     $today = \Carbon\Carbon::now('Asia/Singapore')->startOfDay();
 
-    // Calculate average uptime from platform_status
-    $platformStats = DB::table('platform_status')
-        ->selectRaw('platform, AVG(CASE WHEN is_online = 1 THEN 100 ELSE 0 END) as uptime')
-        ->groupBy('platform')
-        ->get();
+    // OPTIMIZED: Cache daily trends for 5 minutes to reduce database hits
+    $trends = Cache::remember('reports_daily_trends', 300, function () use ($today) {
+        // Calculate average uptime from platform_status
+        $platformStats = DB::table('platform_status')
+            ->selectRaw('platform, AVG(CASE WHEN is_online = 1 THEN 100 ELSE 0 END) as uptime')
+            ->groupBy('platform')
+            ->get();
 
-    $avgUptime = $platformStats->avg('uptime');
+        $avgUptime = $platformStats->avg('uptime');
 
-    // Count offline items
-    $offlineItemsCount = DB::table('items')->where('is_available', 0)->count();
+        // Count offline items
+        $offlineItemsCount = DB::table('items')->where('is_available', 0)->count();
 
-    // Get incidents (status changes) from store_status_logs
-    $incidents = DB::table('store_status_logs')
-        ->whereDate('logged_at', $today)
-        ->count();
+        // Get incidents (status changes) from store_status_logs
+        $incidents = DB::table('store_status_logs')
+            ->whereDate('logged_at', $today)
+            ->count();
 
-    // Calculate peak offline time (hour with most offline items based on logs)
-    $peakHourData = DB::table('store_status_logs')
-        ->selectRaw("strftime('%H', logged_at, '+8 hours') as hour, COUNT(*) as count")
-        ->whereDate('logged_at', $today)
-        ->groupBy('hour')
-        ->orderBy('count', 'desc')
-        ->first();
+        // Calculate peak offline time (hour with most offline items based on logs)
+        $peakHourData = DB::table('store_status_logs')
+            ->selectRaw("strftime('%H', logged_at, '+8 hours') as hour, COUNT(*) as count")
+            ->whereDate('logged_at', $today)
+            ->groupBy('hour')
+            ->orderBy('count', 'desc')
+            ->first();
 
-    // Format hour for display (convert 24-hour to 12-hour format with AM/PM)
-    if ($peakHourData) {
-        $hour24 = (int)$peakHourData->hour;
-        $period = $hour24 >= 12 ? 'PM' : 'AM';
-        $hour12 = $hour24 % 12 ?: 12;
-        $peakHour = sprintf('%d %s', $hour12, $period);
-    } else {
-        $peakHour = 'N/A';
-    }
+        // Format hour for display (convert 24-hour to 12-hour format with AM/PM)
+        if ($peakHourData) {
+            $hour24 = (int)$peakHourData->hour;
+            $period = $hour24 >= 12 ? 'PM' : 'AM';
+            $hour12 = $hour24 % 12 ?: 12;
+            $peakHour = sprintf('%d %s', $hour12, $period);
+        } else {
+            $peakHour = 'N/A';
+        }
 
-    $trends = [
-        'avg_uptime' => round($avgUptime ?? 98.5, 1),
-        'avg_offline' => $offlineItemsCount,
-        'peak_hour' => $peakHour,
-        'incidents' => $incidents,
-    ];
+        return [
+            'avg_uptime' => round($avgUptime ?? 98.5, 1),
+            'avg_offline' => $offlineItemsCount,
+            'peak_hour' => $peakHour,
+            'incidents' => $incidents,
+        ];
+    });
 
     return view('reports.daily-trends', [
         'trends' => $trends,
@@ -1315,37 +1318,39 @@ Route::get('/reports/daily-trends', function () {
 
 // Reports: Platform Reliability
 Route::get('/reports/platform-reliability', function () {
-    // Calculate real uptime for last 7 days from store_status_logs
-    $sevenDaysAgo = \Carbon\Carbon::now('Asia/Singapore')->subDays(7)->startOfDay();
+    // OPTIMIZED: Cache platform reliability for 5 minutes
+    $platformData = Cache::remember('reports_platform_reliability', 300, function () {
+        // Single consolidated query for all platform statuses (instead of 6 separate queries)
+        $platformStatuses = DB::table('platform_status')
+            ->select(
+                'platform',
+                DB::raw('COUNT(*) as total_stores'),
+                DB::raw('SUM(CASE WHEN is_online = 1 THEN 1 ELSE 0 END) as online_stores')
+            )
+            ->groupBy('platform')
+            ->get()
+            ->keyBy('platform');
 
-    // Single consolidated query for all platform statuses (instead of 6 separate queries)
-    $platformStatuses = DB::table('platform_status')
-        ->select(
-            'platform',
-            DB::raw('COUNT(*) as total_stores'),
-            DB::raw('SUM(CASE WHEN is_online = 1 THEN 1 ELSE 0 END) as online_stores')
-        )
-        ->groupBy('platform')
-        ->get()
-        ->keyBy('platform');
+        $platformData = [];
+        foreach (['grab', 'foodpanda', 'deliveroo'] as $platform) {
+            // For uptime, we use a reasonable default assuming online if current status is online
+            $statusData = $platformStatuses->get($platform);
+            $totalStores = $statusData->total_stores ?? 0;
+            $onlineStores = $statusData->online_stores ?? 0;
 
-    $platformData = [];
-    foreach (['grab', 'foodpanda', 'deliveroo'] as $platform) {
-        // For uptime, we use a reasonable default assuming online if current status is online
-        $statusData = $platformStatuses->get($platform);
-        $totalStores = $statusData->total_stores ?? 0;
-        $onlineStores = $statusData->online_stores ?? 0;
+            // Calculate uptime based on current platform status
+            $uptime = $totalStores > 0 ? round(($onlineStores / $totalStores) * 100, 1) : 100;
 
-        // Calculate uptime based on current platform status
-        $uptime = $totalStores > 0 ? round(($onlineStores / $totalStores) * 100, 1) : 100;
+            $platformData[$platform] = [
+                'name' => ucfirst($platform),
+                'uptime' => $uptime,
+                'online_stores' => $onlineStores,
+                'total_stores' => $totalStores,
+            ];
+        }
 
-        $platformData[$platform] = [
-            'name' => ucfirst($platform),
-            'uptime' => $uptime,
-            'online_stores' => $onlineStores,
-            'total_stores' => $totalStores,
-        ];
-    }
+        return $platformData;
+    });
 
     return view('reports.platform-reliability', [
         'platformData' => $platformData,
@@ -1355,59 +1360,68 @@ Route::get('/reports/platform-reliability', function () {
 
 // Reports: Item Performance
 Route::get('/reports/item-performance', function () {
-    // Get real item statistics from database
-    $totalItems = DB::table('items')
-        ->selectRaw('COUNT(DISTINCT name || \'|\' || shop_name || \'|\' || platform) as total')
-        ->first()
-        ->total;
+    // OPTIMIZED: Cache item performance for 5 minutes
+    $reportData = Cache::remember('reports_item_performance', 300, function () {
+        // Get real item statistics from database
+        $totalItems = DB::table('items')
+            ->selectRaw('COUNT(DISTINCT name || \'|\' || shop_name || \'|\' || platform) as total')
+            ->first()
+            ->total;
 
-    $offlineItems = DB::table('items')->where('is_available', 0)->count();
-    $onlineItems = $totalItems - $offlineItems;
+        $offlineItems = DB::table('items')->where('is_available', 0)->count();
+        $onlineItems = $totalItems - $offlineItems;
 
-    // Get items that are offline frequently (more than 5 times this week)
-    $weekAgo = \Carbon\Carbon::now('Asia/Singapore')->subDays(7);
-    $frequentlyOffline = DB::table('items')
-        ->where('is_available', 0)
-        ->where('updated_at', '>', $weekAgo)
-        ->count();
+        // Get items that are offline frequently (more than 5 times this week)
+        $weekAgo = \Carbon\Carbon::now('Asia/Singapore')->subDays(7);
+        $frequentlyOffline = DB::table('items')
+            ->where('is_available', 0)
+            ->where('updated_at', '>', $weekAgo)
+            ->count();
 
-    // Approximate always available (if consistently online)
-    $alwaysAvailable = round($onlineItems * 0.85);
-    $sometimesOffline = $onlineItems - $alwaysAvailable;
+        // Approximate always available (if consistently online)
+        $alwaysAvailable = round($onlineItems * 0.85);
+        $sometimesOffline = $onlineItems - $alwaysAvailable;
 
-    $itemStats = [
-        'total' => $totalItems,
-        'frequent_offline' => $frequentlyOffline,
-        'always_on' => $alwaysAvailable,
-        'sometimes_off' => $sometimesOffline,
-    ];
+        $itemStats = [
+            'total' => $totalItems,
+            'frequent_offline' => $frequentlyOffline,
+            'always_on' => $alwaysAvailable,
+            'sometimes_off' => $sometimesOffline,
+        ];
 
-    // Get top offline items
-    $topOfflineItems = DB::table('items')
-        ->where('is_available', 0)
-        ->selectRaw('name, shop_name, platform, COUNT(*) as offline_count')
-        ->groupBy('name', 'shop_name', 'platform')
-        ->orderBy('offline_count', 'desc')
-        ->limit(10)
-        ->get();
+        // Get top offline items
+        $topOfflineItems = DB::table('items')
+            ->where('is_available', 0)
+            ->selectRaw('name, shop_name, platform, COUNT(*) as offline_count')
+            ->groupBy('name', 'shop_name', 'platform')
+            ->orderBy('offline_count', 'desc')
+            ->limit(10)
+            ->get();
 
-    // Get REAL category performance data from database
-    $categoryData = DB::table('items')
-        ->selectRaw('
-            category,
-            COUNT(DISTINCT name || \'|\' || shop_name || \'|\' || platform) as total_items,
-            ROUND(100.0 * SUM(CASE WHEN is_available = 1 THEN 1 ELSE 0 END) / COUNT(*), 1) as availability_percentage,
-            COUNT(CASE WHEN is_available = 0 THEN 1 ELSE 0 END) as offline_count
-        ')
-        ->groupBy('category')
-        ->orderByRaw('CAST(category AS TEXT)')
-        ->get()
-        ->keyBy('category');
+        // Get REAL category performance data from database
+        $categoryData = DB::table('items')
+            ->selectRaw('
+                category,
+                COUNT(DISTINCT name || \'|\' || shop_name || \'|\' || platform) as total_items,
+                ROUND(100.0 * SUM(CASE WHEN is_available = 1 THEN 1 ELSE 0 END) / COUNT(*), 1) as availability_percentage,
+                COUNT(CASE WHEN is_available = 0 THEN 1 ELSE 0 END) as offline_count
+            ')
+            ->groupBy('category')
+            ->orderByRaw('CAST(category AS TEXT)')
+            ->get()
+            ->keyBy('category');
+
+        return [
+            'itemStats' => $itemStats,
+            'topOfflineItems' => $topOfflineItems,
+            'categoryData' => $categoryData,
+        ];
+    });
 
     return view('reports.item-performance', [
-        'itemStats' => $itemStats,
-        'topOfflineItems' => $topOfflineItems,
-        'categoryData' => $categoryData,
+        'itemStats' => $reportData['itemStats'],
+        'topOfflineItems' => $reportData['topOfflineItems'],
+        'categoryData' => $reportData['categoryData'],
         'lastSync' => getLastSyncTimestamp(),
     ]);
 });
