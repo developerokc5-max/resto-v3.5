@@ -7,7 +7,10 @@ use Illuminate\Support\Facades\DB;
 
 class Dashboard extends Component
 {
+    // Mark properties as non-reactive to prevent unnecessary re-renders
+    #[\Livewire\Attributes\Reactive]
     public array $kpis = [];
+
     public $topOff;
 
     public function mount(): void
