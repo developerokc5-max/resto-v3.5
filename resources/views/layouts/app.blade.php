@@ -7,9 +7,9 @@
     <title>{{ $title ?? 'HawkerOps' }}</title>
 
     {{-- Favicon --}}
-    <link rel="icon" type="image/svg+xml" href="{{ asset('favicon.svg') }}?v={{ time() }}" />
-    <link rel="shortcut icon" type="image/svg+xml" href="{{ asset('favicon.svg') }}?v={{ time() }}" />
-    <link rel="apple-touch-icon" href="{{ asset('favicon.svg') }}?v={{ time() }}" />
+    <link rel="icon" type="image/svg+xml" href="{{ asset('favicon.svg') }}" />
+    <link rel="shortcut icon" type="image/svg+xml" href="{{ asset('favicon.svg') }}" />
+    <link rel="apple-touch-icon" href="{{ asset('favicon.svg') }}" />
 
     {{-- Vite --}}
     @vite(['resources/css/app.css', 'resources/js/app.js'])
