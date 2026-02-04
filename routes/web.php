@@ -421,9 +421,15 @@ Route::get('/items', function (Request $request) {
 
     // Pagination - 50 items per page
     $perPage = 50;
+    $totalItems = count($itemsGrouped);
+    $totalPages = ceil($totalItems / $perPage);
+
+    // Validate page number
+    if ($currentPage < 1) $currentPage = 1;
+    if ($currentPage > $totalPages && $totalPages > 0) $currentPage = $totalPages;
+
     $offset = ($currentPage - 1) * $perPage;
     $itemsPaginated = array_slice($itemsGrouped, $offset, $perPage);
-    $totalPages = ceil(count($itemsGrouped) / $perPage);
 
     return view('items-table', [
         'items' => $itemsPaginated,
@@ -433,7 +439,7 @@ Route::get('/items', function (Request $request) {
         'currentPage' => $currentPage,
         'totalPages' => $totalPages,
         'perPage' => $perPage,
-        'totalItems' => count($itemsGrouped),
+        'totalItems' => $totalItems,
         'lastUpdate' => getLastSyncTimestamp(),
     ]);
 });
