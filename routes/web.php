@@ -7,6 +7,9 @@ use Illuminate\Support\Facades\Cache;
 use App\Helpers\ShopHelper;
 use App\Helpers\CacheOptimizationHelper;
 
+// Increase execution time for heavy operations
+set_time_limit(300);
+
 Route::get('/', function () {
     return redirect('/dashboard');
 });

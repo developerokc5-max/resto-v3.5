@@ -21,7 +21,15 @@ return Application::configure(basePath: dirname(__DIR__))
     })
 
     ->withMiddleware(function (Middleware $middleware): void {
-        //
+        // Register performance optimization middleware
+        $middleware->web(append: [
+            \App\Http\Middleware\OptimizePerformance::class,
+        ]);
+
+        // Alias for easy reference
+        $middleware->alias([
+            'optimize' => \App\Http\Middleware\OptimizePerformance::class,
+        ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         //

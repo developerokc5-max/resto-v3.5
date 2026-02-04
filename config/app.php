@@ -123,4 +123,14 @@ return [
         'store' => env('APP_MAINTENANCE_STORE', 'database'),
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Service Providers (Auto-loaded)
+    |--------------------------------------------------------------------------
+    */
+    'providers' => [
+        // Performance Optimization Provider
+        App\Providers\PerformanceProvider::class,
+    ],
+
 ];
