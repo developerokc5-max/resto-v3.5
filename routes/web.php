@@ -1426,59 +1426,60 @@ Route::get('/reports/store-comparison', function () {
     // Get REAL comparison data for ALL stores
     $allStoresData = [];
 
+    // OPTIMIZED: Batch fetch all data instead of N+1 queries
+    $shopIds = array_column($stores, 'id');
+    $shopNames = array_column($stores, 'name');
+    $sevenDaysAgo = \Carbon\Carbon::now('Asia/Singapore')->subDays(7)->startOfDay();
+
+    // Fetch all platform statuses for all stores in single query
+    $allPlatformStatuses = DB::table('platform_status')
+        ->whereIn('shop_id', $shopIds)
+        ->get()
+        ->groupBy('shop_id')
+        ->map(fn($items) => $items->keyBy('platform'));
+
+    // Fetch all item counts in single query with aggregation
+    $itemCounts = DB::table('items')
+        ->whereIn('shop_name', $shopNames)
+        ->select('shop_name',
+            DB::raw('COUNT(*) as total'),
+            DB::raw('SUM(CASE WHEN is_available = 0 THEN 1 ELSE 0 END) as offline'))
+        ->groupBy('shop_name')
+        ->get()
+        ->keyBy('shop_name');
+
+    // Fetch all logs for 7-day uptime calculation in single query
+    $allLogs = DB::table('store_status_logs')
+        ->whereIn('shop_id', $shopIds)
+        ->whereDate('logged_at', '>=', $sevenDaysAgo)
+        ->select('shop_id',
+            DB::raw('COUNT(*) as total_logs'),
+            DB::raw('SUM(CASE WHEN (status = "online" OR status = "Online") THEN 1 ELSE 0 END) as online_logs'))
+        ->groupBy('shop_id')
+        ->get()
+        ->keyBy('shop_id');
+
+    // Process each store with already-fetched data (no new queries)
     foreach ($stores as $store) {
         $shopId = $store['id'];
         $shopName = $store['name'];
 
-        // Get platform status for this store
-        $platformStatus = DB::table('platform_status')
-            ->where('shop_id', $shopId)
-            ->get()
-            ->keyBy('platform');
+        // Use pre-fetched platform statuses
+        $platformStatus = $allPlatformStatuses->get($shopId, collect());
+        $platformsOnline = $platformStatus->filter(fn($p) => $p->is_online)->count();
 
-        // Count platforms online
-        $platformsOnline = 0;
-        foreach (['grab', 'foodpanda', 'deliveroo'] as $platform) {
-            if ($platformStatus->get($platform)?->is_online) {
-                $platformsOnline++;
-            }
-        }
-
-        // Get item availability data
-        $totalItems = DB::table('items')
-            ->where('shop_name', $shopName)
-            ->count();
-
-        $offlineItems = DB::table('items')
-            ->where('shop_name', $shopName)
-            ->where('is_available', 0)
-            ->count();
-
+        // Use pre-fetched item counts
+        $itemData = $itemCounts->get($shopName, (object)['total' => 0, 'offline' => 0]);
+        $totalItems = $itemData->total ?? 0;
+        $offlineItems = $itemData->offline ?? 0;
         $onlineItems = $totalItems - $offlineItems;
         $availabilityPercent = $totalItems > 0 ? round(($onlineItems / $totalItems) * 100, 1) : 0;
 
-        // Get 7-day uptime from logs
-        $sevenDaysAgo = \Carbon\Carbon::now('Asia/Singapore')->subDays(7)->startOfDay();
-        $uptimeLogs = DB::table('store_status_logs')
-            ->where('shop_id', $shopId)
-            ->whereDate('logged_at', '>=', $sevenDaysAgo)
-            ->count();
-
-        $onlineLogsCount = DB::table('store_status_logs')
-            ->where('shop_id', $shopId)
-            ->whereDate('logged_at', '>=', $sevenDaysAgo)
-            ->where(function ($query) {
-                $query->where('status', 'online')->orWhere('status', 'Online');
-            })
-            ->count();
-
+        // Use pre-fetched logs
+        $logData = $allLogs->get($shopId, (object)['total_logs' => 0, 'online_logs' => 0]);
+        $uptimeLogs = $logData->total_logs ?? 0;
+        $onlineLogsCount = $logData->online_logs ?? 0;
         $uptimePercent = $uptimeLogs > 0 ? round(($onlineLogsCount / $uptimeLogs) * 100, 1) : 0;
-
-        // Count incidents (status changes) in last 7 days
-        $incidents = DB::table('store_status_logs')
-            ->where('shop_id', $shopId)
-            ->whereDate('logged_at', '>=', $sevenDaysAgo)
-            ->count();
 
         // Determine overall status
         if ($platformsOnline === 3) {
@@ -1503,7 +1504,7 @@ Route::get('/reports/store-comparison', function () {
             'online_items' => $onlineItems,
             'availability_percent' => $availabilityPercent,
             'uptime_percent' => $uptimePercent,
-            'incidents_7d' => $incidents,
+            'incidents_7d' => $uptimeLogs,
             'last_sync' => \Carbon\Carbon::now('Asia/Singapore')->subMinutes(rand(1, 10))->diffForHumans(),
             'grab_status' => $platformStatus->get('grab')?->is_online ? 'ONLINE' : 'OFFLINE',
             'foodpanda_status' => $platformStatus->get('foodpanda')?->is_online ? 'ONLINE' : 'OFFLINE',
