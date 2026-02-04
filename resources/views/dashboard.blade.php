@@ -37,9 +37,9 @@
         </button>
       </div>
 
-      <!-- Info Popup -->
-      <div id="infoPopup" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-        <div class="bg-white rounded-2xl shadow-2xl max-w-5xl w-full p-8 max-h-[90vh] overflow-y-auto">
+      <!-- Info Popup (Only visible when opened) -->
+      <div id="infoPopup" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 pointer-events-none">
+        <div class="bg-white rounded-2xl shadow-2xl max-w-5xl w-full p-8 max-h-[90vh] overflow-y-auto pointer-events-auto">
           <div class="flex items-center justify-between mb-6 sticky top-0 bg-white pb-4">
             <div>
               <h3 class="text-3xl font-bold text-slate-900">📖 HawkerOps Guide</h3>
