@@ -8,7 +8,7 @@
 @section('top-actions')
   <div class="text-right">
     <div class="text-xs text-slate-500">Last Updated (SGT)</div>
-    <div id="lastUpdateTime" class="text-sm font-semibold">{{ $lastUpdate ?? 'Never' }}</div>
+    <div id="lastUpdateTime" class="text-sm font-semibold text-slate-900 break-words leading-tight">{{ $lastUpdate ?? 'Never' }}</div>
   </div>
 @endsection
 
