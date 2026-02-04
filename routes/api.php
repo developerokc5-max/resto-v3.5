@@ -206,13 +206,16 @@ Route::prefix('sync')->group(function () {
             // Clear existing items
             DB::table('items')->truncate();
 
-            // Import all items into database
+            // Import all items into database - OPTIMIZED: batch insert instead of loop
+            $itemsToInsert = [];
             $totalImported = 0;
+            $now = now();
+
             foreach ($data['stores'] as $storeName => $items) {
                 foreach ($items as $item) {
-                    // Insert for each platform (since they may have different availability)
+                    // Prepare for each platform (since they may have different availability)
                     foreach (['grab', 'foodpanda', 'deliveroo'] as $platform) {
-                        DB::table('items')->insert([
+                        $itemsToInsert[] = [
                             'item_id' => $item['sku'] ?: 'unknown',
                             'shop_name' => $storeName,
                             'name' => $item['name'],
@@ -222,12 +225,23 @@ Route::prefix('sync')->group(function () {
                             'image_url' => $item['image_url'],
                             'is_available' => $item['is_available'],
                             'platform' => $platform,
-                            'created_at' => now(),
-                            'updated_at' => now(),
-                        ]);
+                            'created_at' => $now,
+                            'updated_at' => $now,
+                        ];
                         $totalImported++;
+
+                        // Insert in batches of 1000 to avoid memory issues
+                        if (count($itemsToInsert) >= 1000) {
+                            DB::table('items')->insert($itemsToInsert);
+                            $itemsToInsert = [];
+                        }
                     }
                 }
+            }
+
+            // Insert any remaining items
+            if (!empty($itemsToInsert)) {
+                DB::table('items')->insert($itemsToInsert);
             }
 
             return response()->json([
