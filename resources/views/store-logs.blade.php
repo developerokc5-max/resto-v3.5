@@ -160,7 +160,7 @@
                                                 <span class="px-2 py-1 bg-blue-100 text-blue-700 rounded text-xs font-semibold">LIVE</span>
                                             @endif
                                         </div>
-                                        <p class="text-sm text-slate-600 mt-0.5">{{ \Carbon\Carbon::parse($card['timestamp'])->format('l, F j, Y \a\t g:i A') }}</p>
+                                        <p class="text-sm text-slate-600 mt-0.5">{{ \Carbon\Carbon::parse($card['timestamp'])->setTimezone('Asia/Singapore')->format('l, F j, Y \a\t g:i A \S\G\T') }}</p>
                                     </div>
                                 </div>
                             </div>
@@ -226,7 +226,7 @@
                                         <div class="text-left">
                                             <h4 class="font-bold text-slate-900 text-base">{{ $data['name'] }}</h4>
                                             @if(isset($data['last_checked']) && $data['last_checked'])
-                                                <p class="text-xs text-slate-600">Checked {{ \Carbon\Carbon::parse($data['last_checked'])->format('M d, Y \a\t g:i A') }}</p>
+                                                <p class="text-xs text-slate-600">Checked {{ \Carbon\Carbon::parse($data['last_checked'])->setTimezone('Asia/Singapore')->format('M d, Y \a\t g:i A \S\G\T') }}</p>
                                             @else
                                                 <p class="text-xs text-slate-500">Not checked yet</p>
                                             @endif
