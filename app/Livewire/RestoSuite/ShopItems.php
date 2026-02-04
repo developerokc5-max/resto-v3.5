@@ -5,9 +5,7 @@ namespace App\Livewire\RestoSuite;
 use Livewire\Component;
 use Livewire\WithPagination;
 use Livewire\Attributes\Computed;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Cache;
-use App\Services\CacheService;
+use App\Services\ShopService;
 
 class ShopItems extends Component
 {
@@ -28,38 +26,20 @@ class ShopItems extends Component
     }
 
     /**
-     * Get offline items count - cached to avoid repeated queries
+     * Get offline items count - cached in ShopService
      * Only recalculates when component rerenders with new shop_id
      */
     #[Computed(cache: true)]
     public function itemsOff(): int
     {
-        return (int) DB::table('restosuite_item_snapshots')
-            ->where('shop_id', $this->shopId)
-            ->where('is_active', 0)
-            ->count();
-    }
-
-    /**
-     * Get shop status from cache (50x faster after first request)
-     */
-    public function getShopStatus()
-    {
-        return CacheService::getShopStatus($this->shopId);
+        return ShopService::getOfflineItemsCountCached($this->shopId);
     }
 
     public function render()
     {
-        $items = DB::table('restosuite_item_snapshots')
-            ->where('shop_id', $this->shopId)
-            ->when($this->q !== '', function ($query) {
-                $query->where(function ($sub) {
-                    $sub->where('name', 'like', '%' . $this->q . '%')
-                        ->orWhere('item_id', 'like', '%' . $this->q . '%');
-                });
-            })
-            ->orderByDesc('id')
-            ->paginate(25);
+        // Use ShopService to get items for this shop
+        // Moved database logic to service layer (PHP)
+        $items = ShopService::getShopItems($this->shopId, $this->q, 25);
 
         return view('livewire.resto-suite.shop-items', [
             'items' => $items,

@@ -4,8 +4,7 @@ namespace App\Livewire\RestoSuite;
 
 use Livewire\Component;
 use Livewire\WithPagination;
-use Illuminate\Support\Facades\DB;
-use App\Services\CacheService;
+use App\Services\ShopService;
 
 class ShopsIndex extends Component
 {
@@ -20,20 +19,9 @@ class ShopsIndex extends Component
 
     public function render()
     {
-        $shops = DB::table('restosuite_item_snapshots')
-            ->select('shop_id', 'shop_name', 'brand_name')
-            ->selectRaw('MAX(created_at) as last_seen')
-            ->selectRaw('SUM(CASE WHEN is_active = 0 THEN 1 ELSE 0 END) as items_off')
-            ->when($this->q !== '', function ($query) {
-                $query->where(function ($sub) {
-                    $sub->where('shop_name', 'like', '%' . $this->q . '%')
-                        ->orWhere('brand_name', 'like', '%' . $this->q . '%')
-                        ->orWhere('shop_id', 'like', '%' . $this->q . '%');
-                });
-            })
-            ->groupBy('shop_id', 'shop_name', 'brand_name')
-            ->orderByDesc('last_seen')
-            ->paginate(25);
+        // Use ShopService to get shops with statistics
+        // Moved database logic to service layer (PHP)
+        $shops = ShopService::getAllShopsWithStats($this->q, 25);
 
         return view('livewire.resto-suite.shops-index', [
             'shops' => $shops,
