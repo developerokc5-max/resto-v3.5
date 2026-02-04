@@ -10,6 +10,31 @@ use App\Helpers\CacheOptimizationHelper;
 // Increase execution time for heavy operations
 set_time_limit(300);
 
+/**
+ * Get the last sync/update timestamp for consistent display across all pages
+ * Uses priority order: restosuite_item_snapshots > platform_status
+ * Optional: can filter by shop_id for specific store timestamps
+ */
+function getLastSyncTimestamp($shopId = null) {
+    $query = DB::table('restosuite_item_snapshots');
+
+    if ($shopId) {
+        $query->where('shop_id', $shopId);
+    }
+
+    $lastSync = $query->max('updated_at');
+
+    if (!$lastSync) {
+        $platformQuery = DB::table('platform_status');
+        if ($shopId) {
+            $platformQuery->where('shop_id', $shopId);
+        }
+        $lastSync = $platformQuery->max('last_checked_at');
+    }
+
+    return $lastSync ? \Carbon\Carbon::parse($lastSync)->setTimezone('Asia/Singapore')->format('M j, Y g:i A') . ' SGT' : 'Never';
+}
+
 Route::get('/', function () {
     return redirect('/dashboard');
 });
@@ -162,20 +187,10 @@ Route::get('/dashboard', function () {
     }
 
 
-    // HYBRID: Check both RestoSuite and Platform Status for last sync
-    $lastSyncTime = DB::table('restosuite_item_snapshots')
-        ->max('updated_at');
-
-    if (!$lastSyncTime) {
-        // Fallback to platform_status last_checked_at
-        $lastSyncTime = DB::table('platform_status')
-            ->max('last_checked_at');
-    }
-
     return view('dashboard', [
         'kpis' => $kpis,
         'stores' => $stores,
-        'lastSync' => $lastSyncTime ? \Carbon\Carbon::parse($lastSyncTime)->setTimezone('Asia/Singapore')->format('M j, Y g:i A') . ' SGT' : 'Never',
+        'lastSync' => getLastSyncTimestamp(),
     ]);
 });
 
@@ -258,19 +273,9 @@ Route::get('/stores', function () {
         ];
     }
 
-    // Get last sync time - use same source as dashboard for consistency
-    $lastSyncTime = DB::table('restosuite_item_snapshots')
-        ->max('updated_at');
-
-    if (!$lastSyncTime) {
-        // Fallback to platform_status last_checked_at
-        $lastSyncTime = DB::table('platform_status')
-            ->max('last_checked_at');
-    }
-
     return view('stores', [
         'stores' => $stores,
-        'lastSync' => $lastSyncTime ? \Carbon\Carbon::parse($lastSyncTime)->setTimezone('Asia/Singapore')->format('M j, Y g:i A') . ' SGT' : 'Never',
+        'lastSync' => getLastSyncTimestamp(),
     ]);
 });
 
@@ -420,11 +425,6 @@ Route::get('/items', function (Request $request) {
     $itemsPaginated = array_slice($itemsGrouped, $offset, $perPage);
     $totalPages = ceil(count($itemsGrouped) / $perPage);
 
-    // Get last update time from items table - with caching
-    $lastUpdateTime = Cache::remember('items_last_update', 300, function () {
-        return DB::table('items')->max('updated_at');
-    });
-
     return view('items-table', [
         'items' => $itemsPaginated,
         'restaurants' => $restaurants,
@@ -434,7 +434,7 @@ Route::get('/items', function (Request $request) {
         'totalPages' => $totalPages,
         'perPage' => $perPage,
         'totalItems' => count($itemsGrouped),
-        'lastUpdate' => $lastUpdateTime ? \Carbon\Carbon::parse($lastUpdateTime)->setTimezone('Asia/Singapore')->format('M j, Y g:i A') . ' SGT' : 'Never',
+        'lastUpdate' => getLastSyncTimestamp(),
     ]);
 });
 
@@ -602,20 +602,10 @@ Route::get('/store/{shopId}', function ($shopId) {
         'offline_count' => $offlineCount,
     ];
 
-    $lastSyncTime = DB::table('restosuite_item_snapshots')
-        ->where('shop_id', $shopId)
-        ->max('updated_at');
-
-    if (!$lastSyncTime) {
-        $lastSyncTime = DB::table('platform_status')
-            ->where('shop_id', $shopId)
-            ->max('last_checked_at');
-    }
-
     return view('store-detail', [
         'store' => $store,
         'items' => $itemsArray,
-        'lastSync' => $lastSyncTime ? \Carbon\Carbon::parse($lastSyncTime)->setTimezone('Asia/Singapore')->format('M j, Y g:i A') . ' SGT' : 'Never',
+        'lastSync' => getLastSyncTimestamp($shopId),
         'lastSyncAgo' => $lastSyncTime ? \Carbon\Carbon::parse($lastSyncTime)->diffForHumans() : 'Never',
     ]);
 });
@@ -683,8 +673,6 @@ Route::get('/platforms', function () {
         ];
     }
 
-    $lastScrapeTime = DB::table('platform_status')->max('last_checked_at');
-
     return view('platforms', [
         'shops' => array_values($shopsPlatforms),
         'stats' => [
@@ -694,7 +682,7 @@ Route::get('/platforms', function () {
             'percentage' => $totalPlatforms > 0 ? round(($onlinePlatforms / $totalPlatforms) * 100, 2) : 0,
         ],
         'platformStats' => $platformStats,
-        'lastScrape' => $lastScrapeTime ? \Carbon\Carbon::parse($lastScrapeTime)->setTimezone('Asia/Singapore')->format('M j, Y g:i A') . ' SGT' : 'Never',
+        'lastScrape' => getLastSyncTimestamp(),
     ]);
 });
 
@@ -1264,7 +1252,7 @@ Route::get('/alerts', function () {
     return view('alerts', [
         'alerts' => $alerts,
         'stats' => $stats,
-        'lastSync' => \Carbon\Carbon::now('Asia/Singapore')->format('M j, Y g:i A') . ' SGT',
+        'lastSync' => getLastSyncTimestamp(),
     ]);
 });
 
@@ -1315,7 +1303,7 @@ Route::get('/reports/daily-trends', function () {
 
     return view('reports.daily-trends', [
         'trends' => $trends,
-        'lastSync' => \Carbon\Carbon::now('Asia/Singapore')->format('M j, Y g:i A') . ' SGT',
+        'lastSync' => getLastSyncTimestamp(),
     ]);
 });
 
@@ -1355,7 +1343,7 @@ Route::get('/reports/platform-reliability', function () {
 
     return view('reports.platform-reliability', [
         'platformData' => $platformData,
-        'lastSync' => \Carbon\Carbon::now('Asia/Singapore')->format('M j, Y g:i A') . ' SGT',
+        'lastSync' => getLastSyncTimestamp(),
     ]);
 });
 
@@ -1414,7 +1402,7 @@ Route::get('/reports/item-performance', function () {
         'itemStats' => $itemStats,
         'topOfflineItems' => $topOfflineItems,
         'categoryData' => $categoryData,
-        'lastSync' => \Carbon\Carbon::now('Asia/Singapore')->format('M j, Y g:i A') . ' SGT',
+        'lastSync' => getLastSyncTimestamp(),
     ]);
 });
 
@@ -1526,7 +1514,7 @@ Route::get('/reports/store-comparison', function () {
     return view('reports.store-comparison', [
         'stores' => $stores,
         'allStoresData' => collect($allStoresData),
-        'lastSync' => \Carbon\Carbon::now('Asia/Singapore')->format('M j, Y g:i A') . ' SGT',
+        'lastSync' => getLastSyncTimestamp(),
     ]);
 });
 
@@ -1594,7 +1582,7 @@ Route::get('/settings/scraper-status', function () {
     return view('settings.scraper-status', [
         'scraperStatus' => $scraperStatus,
         'logs' => $scraperLogs,
-        'lastSync' => \Carbon\Carbon::now('Asia/Singapore')->format('M j, Y g:i A') . ' SGT',
+        'lastSync' => getLastSyncTimestamp(),
     ]);
 });
 
@@ -1615,7 +1603,7 @@ Route::get('/settings/configuration', function () {
         'timezone' => $configs->get('timezone')?->value ?? 'Asia/Singapore',
         'dateFormat' => $configs->get('date_format')?->value ?? 'DD/MM/YYYY',
         'showItemImages' => (bool) ($configs->get('show_item_images')?->value ?? true),
-        'lastSync' => \Carbon\Carbon::now('Asia/Singapore')->format('M j, Y g:i A') . ' SGT',
+        'lastSync' => getLastSyncTimestamp(),
     ]);
 });
 
@@ -1639,7 +1627,7 @@ Route::post('/settings/configuration', function (\Illuminate\Http\Request $reque
 // Settings: Export Data
 Route::get('/settings/export', function () {
     return view('settings.export', [
-        'lastSync' => \Carbon\Carbon::now('Asia/Singapore')->format('M j, Y g:i A') . ' SGT',
+        'lastSync' => getLastSyncTimestamp(),
     ]);
 });
 
