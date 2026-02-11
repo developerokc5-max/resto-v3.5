@@ -5,10 +5,34 @@ use Illuminate\Support\Facades\Route;
 use App\Models\PlatformStatus;
 use Illuminate\Support\Facades\DB;
 use App\Helpers\ShopHelper;
+use App\Http\Controllers\Api\MonitorController;
 
 /**
  * API Routes for Hybrid System
  */
+
+// ========================================
+// PROTECTED MOBILE APP MONITORING API
+// ========================================
+Route::middleware('auth:sanctum')->prefix('monitor')->group(function () {
+    Route::get('/dashboard', [MonitorController::class, 'dashboard']);
+    Route::get('/scraper/status', [MonitorController::class, 'scraperStatus']);
+    Route::get('/shops', [MonitorController::class, 'shops']);
+    Route::get('/items', [MonitorController::class, 'items']);
+    Route::get('/changes', [MonitorController::class, 'recentChanges']);
+    Route::get('/platform-status', [MonitorController::class, 'platformStatus']);
+    Route::get('/statistics', [MonitorController::class, 'statistics']);
+    Route::get('/webapp-health', [MonitorController::class, 'webappHealth']);
+});
+
+// Test endpoint to verify auth is working
+Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
+    return $request->user();
+});
+
+// ========================================
+// LEGACY/PUBLIC API (UNPROTECTED)
+// ========================================
 
 // Platform Status API
 Route::prefix('platform')->group(function () {
