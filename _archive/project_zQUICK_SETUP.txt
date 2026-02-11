@@ -1,0 +1,48 @@
+=============================================================================
+QUICK SETUP - NO LOGIN NEEDED!
+=============================================================================
+
+The app now opens directly to the dashboard - NO LOGIN SCREEN!
+
+=============================================================================
+STEP 1: GENERATE YOUR API TOKEN (One-time setup)
+=============================================================================
+
+1. Open Command Prompt
+2. Run:
+   cd C:\resto-db-v3.5
+   php artisan api:create-token your@email.com
+
+3. Copy the token (looks like: 1|aBcDeFg123...)
+
+=============================================================================
+STEP 2: ADD TOKEN TO APP
+=============================================================================
+
+1. Open: C:\project_z\lib\utils\api_config.dart
+2. Find line 11: static const String apiToken = 'YOUR_TOKEN_HERE';
+3. Replace 'YOUR_TOKEN_HERE' with your actual token
+4. Save the file
+
+Example:
+static const String apiToken = '1|aBcDeFgHiJkLmNoPqRsTuVwXyZ1234567890';
+
+=============================================================================
+STEP 3: RUN THE APP
+=============================================================================
+
+cd C:\project_z
+flutter run
+
+=============================================================================
+THAT'S IT! 🎉
+=============================================================================
+
+The app will open and immediately show:
+✓ Dashboard with KPIs
+✓ Scraper status
+✓ Shops listing
+
+No login needed - just open and monitor!
+
+=============================================================================
