@@ -44,3 +44,27 @@ __pycache__/
 
 # Windows system cache files (accidentally created in public/)
 /public/%SystemDrive%/
+
+# Archive folder (all dev leftovers, debug scripts, old scrapers)
+/_archive/
+
+# Scraper screenshots & debug images
+item-test-trait-1/*.png
+platform-test-trait-1/*.png
+
+# Scraped JSON data (real business data)
+_archive/json_data/
+_archive/scraping_tests/*.json
+_archive/scrapers/*.json
+
+# Internal documents
+_archive/logs/*.docx
+
+# Claude temp files
+_archive/temp_files/
+_archive/scrapers/tmpclaude-*
+
+# Deployment config
+render.yaml
+render-build.sh
+scripts/render-build.sh
