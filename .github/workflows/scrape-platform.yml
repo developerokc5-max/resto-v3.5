@@ -1,0 +1,23 @@
+name: Auto Scrape - Platform Status
+
+on:
+  schedule:
+    - cron: '*/15 * * * *'  # Every 15 minutes
+  workflow_dispatch:         # Allow manual trigger from GitHub UI
+
+jobs:
+  scrape-platform:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger Platform Scraper
+        run: |
+          response=$(curl -s -o /dev/null -w "%{http_code}" -X POST \
+            https://resto-v3-5.onrender.com/api/sync/scrape \
+            -H "Content-Type: application/json" \
+            -H "Accept: application/json")
+          echo "Response code: $response"
+          if [ "$response" != "200" ]; then
+            echo "Warning: Got $response response"
+          else
+            echo "Platform scrape triggered successfully"
+          fi
