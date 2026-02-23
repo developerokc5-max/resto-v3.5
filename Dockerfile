@@ -13,8 +13,6 @@ RUN apt-get update && apt-get install -y \
     libsqlite3-dev \
     python3 \
     python3-pip \
-    python3-venv \
-    # Playwright browser dependencies
     libnss3 \
     libnspr4 \
     libatk1.0-0 \
