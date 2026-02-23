@@ -3,31 +3,29 @@ set -e
 
 echo "🚀 Starting Laravel application..."
 
-# Check if persistent disk database exists and has data
+# Persistent disk is mounted at /data (NOT inside /var/www/html/database)
+# This avoids hiding the database/migrations/ folder
 echo "🗄️ Checking persistent database..."
-DISK_DB="/var/www/html/database/database.sqlite"
-SEED_DB="/var/www/html/database/database.sqlite.seed"
+DISK_DB="/data/database.sqlite"
+SEED_DB="/var/www/html/database/database.sqlite"
 
-# Copy our seeded database as a seed backup if not already there
-if [ -f "$DISK_DB" ] && [ ! -f "$SEED_DB" ]; then
-    cp "$DISK_DB" "$SEED_DB"
-fi
+mkdir -p /data
 
-# If disk database is empty (new disk), restore from seed
 if [ -f "$DISK_DB" ]; then
     SHOP_COUNT=$(sqlite3 "$DISK_DB" "SELECT COUNT(*) FROM shops;" 2>/dev/null || echo "0")
-    echo "📊 Found $SHOP_COUNT shops in database"
-    if [ "$SHOP_COUNT" = "0" ] && [ -f "$SEED_DB" ]; then
-        echo "🌱 Seeding database from backup..."
+    echo "📊 Found $SHOP_COUNT shops in persistent database"
+    if [ "$SHOP_COUNT" = "0" ]; then
+        echo "🌱 Seeding from bundled database..."
         cp "$SEED_DB" "$DISK_DB"
-        echo "✅ Database seeded with existing data"
+        echo "✅ Database seeded"
     fi
 else
-    echo "📦 Creating new database..."
-    touch "$DISK_DB"
+    echo "📦 First boot - copying bundled database to persistent disk..."
+    cp "$SEED_DB" "$DISK_DB"
+    echo "✅ Database copied to /data/database.sqlite"
 fi
 
-chown -R www-data:www-data /var/www/html/database
+chown -R www-data:www-data /data
 
 # Run migrations
 echo "🔄 Running database migrations..."
@@ -46,27 +44,4 @@ php artisan view:clear
 
 echo "✅ Laravel setup complete!"
 
-# Show active env vars (Render dashboard vars override .env)
-echo "📄 Runtime environment:"
-echo "  APP_DEBUG=${APP_DEBUG:-from-dotenv}"
-echo "  APP_ENV=${APP_ENV:-from-dotenv}"
-echo "  DB_DATABASE=${DB_DATABASE:-from-dotenv}"
-
-# Test with tinker to get the actual error
-echo "🔍 Testing Laravel app (catching errors)..."
-php artisan tinker --execute="
-try {
-    \$response = app()->handle(
-        Illuminate\Http\Request::create('/up', 'GET')
-    );
-    echo 'Status: ' . \$response->getStatusCode() . PHP_EOL;
-    echo 'Body: ' . substr(\$response->getContent(), 0, 500) . PHP_EOL;
-} catch (\Throwable \$e) {
-    echo 'ERROR: ' . \$e->getMessage() . PHP_EOL;
-    echo 'FILE: ' . \$e->getFile() . ':' . \$e->getLine() . PHP_EOL;
-    echo 'TRACE: ' . substr(\$e->getTraceAsString(), 0, 1000) . PHP_EOL;
-}
-" 2>&1 || echo "Tinker failed"
-
-# Execute the CMD (apache2-foreground)
 exec "$@"
