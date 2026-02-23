@@ -8,6 +8,7 @@
 /.idea
 /.vscode
 
-# DO NOT copy local .env into image
+# DO NOT copy local .env into image (but keep .env.example for Docker build)
 .env
 .env.*
+!.env.example
