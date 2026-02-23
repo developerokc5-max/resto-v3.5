@@ -1186,79 +1186,198 @@ Route::get('/items-mock', function () {
 
 // Alerts Page
 Route::get('/alerts', function () {
-    // Generate real alerts from actual database data
     $alerts = [];
-    $shopMap = ShopHelper::getShopMap();
 
-    // Check for offline platforms (stores where all 3 platforms are offline)
-    $offlineStores = DB::table('platform_status')
-        ->selectRaw('shop_id, COUNT(*) as offline_count')
+    // ── 1. Stores where ALL platforms are offline ──────────────────────────────
+    // Get every shop_id and how many platforms are tracked for it
+    $allPlatformCounts = DB::table('platform_status')
+        ->selectRaw('shop_id, COUNT(*) as total_platforms')
+        ->groupBy('shop_id')
+        ->pluck('total_platforms', 'shop_id');
+
+    $offlineCounts = DB::table('platform_status')
+        ->selectRaw('shop_id, COUNT(*) as offline_count, MAX(last_checked_at) as last_checked')
         ->where('is_online', 0)
         ->groupBy('shop_id')
-        ->having('offline_count', '=', 3)
-        ->get();
+        ->get()
+        ->keyBy('shop_id');
 
-    if ($offlineStores->count() > 0) {
-        $alerts[] = [
-            'type' => 'critical',
-            'title' => $offlineStores->count() . ' Store(s) Completely Offline',
-            'message' => $offlineStores->count() . ' stores have all platforms offline',
-            'time' => now()->diffForHumans(),
-            'store' => $offlineStores->count() > 1 ? 'Multiple stores' : $shopMap[$offlineStores->first()->shop_id]['name'] ?? 'Unknown',
-        ];
-    }
-
-    // Check for offline platforms (any platform down across stores)
-    $platformOfflineStats = DB::table('platform_status')
-        ->selectRaw('platform, COUNT(*) as offline_count')
-        ->where('is_online', 0)
-        ->groupBy('platform')
-        ->get();
-
-    foreach ($platformOfflineStats as $stat) {
-        if ($stat->offline_count >= 3) {
-            $alerts[] = [
-                'type' => 'warning',
-                'title' => ucfirst($stat->platform) . ' Platform Issues',
-                'message' => $stat->offline_count . ' stores offline on ' . ucfirst($stat->platform),
-                'time' => now()->diffForHumans(),
-                'store' => 'Multiple stores',
+    $fullyOfflineStores = [];
+    foreach ($allPlatformCounts as $shopId => $total) {
+        $offlineRow = $offlineCounts->get($shopId);
+        if ($offlineRow && $offlineRow->offline_count >= $total) {
+            $storeName = DB::table('platform_status')
+                ->where('shop_id', $shopId)
+                ->value('store_name') ?? $shopId;
+            $fullyOfflineStores[] = [
+                'shop_id'      => $shopId,
+                'name'         => $storeName,
+                'last_checked' => $offlineRow->last_checked,
             ];
         }
     }
 
-    // Check for stores with many offline items
+    if (count($fullyOfflineStores) > 0) {
+        // Sort by last_checked ascending (longest offline first)
+        usort($fullyOfflineStores, fn($a, $b) => strcmp($a['last_checked'] ?? '', $b['last_checked'] ?? ''));
+
+        $oldest = $fullyOfflineStores[0]['last_checked'] ?? null;
+        $timeLabel = $oldest ? \Carbon\Carbon::parse($oldest)->diffForHumans() : 'Unknown';
+
+        if (count($fullyOfflineStores) === 1) {
+            $alerts[] = [
+                'type'        => 'critical',
+                'title'       => $fullyOfflineStores[0]['name'] . ' — All Platforms Offline',
+                'message'     => 'All delivery platforms are offline for this store.',
+                'time'        => $timeLabel,
+                'store'       => $fullyOfflineStores[0]['name'],
+                'detail'      => null,
+                'last_checked'=> $oldest,
+            ];
+        } else {
+            $storeNames = implode(', ', array_column(array_slice($fullyOfflineStores, 0, 3), 'name'));
+            $extra = count($fullyOfflineStores) > 3 ? ' +' . (count($fullyOfflineStores) - 3) . ' more' : '';
+            $alerts[] = [
+                'type'        => 'critical',
+                'title'       => count($fullyOfflineStores) . ' Stores Completely Offline',
+                'message'     => 'All platforms offline: ' . $storeNames . $extra,
+                'time'        => $timeLabel,
+                'store'       => 'Multiple stores',
+                'detail'      => array_map(fn($s) => $s['name'], $fullyOfflineStores),
+                'last_checked'=> $oldest,
+            ];
+        }
+    }
+
+    // ── 2. Per-platform offline counts (with real last_checked timestamp) ──────
+    $platformStats = DB::table('platform_status')
+        ->selectRaw('platform,
+            SUM(CASE WHEN is_online = 0 THEN 1 ELSE 0 END) as offline_count,
+            SUM(CASE WHEN is_online = 1 THEN 1 ELSE 0 END) as online_count,
+            COUNT(*) as total,
+            MAX(last_checked_at) as last_checked')
+        ->groupBy('platform')
+        ->get()
+        ->keyBy('platform');
+
+    foreach ($platformStats as $platform => $stat) {
+        if ($stat->offline_count >= 3) {
+            $pct = $stat->total > 0 ? round(($stat->offline_count / $stat->total) * 100) : 0;
+            $timeLabel = $stat->last_checked
+                ? \Carbon\Carbon::parse($stat->last_checked)->diffForHumans()
+                : 'Unknown';
+            $type = $pct >= 50 ? 'critical' : 'warning';
+            $alerts[] = [
+                'type'        => $type,
+                'title'       => ucfirst($platform) . ' — ' . $stat->offline_count . ' Stores Offline',
+                'message'     => $pct . '% of ' . ucfirst($platform) . ' stores are offline (' . $stat->offline_count . '/' . $stat->total . ')',
+                'time'        => $timeLabel,
+                'store'       => 'Multiple stores',
+                'detail'      => null,
+                'last_checked'=> $stat->last_checked,
+            ];
+        }
+    }
+
+    // ── 3. Stores with many unavailable items (with real updated_at) ──────────
     $storesWithOfflineItems = DB::table('items')
-        ->selectRaw('shop_name, COUNT(*) as offline_count')
-        ->where('is_available', 0)
-        ->groupBy('shop_name')
-        ->having('offline_count', '>', 20)
-        ->orderBy('offline_count', 'desc')
-        ->limit(5)
+        ->selectRaw('shop_name, shop_id,
+            SUM(CASE WHEN is_available = 0 THEN 1 ELSE 0 END) as offline_count,
+            COUNT(*) as total_items,
+            MAX(updated_at) as last_updated')
+        ->groupBy('shop_name', 'shop_id')
+        ->havingRaw('SUM(CASE WHEN is_available = 0 THEN 1 ELSE 0 END) > 20')
+        ->orderByRaw('offline_count DESC')
+        ->limit(8)
         ->get();
 
     foreach ($storesWithOfflineItems as $store) {
+        $pct = $store->total_items > 0 ? round(($store->offline_count / $store->total_items) * 100) : 0;
+        $timeLabel = $store->last_updated
+            ? \Carbon\Carbon::parse($store->last_updated)->diffForHumans()
+            : 'Unknown';
+        $type = $pct >= 70 ? 'critical' : 'warning';
         $alerts[] = [
-            'type' => 'warning',
-            'title' => 'High Offline Items: ' . $store->shop_name,
-            'message' => $store->offline_count . ' items are currently offline',
-            'time' => now()->diffForHumans(),
-            'store' => $store->shop_name,
+            'type'        => $type,
+            'title'       => $store->shop_name . ' — ' . $store->offline_count . ' Items Unavailable',
+            'message'     => $pct . '% of menu items are currently unavailable (' . $store->offline_count . '/' . $store->total_items . ' items)',
+            'time'        => $timeLabel,
+            'store'       => $store->shop_name,
+            'detail'      => null,
+            'last_checked'=> $store->last_updated,
         ];
     }
 
-    // Calculate stats from actual data
-    $stats = [
-        'critical' => $offlineStores->count(),
-        'warnings' => $platformOfflineStats->count() + $storesWithOfflineItems->count(),
-        'info' => 0,
-        'resolved' => 5,
-    ];
+    // ── 4. Stale data warning (no scrape in > 2 hours) ────────────────────────
+    $latestScrape = DB::table('platform_status')->max('last_checked_at');
+    $staleThresholdMinutes = 120;
+    if ($latestScrape) {
+        $minutesAgo = \Carbon\Carbon::parse($latestScrape)->diffInMinutes(now());
+        if ($minutesAgo > $staleThresholdMinutes) {
+            $hoursAgo = round($minutesAgo / 60, 1);
+            $alerts[] = [
+                'type'        => 'info',
+                'title'       => 'Data May Be Stale',
+                'message'     => 'Last scrape was ' . $hoursAgo . ' hours ago. Run a scrape to get fresh platform data.',
+                'time'        => \Carbon\Carbon::parse($latestScrape)->diffForHumans(),
+                'store'       => 'All stores',
+                'detail'      => null,
+                'last_checked'=> $latestScrape,
+            ];
+        }
+    } else {
+        $alerts[] = [
+            'type'        => 'info',
+            'title'       => 'No Scrape Data Yet',
+            'message'     => 'No platform data found. Run a scrape from the Dashboard to populate real data.',
+            'time'        => 'Never',
+            'store'       => 'All stores',
+            'detail'      => null,
+            'last_checked'=> null,
+        ];
+    }
+
+    // ── Sort: critical first, then warning, then info ─────────────────────────
+    $order = ['critical' => 0, 'warning' => 1, 'info' => 2];
+    usort($alerts, fn($a, $b) => ($order[$a['type']] ?? 9) <=> ($order[$b['type']] ?? 9));
+
+    // ── Stats ─────────────────────────────────────────────────────────────────
+    $criticalCount = count(array_filter($alerts, fn($a) => $a['type'] === 'critical'));
+    $warningCount  = count(array_filter($alerts, fn($a) => $a['type'] === 'warning'));
+    $infoCount     = count(array_filter($alerts, fn($a) => $a['type'] === 'info'));
+
+    // Total online stores (no alerts) = all stores minus fully-offline ones
+    $totalStores   = DB::table('platform_status')->distinct()->count('shop_id');
+    $healthyStores = max(0, $totalStores - count($fullyOfflineStores));
+
+    // Per-platform summary for sidebar
+    $platformSummary = [];
+    foreach ($platformStats as $platform => $stat) {
+        $platformSummary[] = [
+            'name'    => ucfirst($platform),
+            'online'  => (int) $stat->online_count,
+            'offline' => (int) $stat->offline_count,
+            'total'   => (int) $stat->total,
+            'checked' => $stat->last_checked
+                ? \Carbon\Carbon::parse($stat->last_checked)->diffForHumans()
+                : 'Never',
+        ];
+    }
 
     return view('alerts', [
-        'alerts' => $alerts,
-        'stats' => $stats,
-        'lastSync' => getLastSyncTimestamp(),
+        'alerts'          => $alerts,
+        'stats'           => [
+            'critical' => $criticalCount,
+            'warnings' => $warningCount,
+            'info'     => $infoCount,
+            'healthy'  => $healthyStores,
+            'total'    => $totalStores,
+        ],
+        'platformSummary' => $platformSummary,
+        'lastSync'        => getLastSyncTimestamp(),
+        'latestScrape'    => $latestScrape
+            ? \Carbon\Carbon::parse($latestScrape)->diffForHumans()
+            : 'Never',
     ]);
 });
 
