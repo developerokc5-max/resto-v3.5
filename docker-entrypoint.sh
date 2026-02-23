@@ -3,29 +3,37 @@ set -e
 
 echo "🚀 Starting Laravel application..."
 
-# Persistent disk is mounted at /data (NOT inside /var/www/html/database)
-# This avoids hiding the database/migrations/ folder
-echo "🗄️ Checking persistent database..."
-DISK_DB="/data/database.sqlite"
-SEED_DB="/var/www/html/database/database.sqlite"
+# The persistent disk is mounted at /var/www/html/database
+# This hides database/migrations/ from the image, so we restore them first
+echo "🗄️ Restoring migration files hidden by disk mount..."
+if [ -d /var/www/html/database_image/migrations ]; then
+    cp -rn /var/www/html/database_image/migrations /var/www/html/database/migrations 2>/dev/null || true
+    cp -rn /var/www/html/database_image/factories /var/www/html/database/factories 2>/dev/null || true
+    cp -rn /var/www/html/database_image/seeders /var/www/html/database/seeders 2>/dev/null || true
+fi
 
-mkdir -p /data
+DISK_DB="/var/www/html/database/database.sqlite"
+SEED_DB="/var/www/html/database_image/database.sqlite"
 
 if [ -f "$DISK_DB" ]; then
     SHOP_COUNT=$(sqlite3 "$DISK_DB" "SELECT COUNT(*) FROM shops;" 2>/dev/null || echo "0")
     echo "📊 Found $SHOP_COUNT shops in persistent database"
-    if [ "$SHOP_COUNT" = "0" ]; then
+    if [ "$SHOP_COUNT" = "0" ] && [ -f "$SEED_DB" ]; then
         echo "🌱 Seeding from bundled database..."
         cp "$SEED_DB" "$DISK_DB"
         echo "✅ Database seeded"
     fi
 else
     echo "📦 First boot - copying bundled database to persistent disk..."
-    cp "$SEED_DB" "$DISK_DB"
-    echo "✅ Database copied to /data/database.sqlite"
+    if [ -f "$SEED_DB" ]; then
+        cp "$SEED_DB" "$DISK_DB"
+        echo "✅ Database copied to disk"
+    else
+        touch "$DISK_DB"
+    fi
 fi
 
-chown -R www-data:www-data /data
+chown -R www-data:www-data /var/www/html/database
 
 # Run migrations
 echo "🔄 Running database migrations..."
