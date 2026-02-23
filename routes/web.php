@@ -1566,8 +1566,8 @@ Route::get('/reports/store-comparison', function () {
     $allStoresData = [];
 
     // OPTIMIZED: Batch fetch all data instead of N+1 queries
-    $shopIds = array_column($stores, 'id');
-    $shopNames = array_column($stores, 'name');
+    $shopIds = $stores->pluck('id')->toArray();
+    $shopNames = $stores->pluck('name')->toArray();
     $sevenDaysAgo = \Carbon\Carbon::now('Asia/Singapore')->subDays(7)->startOfDay();
 
     // Fetch all platform statuses for all stores in single query
