@@ -41,3 +41,6 @@ README.md
 ~$*.docx
 RESTOSUITE_API_REQUIREMENTS_ENDPOINTS.md.pdf
 __pycache__/
+
+# Windows system cache files (accidentally created in public/)
+/public/%SystemDrive%/
