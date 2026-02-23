@@ -26,9 +26,9 @@ Thumbs.db
 /composer.phar
 README.md
 
-# Database
-/database/database.sqlite
-/database/*.sqlite
+# Database (temporarily included for Render seed data)
+# /database/database.sqlite
+# /database/*.sqlite
 
 # Debug images and HTML files from scrapers
 **/debug_*.png
