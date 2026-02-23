@@ -1,184 +1,261 @@
 @extends('layout')
 
 @section('title', 'Store Comparison - HawkerOps')
-
 @section('page-title', 'Store Comparison')
-@section('page-description', 'Compare performance across all stores')
+@section('page-description', 'Compare performance and platform status across all stores')
 
 @section('content')
-  <!-- Header Stats -->
-  <section class="bg-white rounded-2xl shadow-sm p-6 mb-6">
-    <div class="flex items-center justify-between mb-4">
-      <h2 class="text-xl font-bold text-slate-900">Store Health Overview</h2>
-      <span class="text-sm text-slate-500">Last Updated: {{ $lastSync }}</span>
+
+{{-- ── Summary Cards ─────────────────────────────────────────────────────── --}}
+<div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-6">
+
+  <div class="bg-white rounded-2xl shadow-sm p-5 border border-slate-100">
+    <p class="text-xs text-slate-500 font-medium uppercase tracking-wide mb-1">Total Stores</p>
+    <p class="text-3xl font-bold text-slate-900">{{ $summary['total'] }}</p>
+  </div>
+
+  <div class="bg-green-50 rounded-2xl shadow-sm p-5 border border-green-200">
+    <p class="text-xs text-green-700 font-medium uppercase tracking-wide mb-1">All Online</p>
+    <p class="text-3xl font-bold text-green-800">{{ $summary['all_online'] }}</p>
+  </div>
+
+  <div class="bg-amber-50 rounded-2xl shadow-sm p-5 border border-amber-200">
+    <p class="text-xs text-amber-700 font-medium uppercase tracking-wide mb-1">Partial</p>
+    <p class="text-3xl font-bold text-amber-800">{{ $summary['partial'] }}</p>
+  </div>
+
+  <div class="bg-red-50 rounded-2xl shadow-sm p-5 border border-red-200">
+    <p class="text-xs text-red-700 font-medium uppercase tracking-wide mb-1">All Offline</p>
+    <p class="text-3xl font-bold text-red-800">{{ $summary['all_offline'] }}</p>
+  </div>
+
+  <div class="bg-blue-50 rounded-2xl shadow-sm p-5 border border-blue-200">
+    <p class="text-xs text-blue-700 font-medium uppercase tracking-wide mb-1">Total Items</p>
+    <p class="text-3xl font-bold text-blue-800">{{ number_format($summary['total_items']) }}</p>
+  </div>
+
+  <div class="bg-rose-50 rounded-2xl shadow-sm p-5 border border-rose-200">
+    <p class="text-xs text-rose-700 font-medium uppercase tracking-wide mb-1">Offline Items</p>
+    <p class="text-3xl font-bold text-rose-800">{{ number_format($summary['offline_items']) }}</p>
+  </div>
+
+</div>
+
+{{-- ── Search + Filter Bar ───────────────────────────────────────────────── --}}
+<div class="bg-white rounded-2xl shadow-sm p-4 mb-6 border border-slate-100 flex flex-col sm:flex-row gap-3 items-center justify-between">
+  <input
+    id="storeSearch"
+    type="text"
+    placeholder="Search store name…"
+    class="w-full sm:w-72 border border-slate-200 rounded-xl px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-300"
+    oninput="filterStores()"
+  >
+  <div class="flex gap-2 flex-wrap">
+    <button onclick="setFilter('all')"     class="filter-btn active px-4 py-2 rounded-xl text-sm font-medium">All</button>
+    <button onclick="setFilter('green')"   class="filter-btn px-4 py-2 rounded-xl text-sm font-medium">✅ Online</button>
+    <button onclick="setFilter('amber')"   class="filter-btn px-4 py-2 rounded-xl text-sm font-medium">⚠️ Partial</button>
+    <button onclick="setFilter('red')"     class="filter-btn px-4 py-2 rounded-xl text-sm font-medium">🔴 Offline</button>
+  </div>
+  <p class="text-xs text-slate-400 whitespace-nowrap">Last sync: <span class="font-medium text-slate-600">{{ $lastSync }}</span></p>
+</div>
+
+{{-- ── Store Cards Grid ─────────────────────────────────────────────────── --}}
+@if($allStoresData->count() > 0)
+<div id="storeGrid" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 mb-6">
+  @foreach($allStoresData as $store)
+  @php
+    $color   = $store['status_color'];
+    $border  = $color === 'green' ? 'border-green-200' : ($color === 'amber' ? 'border-amber-200' : 'border-red-200');
+    $badge   = $color === 'green' ? 'bg-green-100 text-green-700' : ($color === 'amber' ? 'bg-amber-100 text-amber-700' : 'bg-red-100 text-red-700');
+    $dot     = $color === 'green' ? 'bg-green-500' : ($color === 'amber' ? 'bg-amber-400' : 'bg-red-500');
+    $icon    = $color === 'green' ? '✅' : ($color === 'amber' ? '⚠️' : '❌');
+    $availColor = $store['availability_pct'] >= 90 ? 'text-green-600' : ($store['availability_pct'] >= 70 ? 'text-amber-600' : 'text-red-600');
+    $barColor   = $store['availability_pct'] >= 90 ? 'bg-green-500' : ($store['availability_pct'] >= 70 ? 'bg-amber-400' : 'bg-red-500');
+  @endphp
+  <div
+    class="store-card bg-white rounded-2xl shadow-sm border-2 {{ $border }} p-5 hover:shadow-md transition-shadow"
+    data-color="{{ $color }}"
+    data-name="{{ strtolower($store['shop_name']) }}"
+  >
+    {{-- Header --}}
+    <div class="flex items-start justify-between mb-4">
+      <div class="flex-1 min-w-0 pr-3">
+        <h3 class="font-bold text-slate-900 text-sm leading-tight">{{ $store['shop_name'] }}</h3>
+        <p class="text-xs text-slate-400 mt-0.5">{{ $store['last_checked'] === 'Never' ? 'Never checked' : 'Checked ' . $store['last_checked'] }}</p>
+      </div>
+      <span class="shrink-0 px-2 py-1 rounded-full text-xs font-bold {{ $badge }}">
+        {{ $icon }} {{ $store['overall_status'] }}
+      </span>
     </div>
 
-    <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-      <!-- Total Stores -->
-      <div class="bg-slate-50 border-2 border-slate-200 rounded-xl p-4">
-        <div class="text-sm text-slate-600 mb-1">Total Stores</div>
-        <div class="text-3xl font-bold text-slate-900">{{ $allStoresData->count() ?? 0 }}</div>
-      </div>
-
-      <!-- Healthy Stores -->
-      <div class="bg-green-50 border-2 border-green-200 rounded-xl p-4">
-        <div class="text-sm text-green-700 font-medium mb-1">Healthy (All Online)</div>
-        <div class="text-3xl font-bold text-green-900">
-          {{ $allStoresData->where('overall_status', 'All Online')->count() ?? 0 }}
-        </div>
-      </div>
-
-      <!-- Mixed Status -->
-      <div class="bg-amber-50 border-2 border-amber-200 rounded-xl p-4">
-        <div class="text-sm text-amber-700 font-medium mb-1">Warning (Mixed)</div>
-        <div class="text-3xl font-bold text-amber-900">
-          {{ $allStoresData->where('overall_status', 'Mixed')->count() ?? 0 }}
-        </div>
-      </div>
-
-      <!-- Offline Stores -->
-      <div class="bg-red-50 border-2 border-red-200 rounded-xl p-4">
-        <div class="text-sm text-red-700 font-medium mb-1">Critical (All Offline)</div>
-        <div class="text-3xl font-bold text-red-900">
-          {{ $allStoresData->where('overall_status', 'All Offline')->count() ?? 0 }}
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- Store Comparison Table -->
-  <section class="bg-white rounded-2xl shadow-sm p-6 mb-6">
-    <h2 class="text-xl font-bold text-slate-900 mb-4">Performance Comparison (All Stores)</h2>
-
-    @if($allStoresData->count() > 0)
-    <div class="overflow-x-auto">
-      <table class="w-full">
-        <thead>
-          <tr class="border-b-2 border-slate-200">
-            <th class="text-left py-3 px-4 text-sm font-semibold text-slate-900">Store</th>
-            <th class="text-center py-3 px-4 text-sm font-semibold text-slate-900">Overall Status</th>
-            <th class="text-center py-3 px-4 text-sm font-semibold text-slate-900">Platforms Online</th>
-            <th class="text-center py-3 px-4 text-sm font-semibold text-slate-900">Total Items</th>
-            <th class="text-center py-3 px-4 text-sm font-semibold text-slate-900">Offline Items</th>
-            <th class="text-center py-3 px-4 text-sm font-semibold text-slate-900">Availability %</th>
-            <th class="text-center py-3 px-4 text-sm font-semibold text-slate-900">7-Day Uptime</th>
-            <th class="text-center py-3 px-4 text-sm font-semibold text-slate-900">Incidents (7d)</th>
-            <th class="text-center py-3 px-4 text-sm font-semibold text-slate-900">Last Sync</th>
-          </tr>
-        </thead>
-        <tbody>
-          @foreach($allStoresData as $store)
-          <tr class="border-b border-slate-100 hover:bg-slate-50">
-            <!-- Store Name -->
-            <td class="py-3 px-4 text-sm font-medium text-slate-900">{{ $store['shop_name'] }}</td>
-
-            <!-- Overall Status -->
-            <td class="py-3 px-4 text-center">
-              @if($store['status_color'] === 'green')
-                <span class="px-3 py-1 bg-green-100 text-green-700 rounded-full text-xs font-bold">
-                  ✅ {{ $store['overall_status'] }}
-                </span>
-              @elseif($store['status_color'] === 'amber')
-                <span class="px-3 py-1 bg-amber-100 text-amber-700 rounded-full text-xs font-bold">
-                  ⚠️ {{ $store['overall_status'] }}
-                </span>
-              @else
-                <span class="px-3 py-1 bg-red-100 text-red-700 rounded-full text-xs font-bold">
-                  ❌ {{ $store['overall_status'] }}
-                </span>
-              @endif
-            </td>
-
-            <!-- Platforms Online -->
-            <td class="py-3 px-4 text-center text-sm font-bold">{{ $store['platforms_online'] }}/3</td>
-
-            <!-- Total Items -->
-            <td class="py-3 px-4 text-center text-sm">{{ $store['total_items'] }}</td>
-
-            <!-- Offline Items -->
-            <td class="py-3 px-4 text-center">
-              <span class="text-sm font-bold {{ $store['offline_items'] > 0 ? 'text-red-600' : 'text-green-600' }}">
-                {{ $store['offline_items'] }}
-              </span>
-            </td>
-
-            <!-- Availability % -->
-            <td class="py-3 px-4 text-center">
-              <span class="text-sm font-bold {{ $store['availability_percent'] >= 95 ? 'text-green-600' : ($store['availability_percent'] >= 85 ? 'text-amber-600' : 'text-red-600') }}">
-                {{ $store['availability_percent'] }}%
-              </span>
-            </td>
-
-            <!-- 7-Day Uptime -->
-            <td class="py-3 px-4 text-center text-sm">{{ $store['uptime_percent'] }}%</td>
-
-            <!-- Incidents -->
-            <td class="py-3 px-4 text-center text-sm font-bold">{{ $store['incidents_7d'] }}</td>
-
-            <!-- Last Sync -->
-            <td class="py-3 px-4 text-center text-xs text-slate-600">{{ $store['last_sync'] }}</td>
-          </tr>
-          @endforeach
-        </tbody>
-      </table>
-    </div>
-    @else
-    <div class="text-center py-8 text-slate-500">
-      <p>No store data available yet.</p>
-    </div>
-    @endif
-  </section>
-
-  <!-- Platform Status Breakdown -->
-  @if($allStoresData->count() > 0)
-  <section class="mb-6">
-    <h2 class="text-xl font-bold text-slate-900 mb-4">Platform Status by Store</h2>
-
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-      @foreach($allStoresData as $store)
-      <div class="bg-white border-2 border-slate-200 rounded-2xl p-6 shadow-sm">
-        <h3 class="font-bold text-slate-900 mb-4 text-center">{{ $store['shop_name'] }}</h3>
-
-        <div class="space-y-3">
-          <!-- Grab -->
-          <div class="flex items-center justify-between p-3 {{ $store['grab_status'] === 'ONLINE' ? 'bg-green-50 border border-green-200' : 'bg-red-50 border border-red-200' }} rounded-lg">
-            <span class="text-sm font-medium text-slate-900">Grab</span>
-            <span class="px-3 py-1 {{ $store['grab_status'] === 'ONLINE' ? 'bg-green-600 text-white' : 'bg-red-600 text-white' }} rounded-full text-xs font-bold">
-              {{ $store['grab_status'] }}
-            </span>
-          </div>
-
-          <!-- FoodPanda -->
-          <div class="flex items-center justify-between p-3 {{ $store['foodpanda_status'] === 'ONLINE' ? 'bg-green-50 border border-green-200' : 'bg-red-50 border border-red-200' }} rounded-lg">
-            <span class="text-sm font-medium text-slate-900">FoodPanda</span>
-            <span class="px-3 py-1 {{ $store['foodpanda_status'] === 'ONLINE' ? 'bg-green-600 text-white' : 'bg-red-600 text-white' }} rounded-full text-xs font-bold">
-              {{ $store['foodpanda_status'] }}
-            </span>
-          </div>
-
-          <!-- Deliveroo -->
-          <div class="flex items-center justify-between p-3 {{ $store['deliveroo_status'] === 'ONLINE' ? 'bg-green-50 border border-green-200' : 'bg-red-50 border border-red-200' }} rounded-lg">
-            <span class="text-sm font-medium text-slate-900">Deliveroo</span>
-            <span class="px-3 py-1 {{ $store['deliveroo_status'] === 'ONLINE' ? 'bg-green-600 text-white' : 'bg-red-600 text-white' }} rounded-full text-xs font-bold">
-              {{ $store['deliveroo_status'] }}
-            </span>
-          </div>
-        </div>
-
-        <!-- Store Stats -->
-        <div class="mt-4 pt-4 border-t border-slate-200 space-y-2 text-xs">
-          <div class="flex items-center justify-between">
-            <span class="text-slate-600">Items Available:</span>
-            <span class="font-bold text-slate-900">{{ $store['online_items'] }}/{{ $store['total_items'] }}</span>
-          </div>
-          <div class="flex items-center justify-between">
-            <span class="text-slate-600">Availability:</span>
-            <span class="font-bold {{ $store['availability_percent'] >= 95 ? 'text-green-600' : 'text-amber-600' }}">{{ $store['availability_percent'] }}%</span>
-          </div>
-        </div>
+    {{-- Platform Pills --}}
+    <div class="flex gap-2 mb-4">
+      @php
+        $platforms = [
+          'Grab'      => $store['grab_online'],
+          'Foodpanda' => $store['foodpanda_online'],
+          'Deliveroo' => $store['deliveroo_online'],
+        ];
+      @endphp
+      @foreach($platforms as $platform => $online)
+      <div class="flex-1 text-center py-1.5 rounded-lg text-xs font-bold {{ $online ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-600' }}">
+        {{ $platform }}<br>
+        <span class="font-normal">{{ $online ? 'ON' : 'OFF' }}</span>
       </div>
       @endforeach
     </div>
-  </section>
-  @endif
+
+    {{-- Item Availability Bar --}}
+    <div class="mb-3">
+      <div class="flex justify-between text-xs mb-1">
+        <span class="text-slate-500">Item Availability</span>
+        <span class="font-bold {{ $availColor }}">{{ $store['availability_pct'] }}%</span>
+      </div>
+      <div class="h-2 bg-slate-100 rounded-full overflow-hidden">
+        <div class="{{ $barColor }} h-2 rounded-full transition-all" style="width: {{ $store['availability_pct'] }}%"></div>
+      </div>
+    </div>
+
+    {{-- Footer Stats --}}
+    <div class="flex justify-between text-xs text-slate-500 border-t border-slate-100 pt-3 mt-2">
+      <span>Items: <span class="font-bold text-slate-700">{{ $store['online_items'] }}/{{ $store['total_items'] }}</span></span>
+      @if($store['offline_items'] > 0)
+        <span class="text-red-500 font-semibold">{{ $store['offline_items'] }} offline</span>
+      @else
+        <span class="text-green-600 font-semibold">All available</span>
+      @endif
+      <span>{{ $store['platforms_online'] }}/{{ $store['total_platforms'] }} platforms</span>
+    </div>
+  </div>
+  @endforeach
+</div>
+
+{{-- No results message --}}
+<div id="noResults" class="hidden text-center py-12 text-slate-400">
+  <p class="text-lg font-medium">No stores match your search.</p>
+  <p class="text-sm mt-1">Try a different filter or search term.</p>
+</div>
+
+@else
+<div class="bg-white rounded-2xl shadow-sm p-12 text-center text-slate-400">
+  <p class="text-lg font-medium">No store data available yet.</p>
+  <p class="text-sm mt-1">Run a scrape to populate store data.</p>
+</div>
+@endif
+
+{{-- ── Summary Table (collapsible) ─────────────────────────────────────── --}}
+<div class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden mb-6">
+  <button
+    onclick="toggleTable()"
+    class="w-full flex items-center justify-between px-6 py-4 hover:bg-slate-50 transition-colors"
+  >
+    <span class="font-bold text-slate-900">Full Comparison Table</span>
+    <span id="tableToggleIcon" class="text-slate-400 text-lg">▼</span>
+  </button>
+
+  <div id="comparisonTable" class="hidden overflow-x-auto border-t border-slate-100">
+    <table class="w-full text-sm">
+      <thead>
+        <tr class="bg-slate-50 border-b border-slate-200">
+          <th class="text-left px-4 py-3 font-semibold text-slate-700">Store</th>
+          <th class="text-center px-4 py-3 font-semibold text-slate-700">Status</th>
+          <th class="text-center px-4 py-3 font-semibold text-slate-700">Grab</th>
+          <th class="text-center px-4 py-3 font-semibold text-slate-700">Foodpanda</th>
+          <th class="text-center px-4 py-3 font-semibold text-slate-700">Deliveroo</th>
+          <th class="text-center px-4 py-3 font-semibold text-slate-700">Items</th>
+          <th class="text-center px-4 py-3 font-semibold text-slate-700">Offline</th>
+          <th class="text-center px-4 py-3 font-semibold text-slate-700">Avail %</th>
+          <th class="text-center px-4 py-3 font-semibold text-slate-700">Last Checked</th>
+        </tr>
+      </thead>
+      <tbody>
+        @foreach($allStoresData as $store)
+        @php
+          $rc = $store['status_color'];
+          $rb = $rc === 'green' ? 'bg-green-100 text-green-700' : ($rc === 'amber' ? 'bg-amber-100 text-amber-700' : 'bg-red-100 text-red-700');
+          $ac = $store['availability_pct'] >= 90 ? 'text-green-600 font-bold' : ($store['availability_pct'] >= 70 ? 'text-amber-600 font-bold' : 'text-red-600 font-bold');
+        @endphp
+        <tr class="border-b border-slate-100 hover:bg-slate-50">
+          <td class="px-4 py-3 font-medium text-slate-900">{{ $store['shop_name'] }}</td>
+          <td class="px-4 py-3 text-center">
+            <span class="px-2 py-1 rounded-full text-xs font-bold {{ $rb }}">{{ $store['overall_status'] }}</span>
+          </td>
+          <td class="px-4 py-3 text-center">
+            <span class="px-2 py-0.5 rounded text-xs font-bold {{ $store['grab_online'] ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-600' }}">
+              {{ $store['grab_online'] ? 'ON' : 'OFF' }}
+            </span>
+          </td>
+          <td class="px-4 py-3 text-center">
+            <span class="px-2 py-0.5 rounded text-xs font-bold {{ $store['foodpanda_online'] ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-600' }}">
+              {{ $store['foodpanda_online'] ? 'ON' : 'OFF' }}
+            </span>
+          </td>
+          <td class="px-4 py-3 text-center">
+            <span class="px-2 py-0.5 rounded text-xs font-bold {{ $store['deliveroo_online'] ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-600' }}">
+              {{ $store['deliveroo_online'] ? 'ON' : 'OFF' }}
+            </span>
+          </td>
+          <td class="px-4 py-3 text-center text-slate-700">{{ $store['total_items'] }}</td>
+          <td class="px-4 py-3 text-center {{ $store['offline_items'] > 0 ? 'text-red-600 font-bold' : 'text-green-600' }}">
+            {{ $store['offline_items'] }}
+          </td>
+          <td class="px-4 py-3 text-center {{ $ac }}">{{ $store['availability_pct'] }}%</td>
+          <td class="px-4 py-3 text-center text-xs text-slate-500">{{ $store['last_checked'] }}</td>
+        </tr>
+        @endforeach
+      </tbody>
+    </table>
+  </div>
+</div>
+
+{{-- ── Scripts ──────────────────────────────────────────────────────────── --}}
+<script>
+let activeFilter = 'all';
+
+function setFilter(color) {
+  activeFilter = color;
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+  event.target.classList.add('active');
+  applyFilters();
+}
+
+function filterStores() { applyFilters(); }
+
+function applyFilters() {
+  const query = document.getElementById('storeSearch').value.toLowerCase().trim();
+  const cards = document.querySelectorAll('.store-card');
+  let visible = 0;
+  cards.forEach(card => {
+    const matchColor = activeFilter === 'all' || card.dataset.color === activeFilter;
+    const matchName  = card.dataset.name.includes(query);
+    if (matchColor && matchName) {
+      card.style.display = '';
+      visible++;
+    } else {
+      card.style.display = 'none';
+    }
+  });
+  document.getElementById('noResults').classList.toggle('hidden', visible > 0);
+}
+
+function toggleTable() {
+  const table = document.getElementById('comparisonTable');
+  const icon  = document.getElementById('tableToggleIcon');
+  const hidden = table.classList.toggle('hidden');
+  icon.textContent = hidden ? '▼' : '▲';
+}
+</script>
+
+<style>
+.filter-btn {
+  background: #f1f5f9;
+  color: #475569;
+  transition: all .15s;
+}
+.filter-btn:hover, .filter-btn.active {
+  background: #0f172a;
+  color: #fff;
+}
+</style>
+
 @endsection

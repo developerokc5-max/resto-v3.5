@@ -1545,116 +1545,109 @@ Route::get('/reports/item-performance', function () {
     ]);
 });
 
-// Reports: Store Comparison - REAL DATA (ALL STORES)
+// Reports: Store Comparison
 Route::get('/reports/store-comparison', function () {
     $shopMap = ShopHelper::getShopMap();
 
-    // Get all stores
-    $stores = DB::table('platform_status')
-        ->distinct('shop_id')
-        ->pluck('shop_id')
-        ->map(function ($shopId) use ($shopMap) {
-            return [
-                'id' => $shopId,
-                'name' => $shopMap[$shopId]['name'] ?? 'Unknown Store'
-            ];
-        })
-        ->sortBy('name')
-        ->values();
+    // Get all unique store IDs from platform_status
+    $shopIds = DB::table('platform_status')->distinct()->pluck('shop_id')->toArray();
 
-    // Get REAL comparison data for ALL stores
-    $allStoresData = [];
+    // Build store list with names
+    $stores = collect($shopIds)->map(function ($shopId) use ($shopMap) {
+        return [
+            'id' => $shopId,
+            'name' => $shopMap[$shopId]['name'] ?? 'Unknown Store'
+        ];
+    })->sortBy('name')->values();
 
-    // OPTIMIZED: Batch fetch all data instead of N+1 queries
-    $shopIds = $stores->pluck('id')->toArray();
     $shopNames = $stores->pluck('name')->toArray();
-    $sevenDaysAgo = \Carbon\Carbon::now('Asia/Singapore')->subDays(7)->startOfDay();
 
-    // Fetch all platform statuses for all stores in single query
+    // Batch fetch platform statuses (one query)
     $allPlatformStatuses = DB::table('platform_status')
         ->whereIn('shop_id', $shopIds)
         ->get()
         ->groupBy('shop_id')
         ->map(fn($items) => $items->keyBy('platform'));
 
-    // Fetch all item counts in single query with aggregation
+    // Batch fetch item counts per shop (one query)
     $itemCounts = DB::table('items')
         ->whereIn('shop_name', $shopNames)
-        ->select('shop_name',
+        ->select(
+            'shop_name',
             DB::raw('COUNT(*) as total'),
-            DB::raw('SUM(CASE WHEN is_available = 0 THEN 1 ELSE 0 END) as offline'))
+            DB::raw('SUM(CASE WHEN is_available = 0 THEN 1 ELSE 0 END) as offline')
+        )
         ->groupBy('shop_name')
         ->get()
         ->keyBy('shop_name');
 
-    // Fetch all logs for 7-day uptime calculation in single query
-    $allLogs = DB::table('store_status_logs')
-        ->whereIn('shop_id', $shopIds)
-        ->whereDate('logged_at', '>=', $sevenDaysAgo)
-        ->select('shop_id',
-            DB::raw('COUNT(*) as total_logs'),
-            DB::raw('SUM(CASE WHEN (status = "online" OR status = "Online") THEN 1 ELSE 0 END) as online_logs'))
-        ->groupBy('shop_id')
-        ->get()
-        ->keyBy('shop_id');
-
-    // Process each store with already-fetched data (no new queries)
+    // Process each store
+    $allStoresData = [];
     foreach ($stores as $store) {
-        $shopId = $store['id'];
+        $shopId  = $store['id'];
         $shopName = $store['name'];
 
-        // Use pre-fetched platform statuses
-        $platformStatus = $allPlatformStatuses->get($shopId, collect());
+        $platformStatus  = $allPlatformStatuses->get($shopId, collect());
         $platformsOnline = $platformStatus->filter(fn($p) => $p->is_online)->count();
+        $totalPlatforms  = $platformStatus->count() ?: 3;
 
-        // Use pre-fetched item counts
-        $itemData = $itemCounts->get($shopName, (object)['total' => 0, 'offline' => 0]);
-        $totalItems = $itemData->total ?? 0;
+        $itemData    = $itemCounts->get($shopName, (object)['total' => 0, 'offline' => 0]);
+        $totalItems  = $itemData->total ?? 0;
         $offlineItems = $itemData->offline ?? 0;
         $onlineItems = $totalItems - $offlineItems;
-        $availabilityPercent = $totalItems > 0 ? round(($onlineItems / $totalItems) * 100, 1) : 0;
+        $availPct    = $totalItems > 0 ? round(($onlineItems / $totalItems) * 100, 1) : 0;
 
-        // Use pre-fetched logs
-        $logData = $allLogs->get($shopId, (object)['total_logs' => 0, 'online_logs' => 0]);
-        $uptimeLogs = $logData->total_logs ?? 0;
-        $onlineLogsCount = $logData->online_logs ?? 0;
-        $uptimePercent = $uptimeLogs > 0 ? round(($onlineLogsCount / $uptimeLogs) * 100, 1) : 0;
-
-        // Determine overall status
-        if ($platformsOnline === 3) {
+        if ($platformsOnline === $totalPlatforms) {
             $overallStatus = 'All Online';
-            $statusColor = 'green';
+            $statusColor   = 'green';
         } elseif ($platformsOnline === 0) {
             $overallStatus = 'All Offline';
-            $statusColor = 'red';
+            $statusColor   = 'red';
         } else {
-            $overallStatus = 'Mixed';
-            $statusColor = 'amber';
+            $overallStatus = 'Partial';
+            $statusColor   = 'amber';
         }
 
+        // Last checked from platform_status
+        $lastChecked = $platformStatus->max('last_checked_at');
+        $lastCheckedLabel = $lastChecked
+            ? \Carbon\Carbon::parse($lastChecked, 'Asia/Singapore')->diffForHumans()
+            : 'Never';
+
         $allStoresData[] = [
-            'shop_id' => $shopId,
-            'shop_name' => $shopName,
-            'overall_status' => $overallStatus,
-            'status_color' => $statusColor,
-            'platforms_online' => $platformsOnline,
-            'total_items' => $totalItems,
-            'offline_items' => $offlineItems,
-            'online_items' => $onlineItems,
-            'availability_percent' => $availabilityPercent,
-            'uptime_percent' => $uptimePercent,
-            'incidents_7d' => $uptimeLogs,
-            'last_sync' => \Carbon\Carbon::now('Asia/Singapore')->subMinutes(rand(1, 10))->diffForHumans(),
-            'grab_status' => $platformStatus->get('grab')?->is_online ? 'ONLINE' : 'OFFLINE',
-            'foodpanda_status' => $platformStatus->get('foodpanda')?->is_online ? 'ONLINE' : 'OFFLINE',
-            'deliveroo_status' => $platformStatus->get('deliveroo')?->is_online ? 'ONLINE' : 'OFFLINE',
+            'shop_id'           => $shopId,
+            'shop_name'         => $shopName,
+            'overall_status'    => $overallStatus,
+            'status_color'      => $statusColor,
+            'platforms_online'  => $platformsOnline,
+            'total_platforms'   => $totalPlatforms,
+            'total_items'       => $totalItems,
+            'offline_items'     => $offlineItems,
+            'online_items'      => $onlineItems,
+            'availability_pct'  => $availPct,
+            'last_checked'      => $lastCheckedLabel,
+            'grab_online'       => (bool)($platformStatus->get('grab')?->is_online),
+            'foodpanda_online'  => (bool)($platformStatus->get('foodpanda')?->is_online),
+            'deliveroo_online'  => (bool)($platformStatus->get('deliveroo')?->is_online),
         ];
     }
 
+    $allStoresData = collect($allStoresData);
+
+    // Summary stats
+    $summary = [
+        'total'      => $allStoresData->count(),
+        'all_online' => $allStoresData->where('overall_status', 'All Online')->count(),
+        'partial'    => $allStoresData->where('overall_status', 'Partial')->count(),
+        'all_offline'=> $allStoresData->where('overall_status', 'All Offline')->count(),
+        'total_items'=> $allStoresData->sum('total_items'),
+        'offline_items' => $allStoresData->sum('offline_items'),
+    ];
+
     return view('reports.store-comparison', [
-        'stores' => $stores,
-        'allStoresData' => collect($allStoresData),
-        'lastSync' => getLastSyncTimestamp(),
+        'allStoresData' => $allStoresData,
+        'summary'       => $summary,
+        'lastSync'      => getLastSyncTimestamp(),
     ]);
 });
 
