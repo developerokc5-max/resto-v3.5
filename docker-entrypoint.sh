@@ -10,6 +10,16 @@ if [ ! -f /var/www/html/database/database.sqlite ]; then
     chown www-data:www-data /var/www/html/database/database.sqlite
 fi
 
+# Copy seeded database if it exists and target is empty
+echo "🗄️ Checking database..."
+if [ -f /var/www/html/database/database.sqlite ]; then
+    SHOP_COUNT=$(sqlite3 /var/www/html/database/database.sqlite "SELECT COUNT(*) FROM shops;" 2>/dev/null || echo "0")
+    echo "📊 Found $SHOP_COUNT shops in database"
+else
+    touch /var/www/html/database/database.sqlite
+    chown www-data:www-data /var/www/html/database/database.sqlite
+fi
+
 # Run migrations
 echo "🔄 Running database migrations..."
 php artisan migrate --force --no-interaction
