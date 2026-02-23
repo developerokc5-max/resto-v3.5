@@ -46,11 +46,13 @@ php artisan view:clear
 
 echo "✅ Laravel setup complete!"
 
-# Print Laravel log if it exists (helps debug startup errors)
-if [ -f /var/www/html/storage/logs/laravel.log ]; then
-    echo "📋 Laravel log tail:"
-    tail -50 /var/www/html/storage/logs/laravel.log
-fi
+# Show .env contents (mask key) to confirm config loaded
+echo "📄 Active .env config:"
+grep -E "^(APP_|DB_|SESSION_|CACHE_)" /var/www/html/.env | grep -v "APP_KEY"
+
+# Test Laravel can bootstrap at all
+echo "🔍 Testing Laravel bootstrap..."
+php artisan about --only=environment 2>&1 || echo "⚠️ Laravel bootstrap failed!"
 
 # Execute the CMD (apache2-foreground)
 exec "$@"
