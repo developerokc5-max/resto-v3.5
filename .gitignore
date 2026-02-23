@@ -52,8 +52,6 @@ __pycache__/
 /item-test-trait-1/
 /platform-test-trait-1/
 
-# Public folder (Laravel serves this but we don't need it in git)
-/public/
 
 # Scraped JSON data (real business data)
 _archive/json_data/
