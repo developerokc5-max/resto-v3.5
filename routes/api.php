@@ -130,52 +130,35 @@ Route::prefix('platform')->group(function () {
 // Sync API
 Route::prefix('sync')->group(function () {
 
-    // Trigger manual platform scraping - NEW VERSION
+    // Trigger manual platform scraping - LOCAL ONLY
     Route::post('/scrape', function (Request $request) {
-        // Increase timeout to 10 minutes for accurate scraping
-        set_time_limit(600);
+        $scriptPath = base_path('platform-test-trait-1/scrape_platform_sync.py');
+
+        if (!file_exists($scriptPath)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Scraper is only available when running locally. Run the Python scraper on your local machine to update platform data.',
+                'hint' => 'Run: python platform-test-trait-1/scrape_platform_sync.py',
+            ], 503);
+        }
 
         try {
-            // Use the NEW platform sync scraper (writes directly to database)
-            $scriptPath = base_path('platform-test-trait-1/scrape_platform_sync.py');
-
-            // Check if script exists
-            if (!file_exists($scriptPath)) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Scraper script not found',
-                    'path' => $scriptPath,
-                ], 500);
-            }
-
-            // Run the Python scraper in background
+            $logPath = storage_path('logs/platform_scraper.log');
             if (strtoupper(substr(PHP_OS, 0, 3)) === 'WIN') {
-                // Windows - run Python script
-                $logPath = storage_path('logs/platform_scraper.log');
                 $command = "start /B python \"{$scriptPath}\" > \"{$logPath}\" 2>&1";
                 pclose(popen($command, 'r'));
-
-                return response()->json([
-                    'success' => true,
-                    'message' => 'Platform scraper started successfully',
-                    'note' => 'Scraping all outlets across 3 platforms. This may take 5-10 minutes.',
-                    'timestamp' => now()->toIso8601String(),
-                    'log_file' => $logPath,
-                ]);
             } else {
-                // Linux/Mac - run in background
-                $logPath = storage_path('logs/platform_scraper.log');
                 $command = "nohup python3 \"{$scriptPath}\" > \"{$logPath}\" 2>&1 &";
                 exec($command);
-
-                return response()->json([
-                    'success' => true,
-                    'message' => 'Platform scraper started successfully',
-                    'note' => 'Scraping all outlets across 3 platforms. This may take 5-10 minutes.',
-                    'timestamp' => now()->toIso8601String(),
-                    'log_file' => $logPath,
-                ]);
             }
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Platform scraper started successfully',
+                'note' => 'Scraping all outlets across 3 platforms. This may take 5-10 minutes.',
+                'timestamp' => now()->toIso8601String(),
+                'log_file' => $logPath,
+            ]);
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
@@ -308,38 +291,34 @@ Route::prefix('sync')->group(function () {
         }
     });
 
-    // Trigger Items Scraper - NEW BULLETPROOF VERSION
+    // Trigger Items Scraper - LOCAL ONLY
     Route::post('/items/sync', function (Request $request) {
-        set_time_limit(1800); // 30 minutes timeout
+        $scriptPath = base_path('item-test-trait-1/scrape_items_sync_v2.py');
+
+        if (!file_exists($scriptPath)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Scraper is only available when running locally. Run the Python scraper on your local machine to update items data.',
+                'hint' => 'Run: python item-test-trait-1/scrape_items_sync_v2.py',
+            ], 503);
+        }
 
         try {
-            // Use the NEW bulletproof scraper
-            $scriptPath = base_path('scrape_items_bulletproof.py');
-
-            // Run the Python scraper in background
+            $logPath = storage_path('logs/items_scraper.log');
             if (strtoupper(substr(PHP_OS, 0, 3)) === 'WIN') {
-                // Windows - run in background
-                $command = "start /B python \"{$scriptPath}\" > " . storage_path('logs/scraper.log') . " 2>&1";
+                $command = "start /B python \"{$scriptPath}\" > \"{$logPath}\" 2>&1";
                 pclose(popen($command, 'r'));
-
-                return response()->json([
-                    'success' => true,
-                    'message' => 'Items scraper started in background',
-                    'note' => 'Scraping ~35 stores across 3 platforms. Check back in 10-15 minutes.',
-                    'timestamp' => now()->toIso8601String(),
-                ]);
             } else {
-                // Linux/Mac - run in background
-                $command = "nohup python3 \"{$scriptPath}\" > " . storage_path('logs/scraper.log') . " 2>&1 &";
+                $command = "nohup python3 \"{$scriptPath}\" > \"{$logPath}\" 2>&1 &";
                 exec($command);
-
-                return response()->json([
-                    'success' => true,
-                    'message' => 'Items scraper started in background',
-                    'note' => 'Scraping ~35 stores across 3 platforms. Check back in 10-15 minutes.',
-                    'timestamp' => now()->toIso8601String(),
-                ]);
             }
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Items scraper started in background',
+                'note' => 'Scraping ~35 stores across 3 platforms. Check back in 10-15 minutes.',
+                'timestamp' => now()->toIso8601String(),
+            ]);
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
@@ -363,52 +342,35 @@ Route::prefix('sync')->group(function () {
 // Items Management API
 Route::prefix('v1/items')->group(function () {
 
-    // Trigger Items Sync - Uses V2 PARALLEL scraper (faster ~40min instead of 1hr+)
+    // Trigger Items Sync - LOCAL ONLY
     Route::post('/sync', function (Request $request) {
-        // Increase timeout to 45 minutes (parallel scraping is faster)
-        set_time_limit(2700);
+        $scriptPath = base_path('item-test-trait-1/scrape_items_sync_v2.py');
+
+        if (!file_exists($scriptPath)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Scraper is only available when running locally. Run the Python scraper on your local machine to update items data.',
+                'hint' => 'Run: python item-test-trait-1/scrape_items_sync_v2.py',
+            ], 503);
+        }
 
         try {
-            // Use the V2 PARALLEL items sync scraper (3 workers, much faster)
-            $scriptPath = base_path('item-test-trait-1/scrape_items_sync_v2.py');
-
-            // Check if script exists
-            if (!file_exists($scriptPath)) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Scraper script not found',
-                    'path' => $scriptPath,
-                ], 500);
-            }
-
-            // Run the Python scraper in background
+            $logPath = storage_path('logs/items_scraper.log');
             if (strtoupper(substr(PHP_OS, 0, 3)) === 'WIN') {
-                // Windows - run Python script
-                $logPath = storage_path('logs/items_scraper.log');
                 $command = "start /B python \"{$scriptPath}\" > \"{$logPath}\" 2>&1";
                 pclose(popen($command, 'r'));
-
-                return response()->json([
-                    'success' => true,
-                    'message' => 'V2 parallel scraper started (3 workers)',
-                    'note' => 'Scraping all outlets across 3 platforms with parallel workers. ~40 minutes.',
-                    'timestamp' => now()->toIso8601String(),
-                    'log_file' => $logPath,
-                ]);
             } else {
-                // Linux/Mac - run in background
-                $logPath = storage_path('logs/items_scraper.log');
                 $command = "nohup python3 \"{$scriptPath}\" > \"{$logPath}\" 2>&1 &";
                 exec($command);
-
-                return response()->json([
-                    'success' => true,
-                    'message' => 'V2 parallel scraper started (3 workers)',
-                    'note' => 'Scraping all outlets across 3 platforms with parallel workers. ~40 minutes.',
-                    'timestamp' => now()->toIso8601String(),
-                    'log_file' => $logPath,
-                ]);
             }
+
+            return response()->json([
+                'success' => true,
+                'message' => 'V2 parallel scraper started (3 workers)',
+                'note' => 'Scraping all outlets across 3 platforms with parallel workers. ~40 minutes.',
+                'timestamp' => now()->toIso8601String(),
+                'log_file' => $logPath,
+            ]);
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
