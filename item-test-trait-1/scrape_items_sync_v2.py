@@ -36,7 +36,7 @@ PASSWORD = "90267051@Arc"
 BASE_URL = "https://bo.sea.restosuite.ai"
 
 # Database path - SQLite (using v3.5 database)
-DB_PATH = os.getenv('DB_DATABASE', r'C:\resto-db-v3.5\database\database.sqlite')
+DB_PATH = os.getenv('DB_DATABASE', '/var/www/html/database/database.sqlite')
 
 # Log file path
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
