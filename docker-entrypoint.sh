@@ -16,6 +16,10 @@ php artisan migrate --force --no-interaction
 
 # Clear caches
 echo "⚡ Clearing Laravel caches..."
+mkdir -p /var/www/html/storage/framework/views
+mkdir -p /var/www/html/storage/framework/cache
+mkdir -p /var/www/html/storage/framework/sessions
+chown -R www-data:www-data /var/www/html/storage
 php artisan config:clear
 php artisan route:clear
 php artisan view:clear
