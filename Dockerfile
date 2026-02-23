@@ -3,7 +3,7 @@ FROM php:8.2-apache
 # 1️⃣ Enable Apache modules
 RUN a2enmod rewrite headers
 
-# 2️⃣ System dependencies (SQLite + PHP extensions)
+# 2️⃣ System dependencies (SQLite + PHP extensions + Python + Playwright deps)
 RUN apt-get update && apt-get install -y \
     git \
     unzip \
@@ -11,6 +11,27 @@ RUN apt-get update && apt-get install -y \
     libonig-dev \
     sqlite3 \
     libsqlite3-dev \
+    python3 \
+    python3-pip \
+    python3-venv \
+    # Playwright browser dependencies
+    libnss3 \
+    libnspr4 \
+    libatk1.0-0 \
+    libatk-bridge2.0-0 \
+    libcups2 \
+    libdrm2 \
+    libdbus-1-3 \
+    libxkbcommon0 \
+    libxcomposite1 \
+    libxdamage1 \
+    libxfixes3 \
+    libxrandr2 \
+    libgbm1 \
+    libasound2 \
+    libpango-1.0-0 \
+    libcairo2 \
+    libatspi2.0-0 \
     && docker-php-ext-install \
         pdo \
         pdo_sqlite \
@@ -46,11 +67,15 @@ RUN composer install \
     --optimize-autoloader \
     --no-interaction
 
-# 🔟 Create minimal .env so artisan commands work during build
+# 🔟 Install Python dependencies + Playwright + Chromium
+RUN pip3 install --break-system-packages playwright && \
+    playwright install chromium --with-deps
+
+# 1️⃣1️⃣ Create minimal .env so artisan commands work during build
 RUN echo "APP_KEY=" > .env && \
     php artisan key:generate --force
 
-# 1️⃣1️⃣ Environment defaults (Render overrides via ENV vars)
+# 1️⃣3️⃣ Environment defaults (Render overrides via ENV vars)
 ENV APP_ENV=production
 ENV APP_DEBUG=false
 
