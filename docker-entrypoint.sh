@@ -3,22 +3,31 @@ set -e
 
 echo "🚀 Starting Laravel application..."
 
-# Wait for database file to be ready
-if [ ! -f /var/www/html/database/database.sqlite ]; then
-    echo "📦 Creating SQLite database..."
-    touch /var/www/html/database/database.sqlite
-    chown www-data:www-data /var/www/html/database/database.sqlite
+# Check if persistent disk database exists and has data
+echo "🗄️ Checking persistent database..."
+DISK_DB="/var/www/html/database/database.sqlite"
+SEED_DB="/var/www/html/database/database.sqlite.seed"
+
+# Copy our seeded database as a seed backup if not already there
+if [ -f "$DISK_DB" ] && [ ! -f "$SEED_DB" ]; then
+    cp "$DISK_DB" "$SEED_DB"
 fi
 
-# Copy seeded database if it exists and target is empty
-echo "🗄️ Checking database..."
-if [ -f /var/www/html/database/database.sqlite ]; then
-    SHOP_COUNT=$(sqlite3 /var/www/html/database/database.sqlite "SELECT COUNT(*) FROM shops;" 2>/dev/null || echo "0")
+# If disk database is empty (new disk), restore from seed
+if [ -f "$DISK_DB" ]; then
+    SHOP_COUNT=$(sqlite3 "$DISK_DB" "SELECT COUNT(*) FROM shops;" 2>/dev/null || echo "0")
     echo "📊 Found $SHOP_COUNT shops in database"
+    if [ "$SHOP_COUNT" = "0" ] && [ -f "$SEED_DB" ]; then
+        echo "🌱 Seeding database from backup..."
+        cp "$SEED_DB" "$DISK_DB"
+        echo "✅ Database seeded with existing data"
+    fi
 else
-    touch /var/www/html/database/database.sqlite
-    chown www-data:www-data /var/www/html/database/database.sqlite
+    echo "📦 Creating new database..."
+    touch "$DISK_DB"
 fi
+
+chown -R www-data:www-data /var/www/html/database
 
 # Run migrations
 echo "🔄 Running database migrations..."
