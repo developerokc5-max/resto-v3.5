@@ -66,8 +66,9 @@ RUN composer install \
     --no-interaction
 
 # 🔟 Install Python dependencies + Playwright + Chromium
-RUN pip3 install --break-system-packages playwright && \
-    playwright install chromium --with-deps
+RUN pip3 install playwright --break-system-packages || pip3 install playwright && \
+    python3 -m playwright install chromium && \
+    python3 -m playwright install-deps chromium
 
 # 1️⃣1️⃣ Create minimal .env so artisan commands work during build
 RUN echo "APP_KEY=" > .env && \
