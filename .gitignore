@@ -65,7 +65,4 @@ _archive/logs/*.docx
 _archive/temp_files/
 _archive/scrapers/tmpclaude-*
 
-# Deployment config
-render.yaml
-render-build.sh
-scripts/render-build.sh
+# scripts/render-build.sh (kept render.yaml and render-build.sh for Render.com)
