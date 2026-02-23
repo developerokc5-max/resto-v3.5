@@ -51,10 +51,12 @@ COPY . .
 RUN sed -i 's|/var/www/html|/var/www/html/public|g' \
     /etc/apache2/sites-available/000-default.conf
 
-# 7️⃣ Create database directory and file
-RUN mkdir -p database && \
-    touch database/database.sqlite && \
-    chown -R www-data:www-data database
+# 7️⃣ Backup database folder to database_image/ before disk mounts over database/
+# The persistent disk mounts at /var/www/html/database, hiding migrations etc.
+# At runtime, entrypoint copies migrations back from database_image/
+RUN cp -r database database_image && \
+    mkdir -p database && \
+    chown -R www-data:www-data database database_image
 
 # 8️⃣ Laravel storage permissions
 RUN chown -R www-data:www-data storage bootstrap/cache
