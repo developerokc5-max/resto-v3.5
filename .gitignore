@@ -48,9 +48,13 @@ __pycache__/
 # Archive folder (all dev leftovers, debug scripts, old scrapers)
 /_archive/
 
-# Scraper folders
-/item-test-trait-1/
-/platform-test-trait-1/
+# Scraper folders (kept in repo for Render deployment)
+# /item-test-trait-1/
+# /platform-test-trait-1/
+
+# Debug screenshots from scrapers
+item-test-trait-1/*.png
+platform-test-trait-1/*.png
 
 
 # Scraped JSON data (real business data)
