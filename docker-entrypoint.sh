@@ -46,5 +46,11 @@ php artisan view:clear
 
 echo "✅ Laravel setup complete!"
 
+# Print Laravel log if it exists (helps debug startup errors)
+if [ -f /var/www/html/storage/logs/laravel.log ]; then
+    echo "📋 Laravel log tail:"
+    tail -50 /var/www/html/storage/logs/laravel.log
+fi
+
 # Execute the CMD (apache2-foreground)
 exec "$@"

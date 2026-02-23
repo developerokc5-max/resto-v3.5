@@ -74,9 +74,6 @@ RUN pip3 install playwright --break-system-packages || pip3 install playwright &
 RUN cp .env.example .env && \
     php artisan key:generate --force
 
-# 1️⃣3️⃣ Environment defaults (Render overrides via ENV vars)
-ENV APP_ENV=production
-ENV APP_DEBUG=false
 
 # 1️⃣1️⃣ Expose web port
 EXPOSE 80
