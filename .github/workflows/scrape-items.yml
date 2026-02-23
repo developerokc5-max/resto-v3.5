@@ -1,0 +1,23 @@
+name: Auto Scrape - Items
+
+on:
+  schedule:
+    - cron: '0 * * * *'  # Every 60 minutes (top of every hour)
+  workflow_dispatch:      # Allow manual trigger from GitHub UI
+
+jobs:
+  scrape-items:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger Item Scraper
+        run: |
+          response=$(curl -s -o /dev/null -w "%{http_code}" -X POST \
+            https://resto-v3-5.onrender.com/api/v1/items/sync \
+            -H "Content-Type: application/json" \
+            -H "Accept: application/json")
+          echo "Response code: $response"
+          if [ "$response" != "200" ]; then
+            echo "Warning: Got $response response"
+          else
+            echo "Item scrape triggered successfully"
+          fi
