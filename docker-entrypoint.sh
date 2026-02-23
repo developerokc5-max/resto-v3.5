@@ -46,13 +46,27 @@ php artisan view:clear
 
 echo "✅ Laravel setup complete!"
 
-# Show .env contents (mask key) to confirm config loaded
-echo "📄 Active .env config:"
-grep -E "^(APP_|DB_|SESSION_|CACHE_)" /var/www/html/.env | grep -v "APP_KEY"
+# Show active env vars (Render dashboard vars override .env)
+echo "📄 Runtime environment:"
+echo "  APP_DEBUG=${APP_DEBUG:-from-dotenv}"
+echo "  APP_ENV=${APP_ENV:-from-dotenv}"
+echo "  DB_DATABASE=${DB_DATABASE:-from-dotenv}"
 
-# Test Laravel can bootstrap at all
-echo "🔍 Testing Laravel bootstrap..."
-php artisan about --only=environment 2>&1 || echo "⚠️ Laravel bootstrap failed!"
+# Test with tinker to get the actual error
+echo "🔍 Testing Laravel app (catching errors)..."
+php artisan tinker --execute="
+try {
+    \$response = app()->handle(
+        Illuminate\Http\Request::create('/up', 'GET')
+    );
+    echo 'Status: ' . \$response->getStatusCode() . PHP_EOL;
+    echo 'Body: ' . substr(\$response->getContent(), 0, 500) . PHP_EOL;
+} catch (\Throwable \$e) {
+    echo 'ERROR: ' . \$e->getMessage() . PHP_EOL;
+    echo 'FILE: ' . \$e->getFile() . ':' . \$e->getLine() . PHP_EOL;
+    echo 'TRACE: ' . substr(\$e->getTraceAsString(), 0, 1000) . PHP_EOL;
+}
+" 2>&1 || echo "Tinker failed"
 
 # Execute the CMD (apache2-foreground)
 exec "$@"
