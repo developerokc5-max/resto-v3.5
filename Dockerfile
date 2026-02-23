@@ -70,8 +70,8 @@ RUN pip3 install playwright --break-system-packages || pip3 install playwright &
     python3 -m playwright install chromium && \
     python3 -m playwright install-deps chromium
 
-# 1️⃣1️⃣ Create minimal .env so artisan commands work during build
-RUN echo "APP_KEY=" > .env && \
+# 1️⃣1️⃣ Create .env from example and generate APP_KEY
+RUN cp .env.example .env && \
     php artisan key:generate --force
 
 # 1️⃣3️⃣ Environment defaults (Render overrides via ENV vars)
