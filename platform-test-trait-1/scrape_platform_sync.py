@@ -461,7 +461,7 @@ def main():
             log("="*60)
 
             try:
-                db = psycopg2.connect(DATABASE_URL)
+                db = psycopg2.connect(NEON_DB=DATABASE_URL, connect_timeout=10)
                 cursor = db.cursor()
                 log("✓ Database connected")
 
