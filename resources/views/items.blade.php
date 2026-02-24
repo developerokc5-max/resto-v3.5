@@ -6,7 +6,6 @@
 @section('page-description', 'Browse all items across your restaurants and delivery platforms')
 
 @section('extra-head')
-{{-- Font Awesome loaded in layout.blade.php --}}
 <style>
     .item-card {
         transition: all 0.3s ease;
@@ -25,61 +24,61 @@
 @endsection
 
 @section('top-actions')
-<div class="hidden sm:flex items-center bg-slate-100 rounded-xl px-3 py-2">
-  <input id="searchInput" class="bg-transparent outline-none text-sm w-64" placeholder="Search items..." />
+<div class="hidden sm:flex items-center bg-slate-100 dark:bg-slate-800 rounded-xl px-3 py-2">
+  <input id="searchInput" class="bg-transparent outline-none text-sm w-64 dark:text-slate-100 dark:placeholder-slate-400" placeholder="Search items..." />
 </div>
 @endsection
 
 @section('content')
   <!-- Stats Cards -->
   <section class="grid grid-cols-1 md:grid-cols-4 gap-4">
-    <div class="bg-white border rounded-2xl p-5 shadow-sm">
+    <div class="bg-white dark:bg-slate-800 border dark:border-slate-700 rounded-2xl p-5 shadow-sm">
       <div class="flex items-center justify-between">
         <div>
-          <p class="text-sm text-slate-500">Total Items</p>
+          <p class="text-sm text-slate-500 dark:text-slate-400">Total Items</p>
           <p class="text-3xl font-semibold mt-1">{{$stats['total']}}</p>
         </div>
-        <i class="fas fa-box-open text-4xl text-slate-300"></i>
+        <i class="fas fa-box-open text-4xl text-slate-300 dark:text-slate-600"></i>
       </div>
     </div>
-    <div class="bg-white border rounded-2xl p-5 shadow-sm">
+    <div class="bg-white dark:bg-slate-800 border dark:border-slate-700 rounded-2xl p-5 shadow-sm">
       <div class="flex items-center justify-between">
         <div>
-          <p class="text-sm text-slate-500">Restaurants</p>
+          <p class="text-sm text-slate-500 dark:text-slate-400">Restaurants</p>
           <p class="text-3xl font-semibold mt-1">{{$stats['restaurants']}}</p>
         </div>
-        <i class="fas fa-store text-4xl text-slate-300"></i>
+        <i class="fas fa-store text-4xl text-slate-300 dark:text-slate-600"></i>
       </div>
     </div>
-    <div class="bg-green-50 border border-green-200 rounded-2xl p-5 shadow-sm">
+    <div class="bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-700 rounded-2xl p-5 shadow-sm">
       <div class="flex items-center justify-between">
         <div>
-          <p class="text-sm text-green-700 font-medium">Available</p>
-          <p class="text-3xl font-semibold text-green-900 mt-1">{{$stats['available']}}</p>
+          <p class="text-sm text-green-700 dark:text-green-400 font-medium">Available</p>
+          <p class="text-3xl font-semibold text-green-900 dark:text-green-100 mt-1">{{$stats['available']}}</p>
         </div>
-        <i class="fas fa-check-circle text-4xl text-green-200"></i>
+        <i class="fas fa-check-circle text-4xl text-green-200 dark:text-green-800"></i>
       </div>
     </div>
-    <div class="bg-white border rounded-2xl p-5 shadow-sm">
+    <div class="bg-white dark:bg-slate-800 border dark:border-slate-700 rounded-2xl p-5 shadow-sm">
       <div class="flex items-center justify-between">
         <div>
-          <p class="text-sm text-slate-500">Categories</p>
+          <p class="text-sm text-slate-500 dark:text-slate-400">Categories</p>
           <p class="text-3xl font-semibold mt-1">{{count($categories)}}</p>
         </div>
-        <i class="fas fa-tags text-4xl text-slate-300"></i>
+        <i class="fas fa-tags text-4xl text-slate-300 dark:text-slate-600"></i>
       </div>
     </div>
   </section>
 
   <!-- Filters -->
-  <section class="bg-white rounded-2xl shadow-sm p-6">
+  <section class="bg-white dark:bg-slate-800 border dark:border-slate-700 rounded-2xl shadow-sm p-6">
     <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
       <!-- Restaurant Filter -->
       <div>
-        <label class="block text-sm font-medium text-slate-700 mb-2">
+        <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
           <i class="fas fa-store mr-1"></i> Restaurant
         </label>
-        <select id="restaurantFilter" class="w-full px-4 py-2 border border-slate-300 rounded-xl focus:ring-2 focus:ring-slate-900 focus:border-transparent">
+        <select id="restaurantFilter" class="w-full px-4 py-2 border border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-100 rounded-xl focus:ring-2 focus:ring-slate-900 focus:border-transparent">
           <option value="">All Restaurants</option>
           @foreach($restaurants as $restaurant)
             <option value="{{$restaurant}}">{{$restaurant}}</option>
@@ -89,10 +88,10 @@
 
       <!-- Category Filter -->
       <div>
-        <label class="block text-sm font-medium text-slate-700 mb-2">
+        <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
           <i class="fas fa-tags mr-1"></i> Category
         </label>
-        <select id="categoryFilter" class="w-full px-4 py-2 border border-slate-300 rounded-xl focus:ring-2 focus:ring-slate-900 focus:border-transparent">
+        <select id="categoryFilter" class="w-full px-4 py-2 border border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-100 rounded-xl focus:ring-2 focus:ring-slate-900 focus:border-transparent">
           <option value="">All Categories</option>
           @foreach($categories as $category)
             <option value="{{$category}}">{{$category}}</option>
@@ -102,10 +101,10 @@
 
       <!-- Platform Filter -->
       <div>
-        <label class="block text-sm font-medium text-slate-700 mb-2">
+        <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
           <i class="fas fa-filter mr-1"></i> Platform
         </label>
-        <select id="platformFilter" class="w-full px-4 py-2 border border-slate-300 rounded-xl focus:ring-2 focus:ring-slate-900 focus:border-transparent">
+        <select id="platformFilter" class="w-full px-4 py-2 border border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-100 rounded-xl focus:ring-2 focus:ring-slate-900 focus:border-transparent">
           <option value="">All Platforms</option>
           <option value="grab">Grab</option>
           <option value="foodpanda">FoodPanda</option>
@@ -118,12 +117,12 @@
     <div class="flex items-center">
       <label class="inline-flex items-center cursor-pointer">
         <input type="checkbox" id="availableOnly" class="form-checkbox h-5 w-5 text-slate-900 rounded" checked>
-        <span class="ml-2 text-sm text-slate-700">
+        <span class="ml-2 text-sm text-slate-700 dark:text-slate-300">
           <i class="fas fa-check-circle text-green-600"></i> Available Only
         </span>
       </label>
-      <span class="ml-auto text-sm text-slate-600">
-        Showing <span id="resultCount" class="font-semibold text-slate-900">{{count($items)}}</span> items
+      <span class="ml-auto text-sm text-slate-600 dark:text-slate-400">
+        Showing <span id="resultCount" class="font-semibold text-slate-900 dark:text-slate-100">{{count($items)}}</span> items
       </span>
     </div>
   </section>
@@ -131,7 +130,7 @@
   <!-- Items Grid -->
   <div id="itemsGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
     @foreach($items as $item)
-    <div class="item-card bg-white rounded-2xl shadow-sm overflow-hidden border hover:border-slate-300"
+    <div class="item-card bg-white dark:bg-slate-800 rounded-2xl shadow-sm overflow-hidden border dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600"
          data-name="{{strtolower($item->name)}}"
          data-category="{{$item->category}}"
          data-restaurant="{{$item->shop_name}}"
@@ -139,7 +138,7 @@
          data-available="{{$item->is_available ? '1' : '0'}}">
 
       <!-- Image -->
-      <div class="relative h-48 bg-gradient-to-br from-slate-100 to-slate-200 overflow-hidden">
+      <div class="relative h-48 bg-gradient-to-br from-slate-100 to-slate-200 dark:from-slate-700 dark:to-slate-800 overflow-hidden">
         @if($item->image_url)
           <img src="{{$item->image_url}}" alt="{{$item->name}}"
                class="w-full h-full object-cover"
@@ -147,7 +146,7 @@
                onerror="this.src='https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=400'">
         @else
           <div class="w-full h-full flex items-center justify-center">
-            <i class="fas fa-utensils text-6xl text-slate-300"></i>
+            <i class="fas fa-utensils text-6xl text-slate-300 dark:text-slate-600"></i>
           </div>
         @endif
 
@@ -163,41 +162,38 @@
         @endif
 
         <!-- Price Tag -->
-        <div class="absolute bottom-3 left-3 bg-white/95 backdrop-blur-sm rounded-xl px-3 py-1 shadow-lg">
-          <span class="text-2xl font-bold text-slate-900">${{number_format($item->price, 2)}}</span>
+        <div class="absolute bottom-3 left-3 bg-white/95 dark:bg-slate-900/95 backdrop-blur-sm rounded-xl px-3 py-1 shadow-lg">
+          <span class="text-2xl font-bold text-slate-900 dark:text-slate-100">${{number_format($item->price, 2)}}</span>
         </div>
       </div>
 
       <!-- Content -->
       <div class="p-4">
-        <!-- Item Name -->
-        <h3 class="text-lg font-bold text-slate-900 mb-2 line-clamp-2">
+        <h3 class="text-lg font-bold text-slate-900 dark:text-slate-100 mb-2 line-clamp-2">
           {{$item->name}}
         </h3>
 
-        <!-- Restaurant -->
-        <p class="text-sm text-slate-600 mb-2 flex items-center">
-          <i class="fas fa-store text-slate-400 mr-2"></i>
+        <p class="text-sm text-slate-600 dark:text-slate-400 mb-2 flex items-center">
+          <i class="fas fa-store text-slate-400 dark:text-slate-500 mr-2"></i>
           <span class="truncate">{{$item->shop_name}}</span>
         </p>
 
-        <!-- Category -->
-        <span class="inline-block bg-slate-100 text-slate-700 text-xs font-medium px-3 py-1 rounded-full mb-3">
+        <span class="inline-block bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 text-xs font-medium px-3 py-1 rounded-full mb-3">
           <i class="fas fa-tag mr-1"></i>{{$item->category}}
         </span>
 
         <!-- Platform Badge -->
         <div class="flex justify-center">
           @if($item->platform === 'grab')
-            <span class="platform-badge bg-green-100 text-green-700 text-xs font-bold px-4 py-2 rounded-full border-2 border-green-500">
+            <span class="platform-badge bg-green-100 dark:bg-green-900/50 text-green-700 dark:text-green-400 text-xs font-bold px-4 py-2 rounded-full border-2 border-green-500 dark:border-green-700">
               <i class="fas fa-car mr-1"></i>Grab
             </span>
           @elseif($item->platform === 'foodpanda')
-            <span class="platform-badge bg-pink-100 text-pink-700 text-xs font-bold px-4 py-2 rounded-full border-2 border-pink-500">
+            <span class="platform-badge bg-pink-100 dark:bg-pink-900/50 text-pink-700 dark:text-pink-400 text-xs font-bold px-4 py-2 rounded-full border-2 border-pink-500 dark:border-pink-700">
               <i class="fas fa-motorcycle mr-1"></i>foodPanda
             </span>
           @else
-            <span class="platform-badge bg-cyan-100 text-cyan-700 text-xs font-bold px-4 py-2 rounded-full border-2 border-cyan-500">
+            <span class="platform-badge bg-cyan-100 dark:bg-cyan-900/50 text-cyan-700 dark:text-cyan-400 text-xs font-bold px-4 py-2 rounded-full border-2 border-cyan-500 dark:border-cyan-700">
               <i class="fas fa-bicycle mr-1"></i>Deliveroo
             </span>
           @endif
@@ -209,9 +205,9 @@
 
   <!-- Empty State -->
   <div id="emptyState" class="hidden text-center py-16">
-    <i class="fas fa-search text-6xl text-slate-300 mb-4"></i>
-    <h3 class="text-xl font-semibold text-slate-600 mb-2">No items found</h3>
-    <p class="text-slate-500">Try adjusting your filters or search terms</p>
+    <i class="fas fa-search text-6xl text-slate-300 dark:text-slate-600 mb-4"></i>
+    <h3 class="text-xl font-semibold text-slate-600 dark:text-slate-400 mb-2">No items found</h3>
+    <p class="text-slate-500 dark:text-slate-500">Try adjusting your filters or search terms</p>
   </div>
 @endsection
 
@@ -270,7 +266,6 @@
     }
   }
 
-  // Event listeners
   searchInput.addEventListener('input', filterItems);
   restaurantFilter.addEventListener('change', filterItems);
   categoryFilter.addEventListener('change', filterItems);
