@@ -16,14 +16,4 @@ jobs:
             -H "Content-Type: application/json" \
             -H "Accept: application/json")
           echo "Scrape trigger response: $response"
-
-      - name: Wait for scrape to complete
-        run: sleep 360  # Wait 6 minutes for scraper to finish
-
-      - name: Run alert check
-        run: |
-          response=$(curl -s -w "\n%{http_code}" -X POST \
-            https://resto-v3-5.onrender.com/api/alerts/check \
-            -H "Content-Type: application/json" \
-            -H "Accept: application/json")
-          echo "Alert check response: $response"
+          # Alert check is called automatically by the scraper when it finishes

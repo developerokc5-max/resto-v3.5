@@ -517,5 +517,20 @@ def main():
     log("PLATFORM STATUS SYNC COMPLETE")
     log("="*60)
 
+    # Trigger alert check now that scrape data is fresh
+    try:
+        import urllib.request
+        import json as _json
+        req = urllib.request.Request(
+            "https://resto-v3-5.onrender.com/api/alerts/check",
+            data=b"{}",
+            headers={"Content-Type": "application/json", "Accept": "application/json"},
+            method="POST"
+        )
+        with urllib.request.urlopen(req, timeout=15) as resp:
+            log(f"✓ Alert check triggered: {resp.status}")
+    except Exception as e:
+        log(f"⚠ Alert check failed (non-critical): {e}")
+
 if __name__ == "__main__":
     main()
