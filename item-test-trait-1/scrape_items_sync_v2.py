@@ -121,7 +121,7 @@ def save_items_with_history(items, worker_id):
                             item['shop_id'],
                             shop_name,
                             platform,
-                            1 if new_available else 0,
+                            bool(new_available),
                             item['price'],
                             item['category'],
                             item['image_url'],
@@ -138,7 +138,7 @@ def save_items_with_history(items, worker_id):
                         SET is_available = %s, price = %s, category = %s, image_url = %s, updated_at = %s
                         WHERE id = %s
                     """, (
-                        1 if item['is_available'] else 0,
+                        bool(item['is_available']),
                         item['price'],
                         item['category'],
                         item['image_url'],
@@ -161,7 +161,7 @@ def save_items_with_history(items, worker_id):
                         item['category'],
                         item['price'],
                         item['image_url'],
-                        1 if item['is_available'] else 0,
+                        bool(item['is_available']),
                         platform,
                         now,
                         now
@@ -178,7 +178,7 @@ def save_items_with_history(items, worker_id):
                         item['shop_id'],
                         shop_name,
                         platform,
-                        1 if item['is_available'] else 0,
+                        bool(item['is_available']),
                         item['price'],
                         item['category'],
                         item['image_url'],
@@ -220,7 +220,7 @@ def save_shop(shop_info, worker_id=None):
                 """, (
                     shop_info['shop_name'],
                     shop_info['organization_name'],
-                    1 if shop_info['has_items'] else 0,
+                    bool(shop_info['has_items']),
                     now,
                     now,
                     shop_info['shop_id']
@@ -234,7 +234,7 @@ def save_shop(shop_info, worker_id=None):
                     shop_info['shop_id'],
                     shop_info['shop_name'],
                     shop_info['organization_name'],
-                    1 if shop_info['has_items'] else 0,
+                    bool(shop_info['has_items']),
                     now,
                     now,
                     now

@@ -130,42 +130,14 @@ Route::prefix('platform')->group(function () {
 // Sync API
 Route::prefix('sync')->group(function () {
 
-    // Trigger manual platform scraping - LOCAL ONLY
+    // Trigger manual platform scraping - now runs on GitHub Actions automatically
     Route::post('/scrape', function (Request $request) {
-        $scriptPath = base_path('platform-test-trait-1/scrape_platform_sync.py');
-
-        if (!file_exists($scriptPath)) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Scraper is only available when running locally. Run the Python scraper on your local machine to update platform data.',
-                'hint' => 'Run: python platform-test-trait-1/scrape_platform_sync.py',
-            ], 503);
-        }
-
-        try {
-            $logPath = storage_path('logs/platform_scraper.log');
-            if (strtoupper(substr(PHP_OS, 0, 3)) === 'WIN') {
-                $command = "start /B python \"{$scriptPath}\" > \"{$logPath}\" 2>&1";
-                pclose(popen($command, 'r'));
-            } else {
-                $command = "nohup python3 \"{$scriptPath}\" > \"{$logPath}\" 2>&1 &";
-                exec($command);
-            }
-
-            return response()->json([
-                'success' => true,
-                'message' => 'Platform scraper started successfully',
-                'note' => 'Scraping all outlets across 3 platforms. This may take 5-10 minutes.',
-                'timestamp' => now()->toIso8601String(),
-                'log_file' => $logPath,
-            ]);
-        } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to start platform scraper',
-                'error' => $e->getMessage(),
-            ], 500);
-        }
+        return response()->json([
+            'success' => true,
+            'message' => 'Platform scraper runs automatically on GitHub Actions every 15 minutes.',
+            'note' => 'To trigger immediately: go to GitHub → Actions → "Auto Scrape - Platform Status" → Run workflow.',
+            'timestamp' => now()->toIso8601String(),
+        ]);
     });
 
     // Trigger manual items scraping - BULLETPROOF VERSION
