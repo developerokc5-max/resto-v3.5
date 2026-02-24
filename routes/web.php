@@ -17,12 +17,17 @@ set_time_limit(300);
  */
 if (!function_exists('getLastSyncTimestamp')) {
 function getLastSyncTimestamp($shopId = null) {
-    $query = DB::table('restosuite_item_snapshots');
+    // Static cache: avoids 2 DB queries × 10+ calls per request (saves ~20 round-trips)
+    static $cache = [];
+    $key = $shopId ?? '__global__';
+    if (isset($cache[$key])) {
+        return $cache[$key];
+    }
 
+    $query = DB::table('restosuite_item_snapshots');
     if ($shopId) {
         $query->where('shop_id', $shopId);
     }
-
     $lastSync = $query->max('updated_at');
 
     if (!$lastSync) {
@@ -33,7 +38,9 @@ function getLastSyncTimestamp($shopId = null) {
         $lastSync = $platformQuery->max('last_checked_at');
     }
 
-    return $lastSync ? \Carbon\Carbon::parse($lastSync)->setTimezone('Asia/Singapore')->format('M j, Y g:i A') . ' SGT' : 'Never';
+    $result = $lastSync ? \Carbon\Carbon::parse($lastSync)->setTimezone('Asia/Singapore')->format('M j, Y g:i A') . ' SGT' : 'Never';
+    $cache[$key] = $result;
+    return $result;
 }
 } // end if (!function_exists)
 
@@ -880,14 +887,18 @@ Route::get('/store/{shopId}/logs', function ($shopId) {
         ->get()
         ->keyBy('platform');
 
+    // Batch all 3 platform queries into ONE DB call (avoids N+1)
+    $allOfflineItems = DB::table('items')
+        ->where('shop_name', $shopInfo['name'])
+        ->where('is_available', false)
+        ->whereIn('platform', ['grab', 'foodpanda', 'deliveroo'])
+        ->get()
+        ->groupBy('platform');
+
     $platformData = [];
     foreach (['grab', 'foodpanda', 'deliveroo'] as $platform) {
         $status = $platformStatus->get($platform);
-        $offlineItems = DB::table('items')
-            ->where('shop_name', $shopInfo['name'])
-            ->where('platform', $platform)
-            ->where('is_available', false)
-            ->get();
+        $offlineItems = $allOfflineItems->get($platform, collect());
 
         $platformData[$platform] = [
             'name' => ucfirst($platform),
@@ -1211,13 +1222,18 @@ Route::get('/alerts', function () {
         ->get()
         ->keyBy('shop_id');
 
+    // Pre-fetch all store names in ONE query (avoids N+1: one query per shop)
+    $storeNameMap = DB::table('platform_status')
+        ->whereIn('shop_id', $allPlatformCounts->keys()->toArray())
+        ->selectRaw('shop_id, MIN(store_name) as store_name')
+        ->groupBy('shop_id')
+        ->pluck('store_name', 'shop_id');
+
     $fullyOfflineStores = [];
     foreach ($allPlatformCounts as $shopId => $total) {
         $offlineRow = $offlineCounts->get($shopId);
         if ($offlineRow && $offlineRow->offline_count >= $total) {
-            $storeName = DB::table('platform_status')
-                ->where('shop_id', $shopId)
-                ->value('store_name') ?? $shopId;
+            $storeName = $storeNameMap->get($shopId) ?? $shopId;
             $fullyOfflineStores[] = [
                 'shop_id'      => $shopId,
                 'name'         => $storeName,
