@@ -467,6 +467,26 @@ def main():
                 cursor = db.cursor()
                 log("✓ Database connected")
 
+                # Ensure table exists (creates it if missing on any Neon database)
+                cursor.execute("""
+                    CREATE TABLE IF NOT EXISTS platform_status (
+                        id BIGSERIAL PRIMARY KEY,
+                        shop_id TEXT NOT NULL,
+                        store_name TEXT,
+                        platform TEXT NOT NULL,
+                        is_online BOOLEAN NOT NULL DEFAULT FALSE,
+                        items_synced INTEGER NOT NULL DEFAULT 0,
+                        items_total INTEGER NOT NULL DEFAULT 0,
+                        last_checked_at TIMESTAMPTZ,
+                        last_check_status TEXT,
+                        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+                        updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+                        UNIQUE (shop_id, platform)
+                    )
+                """)
+                db.commit()
+                log("✓ Table ready")
+
                 # Clear existing platform_status data
                 log("Clearing old platform data...")
                 cursor.execute("DELETE FROM platform_status")
