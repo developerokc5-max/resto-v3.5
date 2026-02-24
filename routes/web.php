@@ -212,7 +212,7 @@ Route::get('/stores', function () {
     // BATCH: Get all offline item counts per shop in one query (fixes N+1)
     $allOfflineCounts = DB::table('items')
         ->select('shop_name', DB::raw('COUNT(DISTINCT (name || "|" || category)) as offline_count'))
-        ->where('is_available', 0)
+        ->where('is_available', false)
         ->groupBy('shop_name')
         ->pluck('offline_count', 'shop_name');
 
@@ -666,14 +666,14 @@ Route::get('/platforms', function () {
 
     // Calculate statistics
     $totalPlatforms = $platformStatuses->count();
-    $onlinePlatforms = $platformStatuses->where('is_online', 1)->count();
+    $onlinePlatforms = $platformStatuses->where('is_online', true)->count();
     $offlinePlatforms = $totalPlatforms - $onlinePlatforms;
 
     $platformStats = [];
     foreach (['grab', 'foodpanda', 'deliveroo'] as $platform) {
         $platformData = $platformStatuses->where('platform', $platform);
         $total = $platformData->count();
-        $online = $platformData->where('is_online', 1)->count();
+        $online = $platformData->where('is_online', true)->count();
 
         $platformStats[$platform] = [
             'total' => $total,
@@ -845,7 +845,7 @@ Route::get('/offline-items', function () {
     $storesMixed = collect($allStores)->where('overall_status', 'mixed')->count();
 
     $totalPlatforms = $platformStatuses->count();
-    $onlinePlatforms = $platformStatuses->where('is_online', 1)->count();
+    $onlinePlatforms = $platformStatuses->where('is_online', true)->count();
     $offlinePlatforms = $totalPlatforms - $onlinePlatforms;
 
     $lastScrapeTime = DB::table('platform_status')->max('last_checked_at');
@@ -884,7 +884,7 @@ Route::get('/store/{shopId}/logs', function ($shopId) {
         $offlineItems = DB::table('items')
             ->where('shop_name', $shopInfo['name'])
             ->where('platform', $platform)
-            ->where('is_available', 0)
+            ->where('is_available', false)
             ->get();
 
         $platformData[$platform] = [
@@ -973,7 +973,7 @@ Route::get('/dashboard/export', function () {
     // QUERY 2: Get all offline items grouped by shop_name and platform
     $offlineItemsStats = DB::table('items')
         ->whereIn('shop_name', $shopNames)
-        ->where('is_available', 0)
+        ->where('is_available', false)
         ->select(
             'shop_name',
             'platform',
@@ -1204,7 +1204,7 @@ Route::get('/alerts', function () {
 
     $offlineCounts = DB::table('platform_status')
         ->selectRaw('shop_id, COUNT(*) as offline_count, MAX(last_checked_at) as last_checked')
-        ->where('is_online', 0)
+        ->where('is_online', false)
         ->groupBy('shop_id')
         ->get()
         ->keyBy('shop_id');
@@ -1259,8 +1259,8 @@ Route::get('/alerts', function () {
     // ── 2. Per-platform offline counts (with real last_checked timestamp) ──────
     $platformStats = DB::table('platform_status')
         ->selectRaw('platform,
-            SUM(CASE WHEN is_online = 0 THEN 1 ELSE 0 END) as offline_count,
-            SUM(CASE WHEN is_online = 1 THEN 1 ELSE 0 END) as online_count,
+            SUM(CASE WHEN is_online = false THEN 1 ELSE 0 END) as offline_count,
+            SUM(CASE WHEN is_online = true THEN 1 ELSE 0 END) as online_count,
             COUNT(*) as total,
             MAX(last_checked_at) as last_checked')
         ->groupBy('platform')
@@ -1289,11 +1289,11 @@ Route::get('/alerts', function () {
     // ── 3. Stores with many unavailable items (with real updated_at) ──────────
     $storesWithOfflineItems = DB::table('items')
         ->selectRaw('shop_name, shop_id,
-            SUM(CASE WHEN is_available = 0 THEN 1 ELSE 0 END) as offline_count,
+            SUM(CASE WHEN is_available = false THEN 1 ELSE 0 END) as offline_count,
             COUNT(*) as total_items,
             MAX(updated_at) as last_updated')
         ->groupBy('shop_name', 'shop_id')
-        ->havingRaw('SUM(CASE WHEN is_available = 0 THEN 1 ELSE 0 END) > 20')
+        ->havingRaw('SUM(CASE WHEN is_available = false THEN 1 ELSE 0 END) > 20')
         ->orderByRaw('offline_count DESC')
         ->limit(8)
         ->get();
@@ -1396,14 +1396,14 @@ Route::get('/reports/daily-trends', function () {
     $trends = Cache::remember('reports_daily_trends', 300, function () use ($today) {
         // Calculate average uptime from platform_status
         $platformStats = DB::table('platform_status')
-            ->selectRaw('platform, AVG(CASE WHEN is_online = 1 THEN 100 ELSE 0 END) as uptime')
+            ->selectRaw('platform, AVG(CASE WHEN is_online = true THEN 100 ELSE 0 END) as uptime')
             ->groupBy('platform')
             ->get();
 
         $avgUptime = $platformStats->avg('uptime');
 
         // Count offline items
-        $offlineItemsCount = DB::table('items')->where('is_available', 0)->count();
+        $offlineItemsCount = DB::table('items')->where('is_available', false)->count();
 
         // Get incidents (status changes) from store_status_logs
         $incidents = DB::table('store_status_logs')
@@ -1451,7 +1451,7 @@ Route::get('/reports/platform-reliability', function () {
             ->select(
                 'platform',
                 DB::raw('COUNT(*) as total_stores'),
-                DB::raw('SUM(CASE WHEN is_online = 1 THEN 1 ELSE 0 END) as online_stores')
+                DB::raw('SUM(CASE WHEN is_online = true THEN 1 ELSE 0 END) as online_stores')
             )
             ->groupBy('platform')
             ->get()
@@ -1494,13 +1494,13 @@ Route::get('/reports/item-performance', function () {
             ->first()
             ->total;
 
-        $offlineItems = DB::table('items')->where('is_available', 0)->count();
+        $offlineItems = DB::table('items')->where('is_available', false)->count();
         $onlineItems = $totalItems - $offlineItems;
 
         // Get items that are offline frequently (more than 5 times this week)
         $weekAgo = \Carbon\Carbon::now('Asia/Singapore')->subDays(7);
         $frequentlyOffline = DB::table('items')
-            ->where('is_available', 0)
+            ->where('is_available', false)
             ->where('updated_at', '>', $weekAgo)
             ->count();
 
@@ -1517,7 +1517,7 @@ Route::get('/reports/item-performance', function () {
 
         // Get top offline items
         $topOfflineItems = DB::table('items')
-            ->where('is_available', 0)
+            ->where('is_available', false)
             ->selectRaw('name, shop_name, platform, COUNT(*) as offline_count')
             ->groupBy('name', 'shop_name', 'platform')
             ->orderBy('offline_count', 'desc')
@@ -1529,8 +1529,8 @@ Route::get('/reports/item-performance', function () {
             ->selectRaw('
                 category,
                 COUNT(DISTINCT name || \'|\' || shop_name || \'|\' || platform) as total_items,
-                ROUND(100.0 * SUM(CASE WHEN is_available = 1 THEN 1 ELSE 0 END) / COUNT(*), 1) as availability_percentage,
-                COUNT(CASE WHEN is_available = 0 THEN 1 ELSE 0 END) as offline_count
+                ROUND(100.0 * SUM(CASE WHEN is_available = true THEN 1 ELSE 0 END) / COUNT(*), 1) as availability_percentage,
+                COUNT(CASE WHEN is_available = false THEN 1 ELSE 0 END) as offline_count
             ')
             ->groupBy('category')
             ->orderByRaw('CAST(category AS TEXT)')
@@ -1582,7 +1582,7 @@ Route::get('/reports/store-comparison', function () {
         ->select(
             'shop_name',
             DB::raw('COUNT(*) as total'),
-            DB::raw('SUM(CASE WHEN is_available = 0 THEN 1 ELSE 0 END) as offline')
+            DB::raw('SUM(CASE WHEN is_available = false THEN 1 ELSE 0 END) as offline')
         )
         ->groupBy('shop_name')
         ->get()

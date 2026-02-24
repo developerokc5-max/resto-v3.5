@@ -28,7 +28,7 @@ class ExportService
             ->select(
                 'shop_name',
                 DB::raw('COUNT(*) as total_items'),
-                DB::raw('SUM(CASE WHEN is_available = 0 THEN 1 ELSE 0 END) as offline_items')
+                DB::raw('SUM(CASE WHEN is_available = false THEN 1 ELSE 0 END) as offline_items')
             )
             ->groupBy('shop_name')
             ->get()
@@ -37,7 +37,7 @@ class ExportService
         $data = [];
         foreach ($shopMap as $shopId => $shop) {
             $platformStatuses = $platformStatusMap->get($shopId, collect());
-            $onlinePlatforms = $platformStatuses->where('is_online', 1)->count();
+            $onlinePlatforms = $platformStatuses->where('is_online', true)->count();
             $totalPlatforms = $platformStatuses->count();
 
             $stats = $itemStats->get($shop['name'], (object)['total_items' => 0, 'offline_items' => 0]);
@@ -77,7 +77,7 @@ class ExportService
 
         // Filter by data type
         if ($dataType === 'offline') {
-            $query->where('is_available', 0);
+            $query->where('is_available', false);
         }
 
         // Filter by platforms
@@ -226,7 +226,7 @@ class ExportService
             ->select(
                 'shop_name',
                 DB::raw('COUNT(*) as total_items'),
-                DB::raw('SUM(CASE WHEN is_available = 0 THEN 1 ELSE 0 END) as offline_items')
+                DB::raw('SUM(CASE WHEN is_available = false THEN 1 ELSE 0 END) as offline_items')
             )
             ->groupBy('shop_name')
             ->get()

@@ -20,7 +20,7 @@ class Dashboard extends Component
             ->select(
                 DB::raw('MAX(run_id) as last_run'),
                 DB::raw('COUNT(DISTINCT shop_id) as shops'),
-                DB::raw('SUM(CASE WHEN is_active = 0 THEN 1 ELSE 0 END) as items_off')
+                DB::raw('SUM(CASE WHEN is_active = false THEN 1 ELSE 0 END) as items_off')
             )
             ->first();
 
@@ -37,7 +37,7 @@ class Dashboard extends Component
 
         // Get top 10 offline items
         $this->topOff = DB::table('restosuite_item_snapshots')
-            ->where('is_active', 0)
+            ->where('is_active', false)
             ->orderByDesc('id')
             ->limit(10)
             ->get();

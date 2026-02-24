@@ -23,7 +23,7 @@ class AlertService
         foreach ($currentStatuses as $shopId => $platforms) {
             $shopName     = $platforms->first()->shop_name ?? $shopId;
             $totalCount   = $platforms->count();
-            $offlineCount = $platforms->where('is_online', 0)->count();
+            $offlineCount = $platforms->where('is_online', false)->count();
             $allOffline   = $offlineCount === $totalCount && $totalCount > 0;
 
             // Check if there's an open (unresolved) alert for this store
@@ -36,7 +36,7 @@ class AlertService
 
             if ($allOffline && !$openAlert) {
                 // Store just went fully offline — create alert + send email
-                $offlinePlatforms = $platforms->where('is_online', 0)
+                $offlinePlatforms = $platforms->where('is_online', false)
                     ->pluck('platform')->toArray();
 
                 $alertId = DB::table('alert_logs')->insertGetId([

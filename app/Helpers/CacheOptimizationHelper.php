@@ -46,7 +46,7 @@ class CacheOptimizationHelper
             // Single aggregated query for items and status
             $itemsStatus = DB::table('items')
                 ->select(
-                    DB::raw('COUNT(CASE WHEN is_available = 0 THEN 1 END) as items_off'),
+                    DB::raw('COUNT(CASE WHEN is_available = false THEN 1 END) as items_off'),
                     DB::raw('COUNT(*) as total_items')
                 )
                 ->first();
@@ -63,7 +63,7 @@ class CacheOptimizationHelper
             // Fallback if no changes
             if ($changesStatus->change_count == 0) {
                 $changesStatus = DB::table('platform_status')
-                    ->where('is_online', 0)
+                    ->where('is_online', false)
                     ->select(
                         DB::raw('COUNT(DISTINCT shop_id) as change_count'),
                         DB::raw('COUNT(DISTINCT shop_id) as shops_affected')
@@ -74,7 +74,7 @@ class CacheOptimizationHelper
             // Single aggregated query for platform stats
             $platformStats = DB::table('platform_status')
                 ->select(
-                    DB::raw('COUNT(CASE WHEN is_online = 1 THEN 1 END) as platforms_online'),
+                    DB::raw('COUNT(CASE WHEN is_online = true THEN 1 END) as platforms_online'),
                     DB::raw('COUNT(*) as platforms_total')
                 )
                 ->first();
@@ -104,7 +104,7 @@ class CacheOptimizationHelper
             // Single query to get all alert data
             $offlineStores = DB::table('platform_status')
                 ->select('shop_id', DB::raw('COUNT(*) as offline_count'))
-                ->where('is_online', 0)
+                ->where('is_online', false)
                 ->groupBy('shop_id')
                 ->get();
 
@@ -118,7 +118,7 @@ class CacheOptimizationHelper
 
             // Get offline items count in single query
             $offlineItems = DB::table('items')
-                ->where('is_available', 0)
+                ->where('is_available', false)
                 ->count();
 
             return [
@@ -144,7 +144,7 @@ class CacheOptimizationHelper
                 ->select(
                     's.shop_id',
                     DB::raw('COUNT(*) as total_items'),
-                    DB::raw('SUM(CASE WHEN s.is_active = 0 THEN 1 ELSE 0 END) as items_off'),
+                    DB::raw('SUM(CASE WHEN s.is_active = false THEN 1 ELSE 0 END) as items_off'),
                     DB::raw('MAX(s.updated_at) as last_sync')
                 )
                 ->groupBy('s.shop_id')
@@ -163,7 +163,7 @@ class CacheOptimizationHelper
         return Cache::remember('offline_items_by_shop_platform', self::CACHE_TTL_MODERATE, function () {
             return DB::table('items')
                 ->select('shop_name', 'platform', DB::raw('COUNT(*) as offline_count'))
-                ->where('is_available', 0)
+                ->where('is_available', false)
                 ->groupBy('shop_name', 'platform')
                 ->get()
                 ->keyBy(function ($item) {
