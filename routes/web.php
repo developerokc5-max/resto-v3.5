@@ -205,13 +205,13 @@ Route::get('/stores', function () {
 
     // BATCH: Get all item counts per shop in one query (fixes N+1)
     $allItemCounts = DB::table('items')
-        ->select('shop_name', DB::raw('COUNT(DISTINCT (name || "|" || category)) as total_count'))
+        ->select('shop_name', DB::raw("COUNT(DISTINCT (name || '|' || category)) as total_count"))
         ->groupBy('shop_name')
         ->pluck('total_count', 'shop_name');
 
     // BATCH: Get all offline item counts per shop in one query (fixes N+1)
     $allOfflineCounts = DB::table('items')
-        ->select('shop_name', DB::raw('COUNT(DISTINCT (name || "|" || category)) as offline_count'))
+        ->select('shop_name', DB::raw("COUNT(DISTINCT (name || '|' || category)) as offline_count"))
         ->where('is_available', false)
         ->groupBy('shop_name')
         ->pluck('offline_count', 'shop_name');
@@ -522,7 +522,7 @@ Route::get('/items/management', function (Request $request) {
 
     // Get total unique items count (divide by 3 for 3 platforms)
     $totalUniqueItems = DB::table('items')
-        ->select(DB::raw('COUNT(DISTINCT CONCAT(shop_name, "|", name)) as count'))
+        ->select(DB::raw("COUNT(DISTINCT CONCAT(shop_name, '|', name)) as count"))
         ->first()
         ->count ?? 0;
 
@@ -725,7 +725,7 @@ Route::get('/store/{shopId}/items', function ($shopId) {
 
     $totalOfflineItems = 0;
     foreach ($allItems as $item) {
-        if ($item->is_available == 0) {
+        if (!$item->is_available) {
             $offlineItemsByPlatform[$item->platform][] = [
                 'name' => $item->name,
                 'category' => $item->category ?? 'Uncategorized',
@@ -1412,7 +1412,7 @@ Route::get('/reports/daily-trends', function () {
 
         // Calculate peak offline time (hour with most offline items based on logs)
         $peakHourData = DB::table('store_status_logs')
-            ->selectRaw("strftime('%H', logged_at, '+8 hours') as hour, COUNT(*) as count")
+            ->selectRaw("EXTRACT(HOUR FROM logged_at + INTERVAL '8 hours')::int as hour, COUNT(*) as count")
             ->whereDate('logged_at', $today)
             ->groupBy('hour')
             ->orderBy('count', 'desc')
