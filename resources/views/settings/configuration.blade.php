@@ -148,8 +148,9 @@
       </div>
     </section>
 
+    
     <!-- Save Button -->
-    <div class="flex justify-end gap-4">
+    <div class="flex justify-end gap-4 mt-6">
       <button type="reset" class="px-8 py-3 border-2 border-slate-300 dark:border-slate-600 text-slate-900 dark:text-slate-100 rounded-xl font-medium hover:bg-slate-50 dark:hover:bg-slate-700 transition">
         Reset
       </button>
