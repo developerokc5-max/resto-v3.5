@@ -20,7 +20,7 @@ class ShopService
         $query = DB::table('restosuite_item_snapshots')
             ->select('shop_id', 'shop_name', 'brand_name')
             ->selectRaw('MAX(created_at) as last_seen')
-            ->selectRaw('SUM(CASE WHEN is_active = 0 THEN 1 ELSE 0 END) as items_off');
+            ->selectRaw('SUM(CASE WHEN is_active = false THEN 1 ELSE 0 END) as items_off');
 
         // Apply search filter if provided
         if ($searchQuery !== '') {
@@ -75,7 +75,7 @@ class ShopService
     {
         return (int) DB::table('restosuite_item_snapshots')
             ->where('shop_id', $shopId)
-            ->where('is_active', 0)
+            ->where('is_active', false)
             ->count();
     }
 
@@ -110,7 +110,7 @@ class ShopService
             'offline_items' => self::getOfflineItemsCountCached($shopId),
             'online_items' => DB::table('restosuite_item_snapshots')
                 ->where('shop_id', $shopId)
-                ->where('is_active', 1)
+                ->where('is_active', true)
                 ->count(),
         ];
     }

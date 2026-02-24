@@ -59,10 +59,10 @@ class ItemService
             return [
                 'total_items' => DB::table('restosuite_item_snapshots')->count(),
                 'online_items' => DB::table('restosuite_item_snapshots')
-                    ->where('is_active', 1)
+                    ->where('is_active', true)
                     ->count(),
                 'offline_items' => DB::table('restosuite_item_snapshots')
-                    ->where('is_active', 0)
+                    ->where('is_active', false)
                     ->count(),
                 'total_shops' => DB::table('restosuite_item_snapshots')
                     ->distinct('shop_id')
@@ -104,8 +104,8 @@ class ItemService
             return DB::table('restosuite_item_snapshots')
                 ->select('platform_name')
                 ->selectRaw('COUNT(*) as count')
-                ->selectRaw('SUM(CASE WHEN is_active = 1 THEN 1 ELSE 0 END) as online')
-                ->selectRaw('SUM(CASE WHEN is_active = 0 THEN 1 ELSE 0 END) as offline')
+                ->selectRaw('SUM(CASE WHEN is_active = true THEN 1 ELSE 0 END) as online')
+                ->selectRaw('SUM(CASE WHEN is_active = false THEN 1 ELSE 0 END) as offline')
                 ->groupBy('platform_name')
                 ->orderByDesc('count')
                 ->get();
@@ -123,7 +123,7 @@ class ItemService
 
         return Cache::remember($cacheKey, 1800, function () {
             return DB::table('restosuite_item_snapshots')
-                ->where('is_active', 0)
+                ->where('is_active', false)
                 ->select('shop_id', 'shop_name')
                 ->selectRaw('COUNT(*) as count')
                 ->groupBy('shop_id', 'shop_name')

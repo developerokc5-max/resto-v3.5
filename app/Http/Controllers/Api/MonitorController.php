@@ -250,7 +250,7 @@ class MonitorController extends Controller
             // Get basic counts from database tables
             $shopsTotal = DB::table('shops')->count();
             $itemsTotal = DB::table('items')->count();
-            $itemsAvailable = DB::table('items')->where('is_available', 1)->count();
+            $itemsAvailable = DB::table('items')->where('is_available', true)->count();
 
             return response()->json([
                 'success' => true,
@@ -340,7 +340,7 @@ class MonitorController extends Controller
 
             // Platforms Page
             $platformsCount = DB::table('platform_status')->count();
-            $onlinePlatforms = DB::table('platform_status')->where('is_online', 1)->count();
+            $onlinePlatforms = DB::table('platform_status')->where('is_online', true)->count();
             $platformStatus = $platformsCount > 0 && $onlinePlatforms > 0 ? 'healthy' : 'error';
 
             $pages[] = [
@@ -354,7 +354,7 @@ class MonitorController extends Controller
             ];
 
             // Offline Items
-            $offlineItemsCount = DB::table('items')->where('is_available', 0)->count();
+            $offlineItemsCount = DB::table('items')->where('is_available', false)->count();
             $pages[] = [
                 'name' => 'Offline Items',
                 'route' => '/offline-items',
@@ -367,7 +367,7 @@ class MonitorController extends Controller
             // Alerts Page
             $criticalAlerts = DB::table('platform_status')
                 ->selectRaw('shop_id, COUNT(*) as offline_count')
-                ->where('is_online', 0)
+                ->where('is_online', false)
                 ->groupBy('shop_id')
                 ->having('offline_count', '=', 3)
                 ->count();

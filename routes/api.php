@@ -540,7 +540,7 @@ Route::get('/health', function () {
         ->select(
             DB::raw('MAX(last_checked_at) as last_sync'),
             DB::raw('COUNT(DISTINCT shop_id) as total_shops'),
-            DB::raw('SUM(CASE WHEN is_online = 1 THEN 1 ELSE 0 END) as online_platforms'),
+            DB::raw('SUM(CASE WHEN is_online = true THEN 1 ELSE 0 END) as online_platforms'),
             DB::raw('COUNT(*) as total_platforms')
         )
         ->first();
