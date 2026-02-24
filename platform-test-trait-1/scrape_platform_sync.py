@@ -485,7 +485,7 @@ def main():
                                 shop_id,
                                 shop_data['name'],
                                 platform_name,
-                                1 if platform_data['online'] else 0,
+                                bool(platform_data['online']),
                                 platform_data.get('items_synced', 0)
                             ))
                             total_saved += 1
