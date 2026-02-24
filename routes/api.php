@@ -540,6 +540,27 @@ Route::prefix('v1/items')->group(function () {
     });
 });
 
+// Alert check endpoint — called by GitHub Actions after scrape completes
+Route::post('/alerts/check', function () {
+    try {
+        $alertService = new \App\Services\AlertService();
+        $alertService->checkAndAlert();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Alert check completed',
+            'timestamp' => now('Asia/Singapore')->toIso8601String(),
+        ]);
+    } catch (\Exception $e) {
+        \Illuminate\Support\Facades\Log::error('Alert check failed: ' . $e->getMessage());
+        return response()->json([
+            'success' => false,
+            'message' => 'Alert check failed',
+            'error' => $e->getMessage(),
+        ], 500);
+    }
+});
+
 // Health check
 Route::get('/health', function () {
     // Single consolidated query instead of 4 separate queries
