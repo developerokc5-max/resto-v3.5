@@ -14,6 +14,7 @@ class ShopHelper
             400133646 => ['name' => 'HUMFULL @ Taman Jurong', 'brand' => 'HUMFULL'],
             400581144 => ['name' => 'HUMFULL @ Eunos', 'brand' => 'HUMFULL'],
             400996942 => ['name' => 'HUMFULL @ Bedok', 'brand' => 'HUMFULL'],
+            401255764 => ['name' => 'Ah Huat @ Tampines Mart', 'brand' => 'AH HUAT HOKKIEN MEE'],
             401525442 => ['name' => 'OKCR Testing Outlet', 'brand' => 'OK CHICKEN RICE'],
             401585259 => ['name' => 'OK CHICKEN RICE @ Tampines', 'brand' => 'OK CHICKEN RICE'],
             401797825 => ['name' => 'OK CHICKEN RICE @ Taman Jurong', 'brand' => 'OK CHICKEN RICE'],
@@ -55,6 +56,7 @@ class ShopHelper
             409042218 => ['name' => 'HUMFULL @ Bukit Batok', 'brand' => 'HUMFULL'],
             409048465 => ['name' => 'OK CHICKEN RICE @ Yishun', 'brand' => 'OK CHICKEN RICE'],
             409111567 => ['name' => 'HUMFULL @ Lengkok Bahru', 'brand' => 'HUMFULL'],
+            409201708 => ['name' => 'Le Le Mee Pok @ Tampines Mart', 'brand' => 'Le Le Mee Pok'],
             409618450 => ['name' => 'OK CHICKEN RICE @ Toa Payoh', 'brand' => 'OK CHICKEN RICE'],
             409789948 => ['name' => 'OK CHICKEN RICE @ Depot', 'brand' => 'OK CHICKEN RICE'],
         ];
