@@ -695,7 +695,8 @@ Route::get('/platforms', function () {
 // Store Items Page - Shows offline items for a specific store
 Route::get('/store/{shopId}/items', function ($shopId) {
     $shopMap = ShopHelper::getShopMap();
-    $shopInfo = $shopMap[$shopId] ?? ['name' => 'Unknown Store', 'brand' => 'Unknown Brand'];
+    $shop = DB::table('shops')->where('shop_id', $shopId)->first();
+    $shopInfo = $shopMap[$shopId] ?? ['name' => $shop?->shop_name ?? 'Unknown Store', 'brand' => $shop?->organization_name ?? $shop?->shop_name ?? 'Unknown Brand'];
 
     // Get platform status for this store
     $platformStatus = DB::table('platform_status')
@@ -864,7 +865,8 @@ Route::get('/offline-items', function () {
 // View Logs: Status History Timeline with Cards
 Route::get('/store/{shopId}/logs', function ($shopId) {
     $shopMap = ShopHelper::getShopMap();
-    $shopInfo = $shopMap[$shopId] ?? ['name' => 'Unknown Store', 'brand' => 'Unknown Brand'];
+    $shop = DB::table('shops')->where('shop_id', $shopId)->first();
+    $shopInfo = $shopMap[$shopId] ?? ['name' => $shop?->shop_name ?? 'Unknown Store', 'brand' => $shop?->organization_name ?? $shop?->shop_name ?? 'Unknown Brand'];
 
     // Get current platform status
     $platformStatus = DB::table('platform_status')
@@ -1105,7 +1107,8 @@ Route::get('/dashboard/export', function () {
 // Export Logs to CSV
 Route::get('/store/{shopId}/logs/export', function ($shopId) {
     $shopMap = ShopHelper::getShopMap();
-    $shopInfo = $shopMap[$shopId] ?? ['name' => 'Unknown Store', 'brand' => 'Unknown Brand'];
+    $shop = DB::table('shops')->where('shop_id', $shopId)->first();
+    $shopInfo = $shopMap[$shopId] ?? ['name' => $shop?->shop_name ?? 'Unknown Store', 'brand' => $shop?->organization_name ?? $shop?->shop_name ?? 'Unknown Brand'];
 
     // Get all history events for this store, ordered by most recent first
     $history = DB::table('item_status_history')
