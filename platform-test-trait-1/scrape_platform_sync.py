@@ -338,7 +338,9 @@ def scan_all_platforms(page, stores_data):
         try:
             # Click platform tab
             page.click(f"text={platform}", timeout=5000)
-            page.wait_for_timeout(3000)
+            # Wait longer for tab content to fully render before reading toggles
+            # FoodPanda (3rd tab) was returning empty data due to insufficient wait
+            page.wait_for_timeout(7000)
 
             # Scan stores for this platform
             platform_stores = scan_store_toggles(page)
