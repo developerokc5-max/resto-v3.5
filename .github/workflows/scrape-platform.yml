@@ -9,11 +9,21 @@ jobs:
   scrape-platform:
     runs-on: ubuntu-latest
     steps:
-      - name: Trigger Platform Scraper
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
         run: |
-          response=$(curl -s -o /dev/null -w "%{http_code}" -X POST \
-            https://resto-v3-5.onrender.com/api/sync/scrape \
-            -H "Content-Type: application/json" \
-            -H "Accept: application/json")
-          echo "Scrape trigger response: $response"
-          # Alert check is called automatically by the scraper when it finishes
+          pip install psycopg2-binary playwright
+          playwright install chromium
+          playwright install-deps chromium
+
+      - name: Run Platform Scraper
+        env:
+          NEON_DB: ${{ secrets.NEON_DB }}
+        run: python platform-test-trait-1/scrape_platform_sync.py

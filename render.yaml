@@ -23,6 +23,6 @@ services:
       - key: QUEUE_CONNECTION
         value: database
       - key: DB_CONNECTION
-        value: sqlite
-      - key: DB_DATABASE
-        value: /var/www/html/database/database.sqlite
+        value: pgsql
+      - key: NEON_DB
+        sync: false

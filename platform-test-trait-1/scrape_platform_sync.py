@@ -9,7 +9,7 @@ import json
 import sys
 import os
 import time
-import sqlite3
+import psycopg2
 from datetime import datetime
 from playwright.sync_api import sync_playwright, TimeoutError as PlaywrightTimeout
 
@@ -21,8 +21,7 @@ TARGET_URL = f"{BASE_URL}/takeaway-store-binding"
 # Paths
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 LOG_FILE = os.path.join(SCRIPT_DIR, "scrape_platform_sync.log")
-# Use the correct database path from Laravel config (resto-db-v3 not resto-db-v3.5)
-DB_PATH = os.getenv('DB_DATABASE', '/var/www/html/database/database.sqlite')
+DATABASE_URL = os.getenv('NEON_DB', '')
 
 def log(message):
     """Log to both file and stderr"""
@@ -460,7 +459,7 @@ def main():
             log("="*60)
 
             try:
-                db = sqlite3.connect(DB_PATH)
+                db = psycopg2.connect(DATABASE_URL)
                 cursor = db.cursor()
                 log("✓ Database connected")
 
@@ -481,7 +480,7 @@ def main():
                             cursor.execute("""
                                 INSERT INTO platform_status
                                 (shop_id, store_name, platform, is_online, items_synced, last_checked_at, created_at, updated_at)
-                                VALUES (?, ?, ?, ?, ?, datetime('now'), datetime('now'), datetime('now'))
+                                VALUES (%s, %s, %s, %s, %s, NOW(), NOW(), NOW())
                             """, (
                                 shop_id,
                                 shop_data['name'],
