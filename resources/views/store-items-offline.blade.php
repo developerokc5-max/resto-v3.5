@@ -1,11 +1,17 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" id="html-root">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ $brandName }} - {{ $shopName }} - Offline Items</title>
     <link rel="icon" type="image/png" href="/favicon.png" />
     <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = { darkMode: 'class' }
+        if (localStorage.getItem('darkMode') === 'true') {
+            document.documentElement.classList.add('dark');
+        }
+    </script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
         body { font-family: 'Inter', sans-serif; }
@@ -13,21 +19,26 @@
         .item-card:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12); }
     </style>
 </head>
-<body class="bg-slate-50">
+<body class="bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 transition-colors duration-200">
     <!-- Header -->
-    <header class="bg-white border-b-2 border-slate-200 sticky top-0 z-50 shadow-sm">
+    <header class="bg-white dark:bg-slate-900 border-b-2 border-slate-200 dark:border-slate-800 sticky top-0 z-50 shadow-sm">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5">
             <div class="flex items-center justify-between">
                 <div class="flex-1">
-                    <h1 class="text-2xl font-bold text-slate-900">{{ $brandName }}</h1>
-                    <p class="text-sm text-slate-600 mt-0.5">{{ $shopName }}</p>
+                    <h1 class="text-2xl font-bold text-slate-900 dark:text-slate-100">{{ $brandName }}</h1>
+                    <p class="text-sm text-slate-600 dark:text-slate-300 mt-0.5">{{ $shopName }}</p>
                 </div>
-                <a href="/" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-sm font-medium transition flex items-center gap-2">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
-                    </svg>
-                    Back to Dashboard
-                </a>
+                <div class="flex items-center gap-2">
+                    <button onclick="toggleDarkMode()" id="darkToggle" class="h-8 w-8 rounded-full bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 text-slate-600 dark:text-slate-300 text-xs flex items-center justify-center transition" title="Toggle dark mode">
+                        <span id="darkIcon">🌙</span>
+                    </button>
+                    <a href="/" class="px-4 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-lg text-sm font-medium transition flex items-center gap-2">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
+                        </svg>
+                        Back to Dashboard
+                    </a>
+                </div>
             </div>
         </div>
     </header>
@@ -55,12 +66,12 @@
 
         @if($totalOfflineItems == 0)
             <!-- No Offline Items -->
-            <div class="bg-white border-2 border-dashed border-slate-300 rounded-2xl p-16 text-center">
+            <div class="bg-white dark:bg-slate-800 border-2 border-dashed border-slate-300 dark:border-slate-700 rounded-2xl p-16 text-center">
                 <svg class="w-20 h-20 text-green-500 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                 </svg>
-                <h3 class="text-2xl font-bold text-slate-900 mb-2">All Items Available!</h3>
-                <p class="text-slate-600">No offline items found for this store across all platforms.</p>
+                <h3 class="text-2xl font-bold text-slate-900 dark:text-slate-100 mb-2">All Items Available!</h3>
+                <p class="text-slate-600 dark:text-slate-400">No offline items found for this store across all platforms.</p>
             </div>
         @else
             <!-- Platform Sections -->
@@ -70,30 +81,23 @@
                     $items = $offlineItemsByPlatform[$platform];
                     $itemCount = count($items);
 
-                    // Color schemes
                     $colors = [
                         'grab' => [
-                            'bg' => 'bg-green-50',
+                            'bg' => 'bg-green-50 dark:bg-green-900/20',
                             'border' => 'border-green-500',
-                            'text' => 'text-green-700',
-                            'badge' => 'bg-green-100 text-green-800',
-                            'button' => 'bg-green-600 hover:bg-green-700',
+                            'text' => 'text-green-700 dark:text-green-400',
                             'header' => 'bg-gradient-to-r from-green-500 to-emerald-600',
                         ],
                         'foodpanda' => [
-                            'bg' => 'bg-pink-50',
+                            'bg' => 'bg-pink-50 dark:bg-pink-900/20',
                             'border' => 'border-pink-500',
-                            'text' => 'text-pink-700',
-                            'badge' => 'bg-pink-100 text-pink-800',
-                            'button' => 'bg-pink-600 hover:bg-pink-700',
+                            'text' => 'text-pink-700 dark:text-pink-400',
                             'header' => 'bg-gradient-to-r from-pink-500 to-rose-600',
                         ],
                         'deliveroo' => [
-                            'bg' => 'bg-cyan-50',
+                            'bg' => 'bg-cyan-50 dark:bg-cyan-900/20',
                             'border' => 'border-cyan-500',
-                            'text' => 'text-cyan-700',
-                            'badge' => 'bg-cyan-100 text-cyan-800',
-                            'button' => 'bg-cyan-600 hover:bg-cyan-700',
+                            'text' => 'text-cyan-700 dark:text-cyan-400',
                             'header' => 'bg-gradient-to-r from-cyan-500 to-blue-600',
                         ],
                     ];
@@ -138,7 +142,7 @@
                     </div>
 
                     <!-- Platform Items -->
-                    <div class="bg-white rounded-b-2xl border-2 border-t-0 {{ $color['border'] }} shadow-md">
+                    <div class="bg-white dark:bg-slate-800 rounded-b-2xl border-2 border-t-0 {{ $color['border'] }} shadow-md">
                         @if($itemCount == 0)
                             <div class="{{ $color['bg'] }} p-8 text-center rounded-b-2xl">
                                 <svg class="w-12 h-12 {{ $color['text'] }} mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -164,29 +168,24 @@
                                     <!-- Items in Category -->
                                     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 pl-4">
                                         @foreach($categoryItems as $item)
-                                            <div class="item-card bg-white border-2 border-slate-200 rounded-xl p-4 hover:border-red-300">
+                                            <div class="item-card bg-white dark:bg-slate-700 border-2 border-slate-200 dark:border-slate-600 rounded-xl p-4 hover:border-red-300 dark:hover:border-red-700">
                                                 <div class="flex gap-3">
-                                                    <!-- Item Image -->
                                                     @if($item['image_url'])
                                                         <div class="flex-shrink-0">
                                                             <img src="{{ $item['image_url'] }}"
                                                                  alt="{{ $item['name'] }}"
-                                                                 class="w-16 h-16 rounded-lg object-cover border border-slate-200"
+                                                                 class="w-16 h-16 rounded-lg object-cover border border-slate-200 dark:border-slate-600"
                                                                  onerror="this.style.display='none'">
                                                         </div>
                                                     @endif
-
-                                                    <!-- Item Details -->
                                                     <div class="flex-1 min-w-0">
-                                                        <h5 class="font-bold text-slate-900 text-sm mb-1 line-clamp-2">{{ $item['name'] }}</h5>
+                                                        <h5 class="font-bold text-slate-900 dark:text-slate-100 text-sm mb-1 line-clamp-2">{{ $item['name'] }}</h5>
                                                         <div class="flex items-center gap-2 mb-2">
-                                                            <span class="text-lg font-bold text-slate-900">${{ number_format($item['price'], 2) }}</span>
-                                                            <span class="px-2 py-0.5 bg-red-100 text-red-700 rounded text-xs font-semibold">
-                                                                OFF
-                                                            </span>
+                                                            <span class="text-lg font-bold text-slate-900 dark:text-slate-100">${{ number_format($item['price'], 2) }}</span>
+                                                            <span class="px-2 py-0.5 bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 rounded text-xs font-semibold">OFF</span>
                                                         </div>
                                                         @if($item['updated_at'])
-                                                            <p class="text-xs text-slate-500">
+                                                            <p class="text-xs text-slate-500 dark:text-slate-400">
                                                                 Updated: {{ \Carbon\Carbon::parse($item['updated_at'])->diffForHumans() }}
                                                             </p>
                                                         @endif
@@ -204,14 +203,14 @@
         @endif
 
         <!-- Footer Actions -->
-        <div class="mt-8 bg-white border-2 border-slate-200 rounded-2xl p-6 shadow-sm">
+        <div class="mt-8 bg-white dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-700 rounded-2xl p-6 shadow-sm">
             <div class="flex items-center justify-between">
                 <div>
-                    <h4 class="font-bold text-slate-900">Need to update items?</h4>
-                    <p class="text-sm text-slate-600">Manage your menu items directly on the platform apps</p>
+                    <h4 class="font-bold text-slate-900 dark:text-slate-100">Need to update items?</h4>
+                    <p class="text-sm text-slate-600 dark:text-slate-400">Manage your menu items directly on the platform apps</p>
                 </div>
                 <div class="flex gap-3">
-                    <a href="/dashboard" class="px-6 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg font-medium transition">
+                    <a href="/dashboard" class="px-6 py-3 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-300 rounded-lg font-medium transition">
                         Back to Dashboard
                     </a>
                     <button onclick="window.location.reload()" class="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition flex items-center gap-2">
@@ -224,5 +223,19 @@
             </div>
         </div>
     </main>
+
+    <script>
+        function toggleDarkMode() {
+            const html = document.getElementById('html-root');
+            const icon = document.getElementById('darkIcon');
+            const isDark = html.classList.toggle('dark');
+            localStorage.setItem('darkMode', isDark);
+            icon.textContent = isDark ? '☀️' : '🌙';
+        }
+        document.addEventListener('DOMContentLoaded', () => {
+            const icon = document.getElementById('darkIcon');
+            if (icon) icon.textContent = localStorage.getItem('darkMode') === 'true' ? '☀️' : '🌙';
+        });
+    </script>
 </body>
 </html>
