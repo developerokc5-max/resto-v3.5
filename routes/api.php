@@ -130,14 +130,38 @@ Route::prefix('platform')->group(function () {
 // Sync API
 Route::prefix('sync')->group(function () {
 
-    // Trigger manual platform scraping - now runs on GitHub Actions automatically
+    // Trigger manual platform scraping via GitHub Actions workflow_dispatch
     Route::post('/scrape', function (Request $request) {
-        return response()->json([
-            'success' => true,
-            'message' => 'Platform scraper runs automatically on GitHub Actions every 15 minutes.',
-            'note' => 'To trigger immediately: go to GitHub → Actions → "Auto Scrape - Platform Status" → Run workflow.',
-            'timestamp' => now()->toIso8601String(),
+        $pat = env('GITHUB_PAT');
+
+        if (!$pat) {
+            return response()->json([
+                'success' => false,
+                'message' => 'GITHUB_PAT not configured.',
+            ], 500);
+        }
+
+        $response = \Illuminate\Support\Facades\Http::withHeaders([
+            'Authorization' => 'Bearer ' . $pat,
+            'Accept'        => 'application/vnd.github.v3+json',
+            'X-GitHub-Api-Version' => '2022-11-28',
+        ])->post('https://api.github.com/repos/developerokc5-max/resto-v3.5/actions/workflows/scrape-platform.yml/dispatches', [
+            'ref' => 'main',
         ]);
+
+        if ($response->status() === 204) {
+            return response()->json([
+                'success'   => true,
+                'message'   => 'Scraper triggered! Data will update in ~3 minutes.',
+                'timestamp' => now()->toIso8601String(),
+            ]);
+        }
+
+        return response()->json([
+            'success' => false,
+            'message' => 'GitHub API error: ' . $response->status(),
+            'body'    => $response->body(),
+        ], 500);
     });
 
     // Trigger manual items scraping - BULLETPROOF VERSION
