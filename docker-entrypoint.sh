@@ -52,4 +52,8 @@ php artisan view:clear
 
 echo "✅ Laravel setup complete!"
 
+# Start Laravel scheduler in background (runs every minute)
+echo "⏰ Starting Laravel scheduler..."
+php artisan schedule:work >> /var/www/html/storage/logs/scheduler.log 2>&1 &
+
 exec "$@"
