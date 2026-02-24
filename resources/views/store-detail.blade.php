@@ -1,11 +1,17 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" id="html-root">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>{{ $shopInfo['name'] }} - Menu Items</title>
   <link rel="icon" type="image/png" href="/favicon.png" />
   <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = { darkMode: 'class' }
+    if (localStorage.getItem('darkMode') === 'true') {
+      document.documentElement.classList.add('dark');
+    }
+  </script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <style>
     .item-card {
@@ -17,81 +23,81 @@
     }
   </style>
 </head>
-<body class="bg-slate-50">
+<body class="bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 transition-colors duration-200">
   <!-- Info Popup Modal -->
   <div id="infoPopup" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 pointer-events-none">
-    <div class="bg-white rounded-2xl shadow-2xl max-w-5xl w-full p-8 max-h-[90vh] overflow-y-auto pointer-events-auto">
-      <div class="flex items-center justify-between mb-6 sticky top-0 bg-white pb-4">
+    <div class="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl max-w-5xl w-full p-8 max-h-[90vh] overflow-y-auto pointer-events-auto">
+      <div class="flex items-center justify-between mb-6 sticky top-0 bg-white dark:bg-slate-900 pb-4">
         <div>
-          <h3 class="text-3xl font-bold text-slate-900">📖 HawkerOps Guide</h3>
-          <p class="text-sm text-slate-500 mt-1">Complete guide to using the store management system</p>
+          <h3 class="text-3xl font-bold text-slate-900 dark:text-slate-100">📖 HawkerOps Guide</h3>
+          <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">Complete guide to using the store management system</p>
         </div>
-        <button onclick="toggleInfoPopup()" class="text-slate-400 hover:text-slate-600 text-3xl leading-none hover:bg-slate-100 w-8 h-8 flex items-center justify-center rounded-lg transition flex-shrink-0">&times;</button>
+        <button onclick="toggleInfoPopup()" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 text-3xl leading-none hover:bg-slate-100 dark:hover:bg-slate-800 w-8 h-8 flex items-center justify-center rounded-lg transition flex-shrink-0">&times;</button>
       </div>
 
       <!-- Two Column Layout -->
       <div class="grid grid-cols-2 gap-4 text-sm">
         <!-- LEFT COLUMN -->
         <div>
-          <div class="bg-blue-50 border-l-4 border-blue-500 p-4 rounded-lg mb-4">
-            <div class="font-semibold text-slate-900 mb-2">🔄 Refresh Data Button</div>
-            <p class="text-slate-600 text-xs leading-relaxed">Located in the left sidebar. Refreshes data from the database and updates platform status and item availability without running scrapers. Useful for quick data updates.</p>
+          <div class="bg-blue-50 dark:bg-blue-900/30 border-l-4 border-blue-500 p-4 rounded-lg mb-4">
+            <div class="font-semibold text-slate-900 dark:text-slate-100 mb-2">🔄 Refresh Data Button</div>
+            <p class="text-slate-600 dark:text-slate-400 text-xs leading-relaxed">Located in the left sidebar. Refreshes data from the database and updates platform status and item availability without running scrapers. Useful for quick data updates.</p>
           </div>
 
-          <div class="bg-green-50 border-l-4 border-green-500 p-4 rounded-lg mb-4">
-            <div class="font-semibold text-slate-900 mb-2">↻ Reload Button</div>
-            <p class="text-slate-600 text-xs leading-relaxed">Located in the top-right corner. Reloads the entire page to show the latest data from the database. Use when data seems outdated.</p>
+          <div class="bg-green-50 dark:bg-green-900/30 border-l-4 border-green-500 p-4 rounded-lg mb-4">
+            <div class="font-semibold text-slate-900 dark:text-slate-100 mb-2">↻ Reload Button</div>
+            <p class="text-slate-600 dark:text-slate-400 text-xs leading-relaxed">Located in the top-right corner. Reloads the entire page to show the latest data from the database. Use when data seems outdated.</p>
           </div>
 
-          <div class="bg-orange-50 border-l-4 border-orange-500 p-4 rounded-lg mb-4">
-            <div class="font-semibold text-slate-900 mb-2">⚠️ Troubleshooting</div>
-            <p class="text-slate-600 text-xs leading-relaxed">If an entire column shows as offline or data seems incorrect, simply refresh the page. This resolves most display issues with platform status.</p>
+          <div class="bg-orange-50 dark:bg-orange-900/30 border-l-4 border-orange-500 p-4 rounded-lg mb-4">
+            <div class="font-semibold text-slate-900 dark:text-slate-100 mb-2">⚠️ Troubleshooting</div>
+            <p class="text-slate-600 dark:text-slate-400 text-xs leading-relaxed">If an entire column shows as offline or data seems incorrect, simply refresh the page. This resolves most display issues with platform status.</p>
           </div>
 
-          <div class="bg-purple-50 border-l-4 border-purple-500 p-4 rounded-lg mb-4">
-            <div class="font-semibold text-slate-900 mb-2">🕐 Auto-Refresh</div>
-            <p class="text-slate-600 text-xs leading-relaxed">Pages automatically reload every 5 minutes to keep data current. No action needed - happens in the background.</p>
+          <div class="bg-purple-50 dark:bg-purple-900/30 border-l-4 border-purple-500 p-4 rounded-lg mb-4">
+            <div class="font-semibold text-slate-900 dark:text-slate-100 mb-2">🕐 Auto-Refresh</div>
+            <p class="text-slate-600 dark:text-slate-400 text-xs leading-relaxed">Pages automatically reload every 5 minutes to keep data current. No action needed - happens in the background.</p>
           </div>
 
-          <div class="bg-indigo-50 border-l-4 border-indigo-500 p-4 rounded-lg mb-4">
-            <div class="font-semibold text-slate-900 mb-2">🏪 Store Actions</div>
-            <p class="text-slate-600 text-xs leading-relaxed"><strong>View Items:</strong> See all menu items with their status (Active/Inactive) across all platforms. <strong>View Logs:</strong> Check daily status history and changes.</p>
+          <div class="bg-indigo-50 dark:bg-indigo-900/30 border-l-4 border-indigo-500 p-4 rounded-lg mb-4">
+            <div class="font-semibold text-slate-900 dark:text-slate-100 mb-2">🏪 Store Actions</div>
+            <p class="text-slate-600 dark:text-slate-400 text-xs leading-relaxed"><strong>View Items:</strong> See all menu items with their status (Active/Inactive) across all platforms. <strong>View Logs:</strong> Check daily status history and changes.</p>
           </div>
 
-          <div class="bg-cyan-50 border-l-4 border-cyan-500 p-4 rounded-lg">
-            <div class="font-semibold text-slate-900 mb-2">🎨 Filter Buttons</div>
-            <p class="text-slate-600 text-xs leading-relaxed"><strong>All Stores:</strong> Show all outlets. <strong>All Online:</strong> Only all 3 platforms online. <strong>Partial Offline:</strong> 1-2 platforms down. <strong>All Offline:</strong> All 3 platforms down.</p>
+          <div class="bg-cyan-50 dark:bg-cyan-900/30 border-l-4 border-cyan-500 p-4 rounded-lg">
+            <div class="font-semibold text-slate-900 dark:text-slate-100 mb-2">🎨 Filter Buttons</div>
+            <p class="text-slate-600 dark:text-slate-400 text-xs leading-relaxed"><strong>All Stores:</strong> Show all outlets. <strong>All Online:</strong> Only all 3 platforms online. <strong>Partial Offline:</strong> 1-2 platforms down. <strong>All Offline:</strong> All 3 platforms down.</p>
           </div>
         </div>
 
         <!-- RIGHT COLUMN -->
         <div>
-          <div class="bg-pink-50 border-l-4 border-pink-500 p-4 rounded-lg mb-4">
-            <div class="font-semibold text-slate-900 mb-2">📊 Status Indicators</div>
-            <div class="text-slate-600 text-xs leading-relaxed space-y-1">
+          <div class="bg-pink-50 dark:bg-pink-900/30 border-l-4 border-pink-500 p-4 rounded-lg mb-4">
+            <div class="font-semibold text-slate-900 dark:text-slate-100 mb-2">📊 Status Indicators</div>
+            <div class="text-slate-600 dark:text-slate-400 text-xs leading-relaxed space-y-1">
               <p><strong>🟢 Green Badge:</strong> All 3 platforms online - Fully operational</p>
               <p><strong>🟡 Orange Badge:</strong> 1-2 platforms offline - Partial service</p>
               <p><strong>🔴 Red Badge:</strong> All 3 platforms offline - No service</p>
             </div>
           </div>
 
-          <div class="bg-yellow-50 border-l-4 border-yellow-500 p-4 rounded-lg mb-4">
-            <div class="font-semibold text-slate-900 mb-2">🔢 Item Information</div>
-            <p class="text-slate-600 text-xs leading-relaxed">Each menu item appears 3 times (Grab, FoodPanda, Deliveroo). Total item count shows unique items. Offline count shows items unavailable per platform.</p>
+          <div class="bg-yellow-50 dark:bg-yellow-900/30 border-l-4 border-yellow-500 p-4 rounded-lg mb-4">
+            <div class="font-semibold text-slate-900 dark:text-slate-100 mb-2">🔢 Item Information</div>
+            <p class="text-slate-600 dark:text-slate-400 text-xs leading-relaxed">Each menu item appears 3 times (Grab, FoodPanda, Deliveroo). Total item count shows unique items. Offline count shows items unavailable per platform.</p>
           </div>
 
-          <div class="bg-red-50 border-l-4 border-red-500 p-4 rounded-lg mb-4">
-            <div class="font-semibold text-slate-900 mb-2">🌐 Platforms Monitored</div>
-            <div class="text-slate-600 text-xs leading-relaxed space-y-1">
+          <div class="bg-red-50 dark:bg-red-900/30 border-l-4 border-red-500 p-4 rounded-lg mb-4">
+            <div class="font-semibold text-slate-900 dark:text-slate-100 mb-2">🌐 Platforms Monitored</div>
+            <div class="text-slate-600 dark:text-slate-400 text-xs leading-relaxed space-y-1">
               <p><strong>🟢 Grab:</strong> Green indicators, food delivery service</p>
               <p><strong>🩷 FoodPanda:</strong> Pink indicators, delivery platform</p>
               <p><strong>🔵 Deliveroo:</strong> Cyan indicators, premium delivery</p>
             </div>
           </div>
 
-          <div class="bg-slate-50 border-l-4 border-slate-500 p-4 rounded-lg mb-4">
-            <div class="font-semibold text-slate-900 mb-2">📈 Dashboard Cards</div>
-            <div class="text-slate-600 text-xs leading-relaxed space-y-1">
+          <div class="bg-slate-50 dark:bg-slate-800 border-l-4 border-slate-500 p-4 rounded-lg mb-4">
+            <div class="font-semibold text-slate-900 dark:text-slate-100 mb-2">📈 Dashboard Cards</div>
+            <div class="text-slate-600 dark:text-slate-400 text-xs leading-relaxed space-y-1">
               <p><strong>Stores Online:</strong> Number of outlets currently online</p>
               <p><strong>Items OFF:</strong> Total items offline across all platforms</p>
               <p><strong>Active Alerts:</strong> Critical status changes requiring attention</p>
@@ -99,14 +105,14 @@
             </div>
           </div>
 
-          <div class="bg-teal-50 border-l-4 border-teal-500 p-4 rounded-lg mb-4">
-            <div class="font-semibold text-slate-900 mb-2">📍 Timezone & Location</div>
-            <p class="text-slate-600 text-xs leading-relaxed"><strong>Timezone:</strong> All timestamps in Singapore Time (SGT, UTC+8). <strong>Coverage:</strong> 46 restaurant outlets across Singapore monitored in real-time.</p>
+          <div class="bg-teal-50 dark:bg-teal-900/30 border-l-4 border-teal-500 p-4 rounded-lg mb-4">
+            <div class="font-semibold text-slate-900 dark:text-slate-100 mb-2">📍 Timezone & Location</div>
+            <p class="text-slate-600 dark:text-slate-400 text-xs leading-relaxed"><strong>Timezone:</strong> All timestamps in Singapore Time (SGT, UTC+8). <strong>Coverage:</strong> 46 restaurant outlets across Singapore monitored in real-time.</p>
           </div>
 
-          <div class="bg-green-50 border-l-4 border-green-500 p-4 rounded-lg">
-            <div class="font-semibold text-slate-900 mb-2">⚡ Performance</div>
-            <p class="text-slate-600 text-xs leading-relaxed">Dashboard optimized for speed - loads in under 1 second. 99% fewer database queries. Real-time updates with gzip compression. Supports 30+ concurrent users.</p>
+          <div class="bg-green-50 dark:bg-green-900/30 border-l-4 border-green-500 p-4 rounded-lg">
+            <div class="font-semibold text-slate-900 dark:text-slate-100 mb-2">⚡ Performance</div>
+            <p class="text-slate-600 dark:text-slate-400 text-xs leading-relaxed">Dashboard optimized for speed - loads in under 1 second. 99% fewer database queries. Real-time updates with gzip compression. Supports 30+ concurrent users.</p>
           </div>
         </div>
       </div>
@@ -117,26 +123,29 @@
     <!-- Main Content -->
     <main class="w-full">
       <!-- Header -->
-      <header class="bg-white border-b px-4 md:px-8 py-4">
+      <header class="bg-white dark:bg-slate-900 border-b dark:border-slate-800 px-4 md:px-8 py-4">
         <div class="flex items-center justify-between">
           <div>
             <div class="flex items-center gap-3">
-              <a href="/stores" class="text-slate-500 hover:text-slate-900">
+              <a href="/stores" class="text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100">
                 <i class="fas fa-arrow-left"></i>
               </a>
               <div>
-                <h2 class="text-2xl font-bold text-slate-900">{{ $shopInfo['name'] }}</h2>
-                <p class="text-sm text-slate-500">{{ count($items) }} items from {{ $shopInfo['brand'] }}</p>
+                <h2 class="text-2xl font-bold text-slate-900 dark:text-slate-100">{{ $shopInfo['name'] }}</h2>
+                <p class="text-sm text-slate-500 dark:text-slate-400">{{ count($items) }} items from {{ $shopInfo['brand'] }}</p>
               </div>
             </div>
           </div>
 
           <div class="flex items-center gap-2">
-            <button onclick="toggleInfoPopup()" class="h-8 w-8 rounded-full bg-slate-200 hover:bg-slate-300 text-slate-600 text-xs font-bold flex items-center justify-center transition">
+            <button onclick="toggleDarkMode()" id="darkToggle" class="h-8 w-8 rounded-full bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 text-slate-600 dark:text-slate-300 text-xs flex items-center justify-center transition" title="Toggle dark mode">
+              <span id="darkIcon">🌙</span>
+            </button>
+            <button onclick="toggleInfoPopup()" class="h-8 w-8 rounded-full bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 text-slate-600 dark:text-slate-300 text-xs font-bold flex items-center justify-center transition">
               i
             </button>
-            <div class="hidden sm:flex items-center bg-slate-100 rounded-xl px-3 py-2">
-              <input id="searchInput" class="bg-transparent outline-none text-sm w-64" placeholder="Search items..." />
+            <div class="hidden sm:flex items-center bg-slate-100 dark:bg-slate-800 rounded-xl px-3 py-2">
+              <input id="searchInput" class="bg-transparent outline-none text-sm w-64 dark:text-slate-100 dark:placeholder-slate-400" placeholder="Search items..." />
             </div>
           </div>
         </div>
@@ -150,15 +159,15 @@
               $status = $platformStatus->get($platform);
               $isOnline = $status ? $status->is_online : false;
             @endphp
-            <div class="bg-white border rounded-2xl p-5 shadow-sm">
+            <div class="bg-white dark:bg-slate-800 border dark:border-slate-700 rounded-2xl p-5 shadow-sm">
               <div class="flex items-center justify-between">
                 <div>
-                  <p class="text-sm text-slate-500">{{ $name }}</p>
+                  <p class="text-sm text-slate-500 dark:text-slate-400">{{ $name }}</p>
                   <p class="text-xl font-semibold mt-1">
                     @if($isOnline)
-                      <span class="text-green-600"><i class="fas fa-check-circle"></i> Online</span>
+                      <span class="text-green-600 dark:text-green-400"><i class="fas fa-check-circle"></i> Online</span>
                     @else
-                      <span class="text-red-600"><i class="fas fa-times-circle"></i> Offline</span>
+                      <span class="text-red-600 dark:text-red-400"><i class="fas fa-times-circle"></i> Offline</span>
                     @endif
                   </p>
                 </div>
@@ -168,15 +177,15 @@
         </section>
 
         <!-- Filter and View Toggle -->
-        <section class="bg-white rounded-2xl shadow-sm p-6">
+        <section class="bg-white dark:bg-slate-800 border dark:border-slate-700 rounded-2xl shadow-sm p-6">
           <div class="flex items-center justify-between mb-4">
             <div class="flex gap-4">
-              <select id="statusFilter" class="px-4 py-2 border border-slate-300 rounded-xl focus:ring-2 focus:ring-slate-900 focus:border-transparent">
+              <select id="statusFilter" class="px-4 py-2 border border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-100 rounded-xl focus:ring-2 focus:ring-slate-900 focus:border-transparent">
                 <option value="">All Status</option>
                 <option value="active">Active Only</option>
                 <option value="inactive">Inactive Only</option>
               </select>
-              <select id="categoryFilter" class="px-4 py-2 border border-slate-300 rounded-xl focus:ring-2 focus:ring-slate-900 focus:border-transparent">
+              <select id="categoryFilter" class="px-4 py-2 border border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-100 rounded-xl focus:ring-2 focus:ring-slate-900 focus:border-transparent">
                 <option value="">All Categories</option>
                 @php
                   $categories = array_unique(array_column($items, 'category'));
@@ -188,10 +197,10 @@
               </select>
             </div>
             <div class="flex items-center gap-2">
-              <button id="gridViewBtn" class="px-4 py-2 bg-slate-900 text-white rounded-xl font-medium">
+              <button id="gridViewBtn" class="px-4 py-2 bg-slate-900 dark:bg-slate-700 text-white rounded-xl font-medium">
                 <i class="fas fa-th"></i> Grid View
               </button>
-              <button id="tableViewBtn" class="px-4 py-2 border border-slate-300 rounded-xl font-medium hover:bg-slate-50">
+              <button id="tableViewBtn" class="px-4 py-2 border border-slate-300 dark:border-slate-600 dark:text-slate-300 rounded-xl font-medium hover:bg-slate-50 dark:hover:bg-slate-700">
                 <i class="fas fa-list"></i> Table View
               </button>
             </div>
@@ -201,17 +210,17 @@
         <!-- Items Grid View -->
         <section id="gridView" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-6">
           @foreach($items as $item)
-            <div class="item-card bg-white rounded-2xl shadow-sm overflow-hidden"
+            <div class="item-card bg-white dark:bg-slate-800 rounded-2xl shadow-sm overflow-hidden"
                  data-category="{{ $item['category'] }}"
                  data-status="{{ $item['all_active'] ? 'active' : 'inactive' }}"
                  data-name="{{ strtolower($item['name']) }}">
               <!-- Image -->
-              <div class="relative h-48 bg-slate-100">
+              <div class="relative h-48 bg-slate-100 dark:bg-slate-700">
                 @if($item['image_url'])
                   <img src="{{ $item['image_url'] }}" alt="{{ $item['name'] }}" class="w-full h-full object-cover" loading="lazy">
                 @else
                   <div class="w-full h-full flex items-center justify-center">
-                    <i class="fas fa-utensils text-6xl text-slate-300"></i>
+                    <i class="fas fa-utensils text-6xl text-slate-300 dark:text-slate-600"></i>
                   </div>
                 @endif
 
@@ -231,12 +240,12 @@
 
               <!-- Details -->
               <div class="p-4 flex flex-col h-[140px]">
-                <h3 class="font-semibold text-slate-900 mb-1 line-clamp-2 min-h-[48px]">{{ $item['name'] }}</h3>
-                <p class="text-xs text-slate-500 mb-2 truncate">{{ $item['category'] }}</p>
+                <h3 class="font-semibold text-slate-900 dark:text-slate-100 mb-1 line-clamp-2 min-h-[48px]">{{ $item['name'] }}</h3>
+                <p class="text-xs text-slate-500 dark:text-slate-400 mb-2 truncate">{{ $item['category'] }}</p>
 
                 <div class="mt-auto">
                   <div class="mb-3">
-                    <span class="text-lg font-bold text-slate-900">${{ number_format($item['price'], 2) }}</span>
+                    <span class="text-lg font-bold text-slate-900 dark:text-slate-100">${{ number_format($item['price'], 2) }}</span>
                   </div>
 
                   <!-- Platform Status -->
@@ -248,7 +257,7 @@
                           $available = $platformData['is_available'];
                         @endphp
                         <div class="flex-1 text-center py-1 rounded text-xs font-medium
-                                    {{ $available ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700' }}">
+                                    {{ $available ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400' : 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400' }}">
                           {{ substr(ucfirst($platform), 0, 4) }}
                         </div>
                       @endif
@@ -261,42 +270,42 @@
         </section>
 
         <!-- Items Table View (hidden by default) -->
-        <section id="tableView" class="hidden bg-white rounded-2xl shadow-sm overflow-hidden">
+        <section id="tableView" class="hidden bg-white dark:bg-slate-800 border dark:border-slate-700 rounded-2xl shadow-sm overflow-hidden">
           <div class="overflow-x-auto">
             <table class="w-full">
-              <thead class="bg-slate-50 border-b">
+              <thead class="bg-slate-50 dark:bg-slate-900 border-b dark:border-slate-700">
                 <tr>
-                  <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase">Item</th>
-                  <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase">Category</th>
-                  <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase">Price</th>
-                  <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase">Status</th>
-                  <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase">Grab</th>
-                  <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase">FoodPanda</th>
-                  <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase">Deliveroo</th>
+                  <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase">Item</th>
+                  <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase">Category</th>
+                  <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase">Price</th>
+                  <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase">Status</th>
+                  <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase">Grab</th>
+                  <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase">FoodPanda</th>
+                  <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase">Deliveroo</th>
                 </tr>
               </thead>
-              <tbody class="divide-y divide-slate-200">
+              <tbody class="divide-y divide-slate-200 dark:divide-slate-700">
                 @foreach($items as $item)
-                  <tr class="hover:bg-slate-50 table-row"
+                  <tr class="hover:bg-slate-50 dark:hover:bg-slate-700 transition table-row"
                       data-category="{{ $item['category'] }}"
                       data-status="{{ $item['all_active'] ? 'active' : 'inactive' }}"
                       data-name="{{ strtolower($item['name']) }}">
                     <td class="px-6 py-4">
-                      <div class="font-medium text-slate-900">{{ $item['name'] }}</div>
+                      <div class="font-medium text-slate-900 dark:text-slate-100">{{ $item['name'] }}</div>
                     </td>
                     <td class="px-6 py-4">
-                      <div class="text-sm text-slate-600">{{ $item['category'] }}</div>
+                      <div class="text-sm text-slate-600 dark:text-slate-300">{{ $item['category'] }}</div>
                     </td>
                     <td class="px-6 py-4">
-                      <div class="font-semibold text-slate-900">${{ number_format($item['price'], 2) }}</div>
+                      <div class="font-semibold text-slate-900 dark:text-slate-100">${{ number_format($item['price'], 2) }}</div>
                     </td>
                     <td class="px-6 py-4">
                       @if($item['all_active'])
-                        <span class="px-2.5 py-1 rounded-full text-xs font-medium bg-green-100 text-green-700">
+                        <span class="px-2.5 py-1 rounded-full text-xs font-medium bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400">
                           ACTIVE
                         </span>
                       @else
-                        <span class="px-2.5 py-1 rounded-full text-xs font-medium bg-red-100 text-red-700">
+                        <span class="px-2.5 py-1 rounded-full text-xs font-medium bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400">
                           INACTIVE
                         </span>
                       @endif
@@ -310,7 +319,7 @@
                             <i class="fas fa-times-circle text-red-500"></i>
                           @endif
                         @else
-                          <span class="text-slate-300">—</span>
+                          <span class="text-slate-300 dark:text-slate-600">—</span>
                         @endif
                       </td>
                     @endforeach
@@ -325,6 +334,20 @@
   </div>
 
   <script>
+    // Dark mode toggle
+    function toggleDarkMode() {
+      const html = document.getElementById('html-root');
+      const icon = document.getElementById('darkIcon');
+      const isDark = html.classList.toggle('dark');
+      localStorage.setItem('darkMode', isDark);
+      icon.textContent = isDark ? '☀️' : '🌙';
+    }
+    // Set initial icon
+    document.addEventListener('DOMContentLoaded', () => {
+      const icon = document.getElementById('darkIcon');
+      if (icon) icon.textContent = localStorage.getItem('darkMode') === 'true' ? '☀️' : '🌙';
+    });
+
     // Search functionality
     const searchInput = document.getElementById('searchInput');
     const statusFilter = document.getElementById('statusFilter');
