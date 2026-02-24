@@ -2,7 +2,7 @@
 
 @section('title', 'Stores - HawkerOps')
 @section('page-title', 'All Stores')
-@section('page-description')Manage and monitor all {{ count($stores ?? []) }} store locations@endsection
+{{-- @section('page-description')Manage and monitor all {{ count($stores ?? []) }} store locations@endsection --}}
 
 @section('top-actions')
 <div class="hidden sm:flex items-center bg-slate-100 dark:bg-slate-800 rounded-xl px-3 py-2">

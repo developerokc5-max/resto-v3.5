@@ -9,6 +9,7 @@ RUN apt-get update && apt-get install -y \
     unzip \
     libzip-dev \
     libonig-dev \
+    libpq-dev \
     sqlite3 \
     libsqlite3-dev \
     python3 \
@@ -32,6 +33,7 @@ RUN apt-get update && apt-get install -y \
     libatspi2.0-0 \
     && docker-php-ext-install \
         pdo \
+        pdo_pgsql \
         pdo_sqlite \
         zip \
         mbstring \
