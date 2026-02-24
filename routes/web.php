@@ -15,6 +15,7 @@ set_time_limit(300);
  * Uses priority order: restosuite_item_snapshots > platform_status
  * Optional: can filter by shop_id for specific store timestamps
  */
+if (!function_exists('getLastSyncTimestamp')) {
 function getLastSyncTimestamp($shopId = null) {
     $query = DB::table('restosuite_item_snapshots');
 
@@ -34,6 +35,7 @@ function getLastSyncTimestamp($shopId = null) {
 
     return $lastSync ? \Carbon\Carbon::parse($lastSync)->setTimezone('Asia/Singapore')->format('M j, Y g:i A') . ' SGT' : 'Never';
 }
+} // end if (!function_exists)
 
 Route::get('/', function () {
     return redirect('/dashboard');
