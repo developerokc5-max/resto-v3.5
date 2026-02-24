@@ -24,37 +24,15 @@ class Kernel extends ConsoleKernel
      */
     protected function schedule(Schedule $schedule): void
     {
-        // API Sync - Every 5 minutes
-        $schedule->command('restosuite:sync-items --page=1 --size=100')
-            ->everyFiveMinutes()
-            ->withoutOverlapping()
-            ->runInBackground();
-
-        // HYBRID: Platform Scraping - Every 10 minutes (offset by 2 minutes to avoid collision)
-        // Scrapes 15 shops per run to distribute load
-        $schedule->command('scrape:platform-status --limit=15')
+        // Platform Status Scraper (Python) - Every 10 minutes
+        $schedule->exec('python3 ' . base_path('platform-test-trait-1/scrape_platform_sync.py'))
             ->everyTenMinutes()
-            ->withoutOverlapping()
-            ->runInBackground()
-            ->onFailure(function () {
-                \Log::error('Platform scraping failed');
-            })
-            ->onSuccess(function () {
-                \Log::info('Platform scraping completed successfully');
-            });
+            ->withoutOverlapping();
 
-        // PRODUCTION: Real Platform Scraper with Browser Automation - Every 30 minutes
-        // Gets REAL images, prices, and availability from Grab/FoodPanda/Deliveroo
-        $schedule->command('scrape:platforms --platform=all --limit=5 --headless')
+        // Items Scraper (Python) - Every 30 minutes
+        $schedule->exec('python3 ' . base_path('item-test-trait-1/scrape_items_sync_v2.py'))
             ->everyThirtyMinutes()
-            ->withoutOverlapping()
-            ->runInBackground()
-            ->onFailure(function () {
-                \Log::error('Platform browser scraping failed');
-            })
-            ->onSuccess(function () {
-                \Log::info('Platform browser scraping completed successfully');
-            });
+            ->withoutOverlapping();
     }
 
     /**

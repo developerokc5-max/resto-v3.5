@@ -1656,22 +1656,47 @@ Route::get('/reports/store-comparison', function () {
 
 // Settings: Scraper Status
 Route::get('/settings/scraper-status', function () {
-    // Pull real stats directly from the database
+    // Read log files written by the Python scrapers
+    $platformLogPath = base_path('platform-test-trait-1/scrape_platform_sync.log');
+    $itemsLogPath = base_path('item-test-trait-1/scrape_items_sync_v2.log');
 
-    // Platform scraper: last check time and total status records
-    $platformLastChecked = DB::table('platform_status')
-        ->max('last_checked_at');
-    $platformRecords = DB::table('platform_status')->count();
-    $platformTime = $platformLastChecked
-        ? \Carbon\Carbon::parse($platformLastChecked)->setTimezone('Asia/Singapore')
-        : null;
+    // Parse platform log
+    $platformItems = 0;
+    $platformTime = null;
+    if (file_exists($platformLogPath)) {
+        $platformLog = file_get_contents($platformLogPath);
+        if (preg_match('/Saved (\d+) platform status records/', $platformLog, $matches)) {
+            $platformItems = (int)$matches[1];
+        }
+        if (preg_match('/\[(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2})\].*PLATFORM STATUS SYNC COMPLETE/', $platformLog, $matches)) {
+            $platformTime = \Carbon\Carbon::createFromFormat('Y-m-d H:i:s', $matches[1], 'Asia/Singapore');
+        }
+    }
 
-    // Items scraper: last update time and total items
-    $itemsLastUpdated = DB::table('items')->max('updated_at');
-    $itemsCollected = DB::table('items')->count();
-    $itemsTime = $itemsLastUpdated
-        ? \Carbon\Carbon::parse($itemsLastUpdated)->setTimezone('Asia/Singapore')
-        : null;
+    // Parse items log
+    $itemsCollected = 0;
+    $itemsTime = null;
+    if (file_exists($itemsLogPath)) {
+        $itemsLog = file_get_contents($itemsLogPath);
+        if (preg_match('/Total items collected: (\d+)/', $itemsLog, $matches)) {
+            $itemsCollected = (int)$matches[1];
+        }
+        if (preg_match('/\[(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2})\].*FINAL SUMMARY/', $itemsLog, $matches)) {
+            $itemsTime = \Carbon\Carbon::createFromFormat('Y-m-d H:i:s', $matches[1], 'Asia/Singapore');
+        }
+    }
+
+    // Fall back to DB if log files not found yet (first run)
+    if (!$platformTime) {
+        $dbTime = DB::table('platform_status')->max('last_checked_at');
+        $platformTime = $dbTime ? \Carbon\Carbon::parse($dbTime)->setTimezone('Asia/Singapore') : null;
+        $platformItems = DB::table('platform_status')->count();
+    }
+    if (!$itemsTime) {
+        $dbTime = DB::table('items')->max('updated_at');
+        $itemsTime = $dbTime ? \Carbon\Carbon::parse($dbTime)->setTimezone('Asia/Singapore') : null;
+        $itemsCollected = DB::table('items')->count();
+    }
 
     // Overall last run: whichever ran more recently
     $lastRunTime = null;
@@ -1696,10 +1721,10 @@ Route::get('/settings/scraper-status', function () {
         'last_run' => $lastRunTimeFormatted,
         'success_rate' => 100,
         'total_items_updated' => number_format($itemsCollected),
-        'total_stores_checked' => $platformRecords,
-        'items_runs' => $itemsCollected > 0 ? 1 : 0,
-        'platform_runs' => $platformRecords > 0 ? 1 : 0,
-        'avg_items_per_run' => $itemsCollected,
+        'total_stores_checked' => $platformItems,
+        'items_runs' => 1,
+        'platform_runs' => 1,
+        'avg_items_per_run' => round($itemsCollected),
     ];
 
     return view('settings.scraper-status', [
