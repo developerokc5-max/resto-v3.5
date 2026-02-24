@@ -23,7 +23,7 @@ Author: Upgraded version
 
 import sys
 import os
-import sqlite3
+import psycopg2
 import hashlib
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from playwright.sync_api import sync_playwright
@@ -35,8 +35,7 @@ EMAIL = "okchickenrice2018@gmail.com"
 PASSWORD = "90267051@Arc"
 BASE_URL = "https://bo.sea.restosuite.ai"
 
-# Database path - SQLite (using v3.5 database)
-DB_PATH = os.getenv('DB_DATABASE', '/var/www/html/database/database.sqlite')
+DATABASE_URL = os.getenv('NEON_DB', '')
 
 # Log file path
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -66,8 +65,7 @@ def log(msg, worker_id=None):
 
 def get_db_connection():
     """Get a new database connection (thread-safe)"""
-    conn = sqlite3.connect(DB_PATH, timeout=30.0)
-    conn.row_factory = sqlite3.Row
+    conn = psycopg2.connect(DATABASE_URL)
     return conn
 
 
@@ -100,7 +98,7 @@ def save_items_with_history(items, worker_id):
                 cursor.execute("""
                     SELECT id, is_available, price, category, image_url
                     FROM items
-                    WHERE shop_name = ? AND name = ? AND platform = ? AND (sku = ? OR (sku IS NULL AND ? = ''))
+                    WHERE shop_name = %s AND name = %s AND platform = %s AND (sku = %s OR (sku IS NULL AND %s = ''))
                 """, (shop_name, name, platform, sku, sku))
 
                 existing = cursor.fetchone()
@@ -117,7 +115,7 @@ def save_items_with_history(items, worker_id):
                         cursor.execute("""
                             INSERT INTO item_status_history
                             (item_name, shop_id, shop_name, platform, is_available, price, category, image_url, changed_at, created_at, updated_at)
-                            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                         """, (
                             name,
                             item['shop_id'],
@@ -137,8 +135,8 @@ def save_items_with_history(items, worker_id):
                     # Update existing item
                     cursor.execute("""
                         UPDATE items
-                        SET is_available = ?, price = ?, category = ?, image_url = ?, updated_at = ?
-                        WHERE id = ?
+                        SET is_available = %s, price = %s, category = %s, image_url = %s, updated_at = %s
+                        WHERE id = %s
                     """, (
                         1 if item['is_available'] else 0,
                         item['price'],
@@ -154,7 +152,7 @@ def save_items_with_history(items, worker_id):
                     cursor.execute("""
                         INSERT INTO items
                         (shop_id, shop_name, name, sku, category, price, image_url, is_available, platform, created_at, updated_at)
-                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                     """, (
                         item['shop_id'],
                         shop_name,
@@ -174,7 +172,7 @@ def save_items_with_history(items, worker_id):
                     cursor.execute("""
                         INSERT INTO item_status_history
                         (item_name, shop_id, shop_name, platform, is_available, price, category, image_url, changed_at, created_at, updated_at)
-                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                     """, (
                         name,
                         item['shop_id'],
@@ -210,15 +208,15 @@ def save_shop(shop_info, worker_id=None):
             now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
             # Check if shop exists
-            cursor.execute("SELECT id FROM shops WHERE shop_id = ?", (shop_info['shop_id'],))
+            cursor.execute("SELECT id FROM shops WHERE shop_id = %s", (shop_info['shop_id'],))
             existing = cursor.fetchone()
 
             if existing:
                 # Update
                 cursor.execute("""
                     UPDATE shops
-                    SET shop_name = ?, organization_name = ?, has_items = ?, last_synced_at = ?, updated_at = ?
-                    WHERE shop_id = ?
+                    SET shop_name = %s, organization_name = %s, has_items = %s, last_synced_at = %s, updated_at = %s
+                    WHERE shop_id = %s
                 """, (
                     shop_info['shop_name'],
                     shop_info['organization_name'],
@@ -231,7 +229,7 @@ def save_shop(shop_info, worker_id=None):
                 # Insert
                 cursor.execute("""
                     INSERT INTO shops (shop_id, shop_name, organization_name, has_items, last_synced_at, created_at, updated_at)
-                    VALUES (?, ?, ?, ?, ?, ?, ?)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s)
                 """, (
                     shop_info['shop_id'],
                     shop_info['shop_name'],

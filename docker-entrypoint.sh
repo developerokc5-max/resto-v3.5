@@ -52,12 +52,7 @@ php artisan view:clear
 
 echo "✅ Laravel setup complete!"
 
-# Run scrapers sequentially to stay within 512MB RAM limit
-# Platform finishes → Items runs → repeat (only 1 Chromium at a time)
-echo "🔄 Starting scraper loop (sequential)..."
-(while true; do
-    python3 /var/www/html/platform-test-trait-1/scrape_platform_sync.py >> /var/www/html/storage/logs/platform_scraper.log 2>&1
-    python3 /var/www/html/item-test-trait-1/scrape_items_sync_v2.py >> /var/www/html/storage/logs/items_scraper.log 2>&1
-done) &
+# Scrapers run on GitHub Actions (not on Render) to avoid OOM
+# See .github/workflows/scrape-platform.yml and scrape-items.yml
 
 exec "$@"
