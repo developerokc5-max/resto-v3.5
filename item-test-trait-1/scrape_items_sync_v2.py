@@ -42,8 +42,8 @@ DB_PATH = os.getenv('DB_DATABASE', '/var/www/html/database/database.sqlite')
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 LOG_FILE = os.path.join(SCRIPT_DIR, "scrape_items_sync_v2.log")
 
-# Number of parallel browsers (1 worker = fits within 512MB Render free tier)
-NUM_WORKERS = 1
+# Number of parallel browsers (6 workers = ~20 min, uses ~6GB RAM)
+NUM_WORKERS = 6
 
 # Thread-safe logging
 log_lock = Lock()
