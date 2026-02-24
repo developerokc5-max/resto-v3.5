@@ -39,16 +39,16 @@ chown -R www-data:www-data /var/www/html/database
 echo "🔄 Running database migrations..."
 php artisan migrate --force --no-interaction
 
-# Clear caches
-echo "⚡ Clearing Laravel caches..."
+# Build caches for production performance
+echo "⚡ Building Laravel caches..."
 mkdir -p /var/www/html/storage/framework/views
 mkdir -p /var/www/html/storage/framework/cache
 mkdir -p /var/www/html/storage/framework/sessions
 mkdir -p /var/www/html/storage/logs
 chown -R www-data:www-data /var/www/html/storage
-php artisan config:clear
+php artisan config:cache
 php artisan route:clear
-php artisan view:clear
+php artisan view:cache
 
 echo "✅ Laravel setup complete!"
 
