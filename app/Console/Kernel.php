@@ -24,15 +24,9 @@ class Kernel extends ConsoleKernel
      */
     protected function schedule(Schedule $schedule): void
     {
-        // Platform Status Scraper (Python) - Every 5 minutes (finishes in <5min)
-        $schedule->exec('python3 ' . base_path('platform-test-trait-1/scrape_platform_sync.py'))
-            ->everyFiveMinutes()
-            ->withoutOverlapping();
-
-        // Items Scraper (Python) - Every 60 minutes (takes ~46min to complete)
-        $schedule->exec('python3 ' . base_path('item-test-trait-1/scrape_items_sync_v2.py'))
-            ->hourly()
-            ->withoutOverlapping();
+        // Scrapers are run as continuous loops in docker-entrypoint.sh
+        // platform-test-trait-1/scrape_platform_sync.py  → loops after each finish
+        // item-test-trait-1/scrape_items_sync_v2.py      → loops after each finish
     }
 
     /**

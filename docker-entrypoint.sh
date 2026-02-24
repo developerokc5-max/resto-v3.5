@@ -52,8 +52,16 @@ php artisan view:clear
 
 echo "✅ Laravel setup complete!"
 
-# Start Laravel scheduler in background (runs every minute)
-echo "⏰ Starting Laravel scheduler..."
-php artisan schedule:work >> /var/www/html/storage/logs/scheduler.log 2>&1 &
+# Platform scraper - runs continuously (finishes then immediately restarts)
+echo "🔄 Starting platform scraper loop..."
+(while true; do
+    python3 /var/www/html/platform-test-trait-1/scrape_platform_sync.py >> /var/www/html/storage/logs/platform_scraper.log 2>&1
+done) &
+
+# Items scraper - runs continuously (finishes then immediately restarts)
+echo "🔄 Starting items scraper loop..."
+(while true; do
+    python3 /var/www/html/item-test-trait-1/scrape_items_sync_v2.py >> /var/www/html/storage/logs/items_scraper.log 2>&1
+done) &
 
 exec "$@"
