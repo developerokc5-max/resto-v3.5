@@ -236,14 +236,17 @@
 
     async function triggerSync() {
       const btn = document.getElementById('syncBtn');
-      const originalText = btn.textContent;
+      const btnTextEl = document.getElementById('syncBtnText');
+      const originalText = btnTextEl ? btnTextEl.textContent : btn.textContent;
       const currentPath = window.location.pathname;
       const isItemsPage = currentPath.includes('/items');
+      const isPlatformsPage = currentPath === '/platforms';
       const endpoint = isItemsPage ? '/api/v1/items/sync' : '/api/sync/scrape';
       const syncType = isItemsPage ? 'Items' : 'Platform';
 
       btn.disabled = true;
-      btn.textContent = `Syncing ${syncType}...`;
+      if (btnTextEl) btnTextEl.textContent = `Syncing ${syncType}...`;
+      else btn.textContent = `Syncing ${syncType}...`;
       btn.classList.add('opacity-50', 'cursor-not-allowed');
 
       try {
@@ -255,22 +258,39 @@
         if (data.success) {
           btn.classList.remove('bg-slate-900', 'dark:bg-slate-700');
           btn.classList.add('bg-green-600');
-          btn.textContent = 'Sync Complete!';
-          showNotification('✅ ' + syncType + ' sync completed successfully! Reloading page...', 'success');
-          setTimeout(() => window.location.reload(), 2000);
+          if (isItemsPage) {
+            // Items scraper takes 10-15 min — don't reload, just notify
+            if (btnTextEl) btnTextEl.textContent = 'Triggered!';
+            else btn.textContent = 'Triggered!';
+            showNotification('✅ Items scraper triggered! Data will update in ~10–15 minutes. Come back later.', 'success');
+            setTimeout(() => {
+              btn.disabled = false;
+              btn.classList.remove('opacity-50', 'cursor-not-allowed', 'bg-green-600');
+              btn.classList.add('bg-slate-900');
+              if (btnTextEl) btnTextEl.textContent = originalText;
+              else btn.textContent = originalText;
+            }, 5000);
+          } else {
+            if (btnTextEl) btnTextEl.textContent = 'Triggered!';
+            else btn.textContent = 'Triggered!';
+            showNotification('✅ Platform scraper triggered! Data will update in ~3 minutes. Reloading...', 'success');
+            setTimeout(() => window.location.reload(), 4000);
+          }
         } else {
           throw new Error(data.message || 'Sync failed');
         }
       } catch (error) {
         btn.classList.remove('bg-slate-900', 'dark:bg-slate-700');
         btn.classList.add('bg-red-600');
-        btn.textContent = 'Sync Failed';
+        if (btnTextEl) btnTextEl.textContent = 'Sync Failed';
+        else btn.textContent = 'Sync Failed';
         showNotification('❌ Sync failed: ' + error.message, 'error');
         setTimeout(() => {
           btn.disabled = false;
           btn.classList.remove('opacity-50', 'cursor-not-allowed', 'bg-red-600');
           btn.classList.add('bg-slate-900');
-          btn.textContent = originalText;
+          if (btnTextEl) btnTextEl.textContent = originalText;
+          else btn.textContent = originalText;
         }, 3000);
       }
     }

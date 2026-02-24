@@ -287,41 +287,38 @@ Route::prefix('sync')->group(function () {
         }
     });
 
-    // Trigger Items Scraper - LOCAL ONLY
+    // Trigger Items Scraper via GitHub Actions workflow_dispatch
     Route::post('/items/sync', function (Request $request) {
-        $scriptPath = base_path('item-test-trait-1/scrape_items_sync_v2.py');
+        $pat = env('GITHUB_PAT');
 
-        if (!file_exists($scriptPath)) {
+        if (!$pat) {
             return response()->json([
                 'success' => false,
-                'message' => 'Scraper is only available when running locally. Run the Python scraper on your local machine to update items data.',
-                'hint' => 'Run: python item-test-trait-1/scrape_items_sync_v2.py',
-            ], 503);
-        }
-
-        try {
-            $logPath = storage_path('logs/items_scraper.log');
-            if (strtoupper(substr(PHP_OS, 0, 3)) === 'WIN') {
-                $command = "start /B python \"{$scriptPath}\" > \"{$logPath}\" 2>&1";
-                pclose(popen($command, 'r'));
-            } else {
-                $command = "nohup python3 \"{$scriptPath}\" > \"{$logPath}\" 2>&1 &";
-                exec($command);
-            }
-
-            return response()->json([
-                'success' => true,
-                'message' => 'Items scraper started in background',
-                'note' => 'Scraping ~35 stores across 3 platforms. Check back in 10-15 minutes.',
-                'timestamp' => now()->toIso8601String(),
-            ]);
-        } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to start scraper',
-                'error' => $e->getMessage(),
+                'message' => 'GITHUB_PAT not configured.',
             ], 500);
         }
+
+        $response = \Illuminate\Support\Facades\Http::withHeaders([
+            'Authorization' => 'Bearer ' . $pat,
+            'Accept'        => 'application/vnd.github.v3+json',
+            'X-GitHub-Api-Version' => '2022-11-28',
+        ])->post('https://api.github.com/repos/developerokc5-max/resto-v3.5/actions/workflows/scrape-items.yml/dispatches', [
+            'ref' => 'main',
+        ]);
+
+        if ($response->status() === 204) {
+            return response()->json([
+                'success'   => true,
+                'message'   => 'Items scraper triggered! Data will update in ~10-15 minutes.',
+                'timestamp' => now()->toIso8601String(),
+            ]);
+        }
+
+        return response()->json([
+            'success' => false,
+            'message' => 'GitHub API error: ' . $response->status(),
+            'body'    => $response->body(),
+        ], 500);
     });
 
     // Clear cache
@@ -338,42 +335,38 @@ Route::prefix('sync')->group(function () {
 // Items Management API
 Route::prefix('v1/items')->group(function () {
 
-    // Trigger Items Sync - LOCAL ONLY
+    // Trigger Items Sync via GitHub Actions workflow_dispatch
     Route::post('/sync', function (Request $request) {
-        $scriptPath = base_path('item-test-trait-1/scrape_items_sync_v2.py');
+        $pat = env('GITHUB_PAT');
 
-        if (!file_exists($scriptPath)) {
+        if (!$pat) {
             return response()->json([
                 'success' => false,
-                'message' => 'Scraper is only available when running locally. Run the Python scraper on your local machine to update items data.',
-                'hint' => 'Run: python item-test-trait-1/scrape_items_sync_v2.py',
-            ], 503);
-        }
-
-        try {
-            $logPath = storage_path('logs/items_scraper.log');
-            if (strtoupper(substr(PHP_OS, 0, 3)) === 'WIN') {
-                $command = "start /B python \"{$scriptPath}\" > \"{$logPath}\" 2>&1";
-                pclose(popen($command, 'r'));
-            } else {
-                $command = "nohup python3 \"{$scriptPath}\" > \"{$logPath}\" 2>&1 &";
-                exec($command);
-            }
-
-            return response()->json([
-                'success' => true,
-                'message' => 'V2 parallel scraper started (3 workers)',
-                'note' => 'Scraping all outlets across 3 platforms with parallel workers. ~40 minutes.',
-                'timestamp' => now()->toIso8601String(),
-                'log_file' => $logPath,
-            ]);
-        } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to start items scraper',
-                'error' => $e->getMessage(),
+                'message' => 'GITHUB_PAT not configured.',
             ], 500);
         }
+
+        $response = \Illuminate\Support\Facades\Http::withHeaders([
+            'Authorization' => 'Bearer ' . $pat,
+            'Accept'        => 'application/vnd.github.v3+json',
+            'X-GitHub-Api-Version' => '2022-11-28',
+        ])->post('https://api.github.com/repos/developerokc5-max/resto-v3.5/actions/workflows/scrape-items.yml/dispatches', [
+            'ref' => 'main',
+        ]);
+
+        if ($response->status() === 204) {
+            return response()->json([
+                'success'   => true,
+                'message'   => 'Items scraper triggered! Data will update in ~10-15 minutes.',
+                'timestamp' => now()->toIso8601String(),
+            ]);
+        }
+
+        return response()->json([
+            'success' => false,
+            'message' => 'GitHub API error: ' . $response->status(),
+            'body'    => $response->body(),
+        ], 500);
     });
 
     // Toggle item availability status
