@@ -21,7 +21,9 @@ TARGET_URL = f"{BASE_URL}/takeaway-store-binding"
 # Paths
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 LOG_FILE = os.path.join(SCRIPT_DIR, "scrape_platform_sync.log")
-DATABASE_URL = os.getenv('NEON_DB', '')
+DATABASE_URL = os.getenv("NEON_DB")
+if not DATABASE_URL:
+    raise RuntimeError("NEON_DB env var missing")
 
 def log(message):
     """Log to both file and stderr"""
@@ -461,7 +463,7 @@ def main():
             log("="*60)
 
             try:
-                db = psycopg2.connect(NEON_DB=DATABASE_URL, connect_timeout=10)
+                db = psycopg2.connect(DATABASE_URL, connect_timeout=10)
                 cursor = db.cursor()
                 log("✓ Database connected")
 
