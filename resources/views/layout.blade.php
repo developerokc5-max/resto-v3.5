@@ -241,9 +241,9 @@
 
     {{-- Drawer footer: sync + dark mode --}}
     <div class="px-4 pb-4 space-y-2">
-      <button onclick="triggerSync(); toggleMobileDrawer();" id="mobileSyncBtn"
+      <button onclick="triggerBothSyncs(); toggleMobileDrawer();" id="mobileSyncBtn"
               class="w-full rounded-xl bg-slate-900 dark:bg-slate-700 text-white py-2.5 text-sm font-medium hover:opacity-90 transition">
-        <span id="mobileSyncBtnText">⚡ Sync</span>
+        <span id="mobileSyncBtnText">⚡ Sync All</span>
       </button>
       <button onclick="toggleDarkMode()" id="mobileDarkToggle"
               class="w-full rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 py-2.5 text-sm font-medium hover:bg-slate-200 dark:hover:bg-slate-700 transition">
@@ -418,6 +418,35 @@
       }
     }
 
+    async function triggerBothSyncs() {
+      const btn = document.getElementById('mobileSyncBtn');
+      const textEl = document.getElementById('mobileSyncBtnText');
+      if (btn) { btn.disabled = true; btn.classList.add('opacity-50', 'cursor-not-allowed'); }
+      if (textEl) textEl.textContent = '⚡ Syncing...';
+      try {
+        const [platformRes, itemsRes] = await Promise.all([
+          fetch('/api/sync/scrape',    { method: 'POST', headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' } }),
+          fetch('/api/v1/items/sync',  { method: 'POST', headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' } })
+        ]);
+        const [platformData, itemsData] = await Promise.all([platformRes.json(), itemsRes.json()]);
+        if (platformData.success && itemsData.success) {
+          if (btn) { btn.classList.remove('bg-slate-900', 'dark:bg-slate-700'); btn.classList.add('bg-green-600'); }
+          if (textEl) textEl.textContent = '✅ Triggered!';
+          showNotification('✅ Both syncs triggered! Platforms ~3 min, Items ~10–15 min.', 'success');
+        } else {
+          throw new Error('One or both syncs failed');
+        }
+      } catch (error) {
+        if (btn) { btn.classList.remove('bg-slate-900', 'dark:bg-slate-700'); btn.classList.add('bg-red-600'); }
+        if (textEl) textEl.textContent = '❌ Failed';
+        showNotification('❌ Sync failed: ' + error.message, 'error');
+      }
+      setTimeout(() => {
+        if (btn) { btn.disabled = false; btn.classList.remove('opacity-50', 'cursor-not-allowed', 'bg-green-600', 'bg-red-600'); btn.classList.add('bg-slate-900'); }
+        if (textEl) textEl.textContent = '⚡ Sync All';
+      }, 5000);
+    }
+
     function showNotification(message, type = 'info') {
       const notification = document.createElement('div');
       notification.className = `fixed top-4 right-4 z-50 px-6 py-4 rounded-xl shadow-2xl font-semibold text-white transform transition-all duration-300 ${
@@ -469,9 +498,7 @@
       const path = window.location.pathname;
       const isSync = path === '/items' || path === '/platforms';
       const btnText = document.getElementById('syncBtnText');
-      const mobileBtnText = document.getElementById('mobileSyncBtnText');
       if (btnText) btnText.textContent = isSync ? 'Run Sync' : 'Refresh Data';
-      if (mobileBtnText) mobileBtnText.textContent = isSync ? '⚡ Run Sync' : '⚡ Sync';
     }
     document.addEventListener('DOMContentLoaded', updateSyncButtonText);
     updateSyncButtonText();
