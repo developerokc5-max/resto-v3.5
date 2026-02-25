@@ -47,7 +47,7 @@
 
   <!-- Filters -->
   <section class="bg-white dark:bg-slate-800 border dark:border-slate-700 rounded-2xl shadow-sm p-6">
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
       <input type="text" id="searchInput" placeholder="Search items..."
              class="px-4 py-2 border border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-100 dark:placeholder-slate-400 rounded-xl focus:ring-2 focus:ring-slate-900 focus:border-transparent">
       <select id="restaurantFilter" class="px-4 py-2 border border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-100 rounded-xl focus:ring-2 focus:ring-slate-900 focus:border-transparent">
@@ -61,6 +61,12 @@
         @foreach($categories as $category)
           <option value="{{$category}}">{{$category}}</option>
         @endforeach
+      </select>
+      <select id="statusFilter" class="px-4 py-2 border border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-100 rounded-xl focus:ring-2 focus:ring-slate-900 focus:border-transparent">
+        <option value="">All Status</option>
+        <option value="online">✓ All Online (3/3)</option>
+        <option value="partial">⚠ Partial (1–2/3)</option>
+        <option value="offline">✕ All Offline (0/3)</option>
       </select>
     </div>
   </section>
@@ -80,16 +86,17 @@
       <div class="px-4 py-3 item-row"
            data-name="{{strtolower($item['name'])}}"
            data-restaurant="{{$item['shop_name']}}"
-           data-category="{{$item['category']}}">
+           data-category="{{$item['category']}}"
+           data-status="{{ $oc === 3 ? 'online' : ($oc > 0 ? 'partial' : 'offline') }}">
         <div class="flex items-center gap-3">
           @if($item['image_url'])
             <img src="{{$item['image_url']}}" alt="{{$item['name']}}"
-                 class="w-11 h-11 object-cover rounded-lg flex-shrink-0"
+                 class="w-14 h-14 object-cover rounded-xl flex-shrink-0"
                  loading="lazy"
                  onerror="this.style.display='none'">
           @else
-            <div class="w-11 h-11 bg-slate-100 dark:bg-slate-700 rounded-lg flex items-center justify-center flex-shrink-0">
-              <i class="fas fa-utensils text-slate-400 dark:text-slate-500 text-sm"></i>
+            <div class="w-14 h-14 bg-slate-100 dark:bg-slate-700 rounded-xl flex items-center justify-center flex-shrink-0">
+              <i class="fas fa-utensils text-slate-400 dark:text-slate-500 text-base"></i>
             </div>
           @endif
           <div class="flex-1 min-w-0">
@@ -135,19 +142,21 @@
         </thead>
         <tbody id="itemsTable" class="divide-y divide-slate-100 dark:divide-slate-700">
           @foreach($items as $item)
+          @php $onlineCount = (int)$item['platforms']['grab'] + (int)$item['platforms']['foodpanda'] + (int)$item['platforms']['deliveroo']; @endphp
           <tr class="hover:bg-slate-50 dark:hover:bg-slate-700 transition item-row"
               data-name="{{strtolower($item['name'])}}"
               data-restaurant="{{$item['shop_name']}}"
-              data-category="{{$item['category']}}">
+              data-category="{{$item['category']}}"
+              data-status="{{ $onlineCount === 3 ? 'online' : ($onlineCount > 0 ? 'partial' : 'offline') }}">
             <td class="px-6 py-4">
               <div class="flex items-center gap-3">
                 @if($item['image_url'])
                   <img src="{{$item['image_url']}}" alt="{{$item['name']}}"
-                       class="w-12 h-12 object-cover rounded-lg"
+                       class="w-14 h-14 object-cover rounded-xl"
                        loading="lazy"
-                       onerror="this.src='https://via.placeholder.com/48?text=No+Image'">
+                       onerror="this.src='https://via.placeholder.com/56?text=No+Image'">
                 @else
-                  <div class="w-12 h-12 bg-slate-200 dark:bg-slate-700 rounded-lg flex items-center justify-center">
+                  <div class="w-14 h-14 bg-slate-200 dark:bg-slate-700 rounded-xl flex items-center justify-center">
                     <i class="fas fa-utensils text-slate-400 dark:text-slate-500"></i>
                   </div>
                 @endif
@@ -289,22 +298,26 @@
   const searchInput      = document.getElementById('searchInput');
   const restaurantFilter = document.getElementById('restaurantFilter');
   const categoryFilter   = document.getElementById('categoryFilter');
+  const statusFilter     = document.getElementById('statusFilter');
   const rows = document.querySelectorAll('.item-row');
 
   function filterItems() {
     const searchTerm       = searchInput.value.toLowerCase();
     const selectedCategory = categoryFilter.value;
+    const selectedStatus   = statusFilter.value;
     rows.forEach(row => {
       const matchesSearch   = row.dataset.name.includes(searchTerm)
                            || row.dataset.restaurant.toLowerCase().includes(searchTerm)
                            || row.dataset.category.toLowerCase().includes(searchTerm);
       const matchesCategory = !selectedCategory || row.dataset.category === selectedCategory;
-      row.style.display = (matchesSearch && matchesCategory) ? '' : 'none';
+      const matchesStatus   = !selectedStatus   || row.dataset.status   === selectedStatus;
+      row.style.display = (matchesSearch && matchesCategory && matchesStatus) ? '' : 'none';
     });
   }
 
   searchInput.addEventListener('input', filterItems);
   categoryFilter.addEventListener('change', filterItems);
+  statusFilter.addEventListener('change', filterItems);
 
   restaurantFilter.addEventListener('change', function() {
     const val = this.value;
