@@ -22,49 +22,54 @@
     </div>
   </div>
 
-  <!-- Mobile Card List (hidden on md+) -->
+  <!-- Mobile Card List (hidden on sm+) -->
   <div class="sm:hidden space-y-2" id="storeMobileList">
     @forelse($stores ?? [] as $store)
-    <div class="store-row bg-white dark:bg-slate-800 border dark:border-slate-700 rounded-2xl px-4 py-3 shadow-sm"
+    @php
+      $isOnline  = $store['status'] === 'all_online';
+      $isOffline = $store['status'] === 'all_offline';
+      $stripe    = $isOnline ? 'bg-emerald-500' : ($isOffline ? 'bg-red-500' : 'bg-amber-400');
+      $shortSt   = $isOnline ? '✓ All Online' : ($isOffline ? '✕ All Offline' : '⚠ '.$store['status_text']);
+      $stColor   = $isOnline ? 'text-emerald-600 dark:text-emerald-400' : ($isOffline ? 'text-red-600 dark:text-red-400' : 'text-amber-600 dark:text-amber-400');
+    @endphp
+    <div class="store-row bg-white dark:bg-slate-800 rounded-2xl shadow-sm overflow-hidden flex"
          data-name="{{ strtolower($store['store']) }}">
-      <div class="flex items-center justify-between gap-3">
-        <div class="flex-1 min-w-0">
-          <div class="font-medium text-sm text-slate-900 dark:text-slate-100 truncate">{{ $store['store'] }}</div>
-          <div class="text-[10px] font-mono text-slate-400 dark:text-slate-500 mt-0.5">{{ $store['shop_id'] }}</div>
+      <!-- Status colour stripe -->
+      <div class="w-1.5 flex-shrink-0 {{ $stripe }}"></div>
+      <!-- Card body -->
+      <div class="flex-1 px-4 py-3 min-w-0">
+        <div class="flex items-start justify-between gap-3">
+          <div class="flex-1 min-w-0">
+            <div class="font-semibold text-sm text-slate-900 dark:text-slate-100 leading-snug">{{ $store['store'] }}</div>
+            <div class="text-xs font-medium {{ $stColor }} mt-0.5">{{ $shortSt }}</div>
+          </div>
+          <!-- Items OFF counter -->
+          <div class="flex-shrink-0 text-right">
+            @if($store['items_off'] > 0)
+              <div class="text-lg font-bold leading-none text-red-600 dark:text-red-400">{{ $store['items_off'] }}</div>
+              <div class="text-[9px] text-slate-400 dark:text-slate-500 mt-0.5 uppercase tracking-wide">items off</div>
+            @else
+              <div class="text-lg font-bold leading-none text-emerald-500">✓</div>
+              <div class="text-[9px] text-slate-400 dark:text-slate-500 mt-0.5 uppercase tracking-wide">all ok</div>
+            @endif
+          </div>
         </div>
-        <div class="flex items-center gap-2 flex-shrink-0">
-          @if($store['status'] === 'all_online')
-            <span class="px-2 py-0.5 rounded-full text-[10px] font-medium bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-700">
-              ✓ {{ $store['status_text'] }}
-            </span>
-          @elseif($store['status'] === 'all_offline')
-            <span class="px-2 py-0.5 rounded-full text-[10px] font-medium bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-400 border border-red-200 dark:border-red-700">
-              ✕ {{ $store['status_text'] }}
-            </span>
-          @else
-            <span class="px-2 py-0.5 rounded-full text-[10px] font-medium bg-amber-50 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-700">
-              ⚠ {{ $store['status_text'] }}
-            </span>
-          @endif
+        <!-- Footer row -->
+        <div class="flex items-center justify-between mt-2.5 pt-2 border-t border-slate-100 dark:border-slate-700/60">
+          <div class="flex items-center gap-1.5 text-[10px] text-slate-400 dark:text-slate-500">
+            <span>{{ $store['total_items'] ?? 0 }} items</span>
+            <span>·</span>
+            <span>{{ $store['last_change'] ?? '—' }}</span>
+          </div>
+          <a href="/store/{{ $store['shop_id'] }}"
+             class="text-xs font-semibold text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition-colors">
+            View →
+          </a>
         </div>
-      </div>
-      <div class="flex items-center justify-between mt-2">
-        <div class="flex items-center gap-3 text-xs text-slate-500 dark:text-slate-400">
-          <span>{{ $store['total_items'] ?? 0 }} items</span>
-          @if($store['items_off'] > 0)
-            <span class="font-semibold text-red-600 dark:text-red-400">{{ $store['items_off'] }} OFF</span>
-          @else
-            <span class="text-slate-400 dark:text-slate-500">0 OFF</span>
-          @endif
-          <span class="text-[10px]">{{ $store['last_change'] ?? '—' }}</span>
-        </div>
-        <a href="/store/{{ $store['shop_id'] }}" class="text-xs font-medium text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-slate-100">
-          View →
-        </a>
       </div>
     </div>
     @empty
-    <div class="px-5 py-8 text-center text-sm text-slate-500 dark:text-slate-400 bg-white dark:bg-slate-800 rounded-2xl border dark:border-slate-700">
+    <div class="px-5 py-10 text-center text-sm text-slate-500 dark:text-slate-400 bg-white dark:bg-slate-800 rounded-2xl">
       No stores found. Run sync to load data.
     </div>
     @endforelse
