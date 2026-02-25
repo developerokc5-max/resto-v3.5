@@ -6,11 +6,18 @@
 @section('page-description', 'Monitor Grab, FoodPanda & Deliveroo availability')
 
 @section('top-actions')
-  <div class="flex items-center gap-3">
-    <div class="hidden sm:block text-right">
+  <div class="flex items-center gap-2">
+    <div class="hidden sm:block text-right mr-1">
       <div class="text-xs text-slate-500 dark:text-slate-400">Last Updated</div>
       <div class="text-sm font-semibold text-slate-900 dark:text-slate-100 break-words leading-tight">{{ $lastScrape ?? '—' }}</div>
     </div>
+    <button id="platformSyncBtn" onclick="runPlatformSync()"
+      class="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-slate-900 dark:bg-slate-700 text-white text-xs font-semibold hover:opacity-90 transition">
+      <svg id="platformSyncIcon" class="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+      </svg>
+      <span id="platformSyncText">⚡ Sync</span>
+    </button>
     <button onclick="showSyncInfo()" class="p-2 rounded-xl bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 transition" title="Sync Information">
       <svg class="w-5 h-5 text-slate-600 dark:text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
@@ -86,14 +93,14 @@
     </div>
 
     <div class="overflow-x-auto">
-      <table class="w-full">
+      <table class="w-full table-fixed">
         <thead class="bg-slate-50 dark:bg-slate-900 border-b dark:border-slate-700">
           <tr>
-            <th class="px-3 md:px-5 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">Shop</th>
-            <th class="px-2 md:px-5 py-3 text-center text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">Grab</th>
-            <th class="px-2 md:px-5 py-3 text-center text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">FoodPanda</th>
-            <th class="px-2 md:px-5 py-3 text-center text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">Deliveroo</th>
-            <th class="hidden md:table-cell px-5 py-3 text-right text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">Status</th>
+            <th class="w-2/5 md:w-1/3 px-3 md:px-5 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">Shop</th>
+            <th class="w-1/5 md:w-1/6 px-2 md:px-5 py-3 text-center text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">Grab</th>
+            <th class="w-1/5 md:w-1/6 px-2 md:px-5 py-3 text-center text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">FoodPanda</th>
+            <th class="w-1/5 md:w-1/6 px-2 md:px-5 py-3 text-center text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">Deliveroo</th>
+            <th class="hidden md:table-cell md:w-1/6 px-5 py-3 text-right text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">Status</th>
           </tr>
         </thead>
         <tbody class="divide-y divide-slate-100 dark:divide-slate-700">
@@ -150,6 +157,35 @@
 
 @section('extra-scripts')
 <script>
+  async function runPlatformSync() {
+    const btn      = document.getElementById('platformSyncBtn');
+    const btnText  = document.getElementById('platformSyncText');
+    const icon     = document.getElementById('platformSyncIcon');
+
+    btn.disabled = true;
+    btnText.textContent = 'Syncing...';
+    icon.classList.add('animate-spin');
+
+    try {
+      const response = await fetch('/api/v1/sync', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Accept': 'application/json',
+                   'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content ?? '' },
+        body: JSON.stringify({ type: 'platforms' })
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.message || 'Sync failed');
+      btnText.textContent = '✓ Done!';
+      icon.classList.remove('animate-spin');
+      setTimeout(() => window.location.reload(), 1500);
+    } catch (error) {
+      console.error('Sync error:', error);
+      btnText.textContent = '✕ Failed';
+      icon.classList.remove('animate-spin');
+      setTimeout(() => { btn.disabled = false; btnText.textContent = '⚡ Sync'; }, 3000);
+    }
+  }
+
   function showSyncInfo() {
     const lastScrape = '{{ $lastScrape ?? "Never" }}';
     const totalPlatforms = {{ $stats['total'] ?? 0 }};
