@@ -132,13 +132,22 @@
     <main class="flex-1">
       <!-- Topbar -->
       <header class="sticky top-0 z-10 bg-white/80 dark:bg-slate-900/80 backdrop-blur border-b border-slate-200 dark:border-slate-800">
-        <div class="px-4 md:px-8 py-4 flex items-center justify-between gap-3">
-          <div>
-            <h1 class="text-xl font-semibold dark:text-slate-100">@yield('page-title', 'Overview')</h1>
-            <p class="text-sm text-slate-500 dark:text-slate-400">@yield('page-description', 'Monitor items & add-ons disabled during peak hours')</p>
+        <div class="px-4 md:px-8 py-3 md:py-4 flex items-center justify-between gap-3">
+          <div class="flex-1 min-w-0">
+            <h1 class="text-lg md:text-xl font-semibold dark:text-slate-100 truncate">@yield('page-title', 'Overview')</h1>
+            <p class="text-xs md:text-sm text-slate-500 dark:text-slate-400 hidden md:block">@yield('page-description', 'Monitor items & add-ons disabled during peak hours')</p>
           </div>
-          <div class="flex items-center gap-2">
+          <div class="flex items-center gap-2 flex-shrink-0">
             @yield('top-actions')
+            {{-- Mobile: show sync + dark toggle in topbar --}}
+            <button onclick="triggerSync()" id="mobileSyncBtn"
+                    class="md:hidden rounded-xl bg-slate-900 dark:bg-slate-700 text-white px-3 py-2 text-xs font-medium hover:opacity-90 transition">
+              <span id="mobileSyncBtnText">⚡ Sync</span>
+            </button>
+            <button onclick="toggleDarkMode()" id="mobileDarkToggle"
+                    class="md:hidden h-8 w-8 rounded-full bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300 text-sm flex items-center justify-center transition">
+              <span id="mobileDarkIcon">🌙</span>
+            </button>
             <button onclick="window.location.reload()" class="rounded-xl bg-slate-900 dark:bg-slate-700 text-white px-4 py-2 text-sm font-medium hover:opacity-90 transition">
               Reload
             </button>
@@ -147,11 +156,74 @@
       </header>
 
       <!-- Page Content -->
-      <div class="px-4 md:px-8 py-6 space-y-6">
+      <div class="px-4 md:px-8 py-6 pb-24 md:pb-6 space-y-6">
         @yield('content')
       </div>
     </main>
   </div>
+
+  <!-- ── Mobile Bottom Navigation (visible on phones only) ───────────────── -->
+  <nav class="md:hidden fixed bottom-0 left-0 right-0 z-30 bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800"
+       style="padding-bottom: env(safe-area-inset-bottom);">
+    <div class="flex items-stretch">
+
+      <a href="/dashboard"
+         class="flex-1 flex flex-col items-center justify-center py-2 gap-0.5
+                @if(Request::is('/') || Request::is('dashboard'))
+                  text-green-600 dark:text-green-400
+                @else
+                  text-slate-400 dark:text-slate-500
+                @endif">
+        <span class="text-xl leading-none">📊</span>
+        <span class="text-[10px] font-medium tracking-tight">Overview</span>
+      </a>
+
+      <a href="/stores"
+         class="flex-1 flex flex-col items-center justify-center py-2 gap-0.5
+                @if(Request::is('stores') || Request::is('stores/*'))
+                  text-green-600 dark:text-green-400
+                @else
+                  text-slate-400 dark:text-slate-500
+                @endif">
+        <span class="text-xl leading-none">🏪</span>
+        <span class="text-[10px] font-medium tracking-tight">Stores</span>
+      </a>
+
+      <a href="/platforms"
+         class="flex-1 flex flex-col items-center justify-center py-2 gap-0.5
+                @if(Request::is('platforms'))
+                  text-green-600 dark:text-green-400
+                @else
+                  text-slate-400 dark:text-slate-500
+                @endif">
+        <span class="text-xl leading-none">🌐</span>
+        <span class="text-[10px] font-medium tracking-tight">Platforms</span>
+      </a>
+
+      <a href="/alerts"
+         class="flex-1 flex flex-col items-center justify-center py-2 gap-0.5
+                @if(Request::is('alerts'))
+                  text-green-600 dark:text-green-400
+                @else
+                  text-slate-400 dark:text-slate-500
+                @endif">
+        <span class="text-xl leading-none">🔔</span>
+        <span class="text-[10px] font-medium tracking-tight">Alerts</span>
+      </a>
+
+      <a href="/items"
+         class="flex-1 flex flex-col items-center justify-center py-2 gap-0.5
+                @if(Request::is('items'))
+                  text-green-600 dark:text-green-400
+                @else
+                  text-slate-400 dark:text-slate-500
+                @endif">
+        <span class="text-xl leading-none">📦</span>
+        <span class="text-[10px] font-medium tracking-tight">Items</span>
+      </a>
+
+    </div>
+  </nav>
 
   <!-- Info Popup Modal -->
   <div id="infoPopup" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 pointer-events-none">
@@ -234,29 +306,41 @@
       const html = document.documentElement;
       const isDark = html.classList.toggle('dark');
       localStorage.setItem('darkMode', isDark);
-      document.getElementById('darkIcon').textContent = isDark ? '☀️' : '🌙';
+      const icon = isDark ? '☀️' : '🌙';
+      const di = document.getElementById('darkIcon');
+      const mdi = document.getElementById('mobileDarkIcon');
+      if (di) di.textContent = icon;
+      if (mdi) mdi.textContent = icon;
     }
 
     // Set correct icon on load
     document.addEventListener('DOMContentLoaded', function() {
       const isDark = localStorage.getItem('darkMode') === 'true';
-      document.getElementById('darkIcon').textContent = isDark ? '☀️' : '🌙';
+      const icon = isDark ? '☀️' : '🌙';
+      const di = document.getElementById('darkIcon');
+      const mdi = document.getElementById('mobileDarkIcon');
+      if (di) di.textContent = icon;
+      if (mdi) mdi.textContent = icon;
     });
 
     async function triggerSync() {
       const btn = document.getElementById('syncBtn');
+      const mobileBtn = document.getElementById('mobileSyncBtn');
       const btnTextEl = document.getElementById('syncBtnText');
-      const originalText = btnTextEl ? btnTextEl.textContent : btn.textContent;
+      const mobileBtnTextEl = document.getElementById('mobileSyncBtnText');
+      const originalText = btnTextEl ? btnTextEl.textContent : (btn ? btn.textContent : 'Sync');
+      const originalMobileText = mobileBtnTextEl ? mobileBtnTextEl.textContent : '⚡ Sync';
       const currentPath = window.location.pathname;
       const isItemsPage = currentPath.includes('/items');
       const isPlatformsPage = currentPath === '/platforms';
       const endpoint = isItemsPage ? '/api/v1/items/sync' : '/api/sync/scrape';
       const syncType = isItemsPage ? 'Items' : 'Platform';
 
-      btn.disabled = true;
+      if (btn) { btn.disabled = true; btn.classList.add('opacity-50', 'cursor-not-allowed'); }
+      if (mobileBtn) { mobileBtn.disabled = true; mobileBtn.classList.add('opacity-50', 'cursor-not-allowed'); }
       if (btnTextEl) btnTextEl.textContent = `Syncing ${syncType}...`;
-      else btn.textContent = `Syncing ${syncType}...`;
-      btn.classList.add('opacity-50', 'cursor-not-allowed');
+      else if (btn) btn.textContent = `Syncing ${syncType}...`;
+      if (mobileBtnTextEl) mobileBtnTextEl.textContent = '⚡ Syncing...';
 
       try {
         const response = await fetch(endpoint, {
@@ -265,23 +349,25 @@
         });
         const data = await response.json();
         if (data.success) {
-          btn.classList.remove('bg-slate-900', 'dark:bg-slate-700');
-          btn.classList.add('bg-green-600');
+          if (btn) { btn.classList.remove('bg-slate-900', 'dark:bg-slate-700'); btn.classList.add('bg-green-600'); }
+          if (mobileBtn) { mobileBtn.classList.remove('bg-slate-900', 'dark:bg-slate-700'); mobileBtn.classList.add('bg-green-600'); }
           if (isItemsPage) {
             // Items scraper takes 10-15 min — don't reload, just notify
             if (btnTextEl) btnTextEl.textContent = 'Triggered!';
-            else btn.textContent = 'Triggered!';
+            else if (btn) btn.textContent = 'Triggered!';
+            if (mobileBtnTextEl) mobileBtnTextEl.textContent = '✅ Triggered!';
             showNotification('✅ Items scraper triggered! Data will update in ~10–15 minutes. Come back later.', 'success');
             setTimeout(() => {
-              btn.disabled = false;
-              btn.classList.remove('opacity-50', 'cursor-not-allowed', 'bg-green-600');
-              btn.classList.add('bg-slate-900');
+              if (btn) { btn.disabled = false; btn.classList.remove('opacity-50', 'cursor-not-allowed', 'bg-green-600'); btn.classList.add('bg-slate-900'); }
+              if (mobileBtn) { mobileBtn.disabled = false; mobileBtn.classList.remove('opacity-50', 'cursor-not-allowed', 'bg-green-600'); mobileBtn.classList.add('bg-slate-900'); }
               if (btnTextEl) btnTextEl.textContent = originalText;
-              else btn.textContent = originalText;
+              else if (btn) btn.textContent = originalText;
+              if (mobileBtnTextEl) mobileBtnTextEl.textContent = originalMobileText;
             }, 5000);
           } else {
             if (btnTextEl) btnTextEl.textContent = 'Triggered!';
-            else btn.textContent = 'Triggered!';
+            else if (btn) btn.textContent = 'Triggered!';
+            if (mobileBtnTextEl) mobileBtnTextEl.textContent = '✅ Triggered!';
             showNotification('✅ Platform scraper triggered! Data will update in ~3 minutes. Reloading...', 'success');
             setTimeout(() => window.location.reload(), 4000);
           }
@@ -289,17 +375,18 @@
           throw new Error(data.message || 'Sync failed');
         }
       } catch (error) {
-        btn.classList.remove('bg-slate-900', 'dark:bg-slate-700');
-        btn.classList.add('bg-red-600');
+        if (btn) { btn.classList.remove('bg-slate-900', 'dark:bg-slate-700'); btn.classList.add('bg-red-600'); }
+        if (mobileBtn) { mobileBtn.classList.remove('bg-slate-900', 'dark:bg-slate-700'); mobileBtn.classList.add('bg-red-600'); }
         if (btnTextEl) btnTextEl.textContent = 'Sync Failed';
-        else btn.textContent = 'Sync Failed';
+        else if (btn) btn.textContent = 'Sync Failed';
+        if (mobileBtnTextEl) mobileBtnTextEl.textContent = '❌ Failed';
         showNotification('❌ Sync failed: ' + error.message, 'error');
         setTimeout(() => {
-          btn.disabled = false;
-          btn.classList.remove('opacity-50', 'cursor-not-allowed', 'bg-red-600');
-          btn.classList.add('bg-slate-900');
+          if (btn) { btn.disabled = false; btn.classList.remove('opacity-50', 'cursor-not-allowed', 'bg-red-600'); btn.classList.add('bg-slate-900'); }
+          if (mobileBtn) { mobileBtn.disabled = false; mobileBtn.classList.remove('opacity-50', 'cursor-not-allowed', 'bg-red-600'); mobileBtn.classList.add('bg-slate-900'); }
           if (btnTextEl) btnTextEl.textContent = originalText;
-          else btn.textContent = originalText;
+          else if (btn) btn.textContent = originalText;
+          if (mobileBtnTextEl) mobileBtnTextEl.textContent = originalMobileText;
         }, 3000);
       }
     }
@@ -340,8 +427,11 @@
 
     function updateSyncButtonText() {
       const path = window.location.pathname;
+      const isSync = path === '/items' || path === '/platforms';
       const btnText = document.getElementById('syncBtnText');
-      btnText.textContent = (path === '/items' || path === '/platforms') ? 'Run Sync' : 'Refresh Data';
+      const mobileBtnText = document.getElementById('mobileSyncBtnText');
+      if (btnText) btnText.textContent = isSync ? 'Run Sync' : 'Refresh Data';
+      if (mobileBtnText) mobileBtnText.textContent = isSync ? '⚡ Run Sync' : '⚡ Sync';
     }
     document.addEventListener('DOMContentLoaded', updateSyncButtonText);
     updateSyncButtonText();
