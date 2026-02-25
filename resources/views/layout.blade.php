@@ -241,6 +241,10 @@
 
     {{-- Drawer footer: sync + dark mode --}}
     <div class="px-4 pb-4 space-y-2">
+      <button onclick="triggerSync(); toggleMobileDrawer();" id="mobileRefreshBtn"
+              class="w-full rounded-xl bg-slate-600 dark:bg-slate-600 text-white py-2.5 text-sm font-medium hover:opacity-90 transition">
+        <span id="mobileRefreshBtnText">🔄 Data Refresh</span>
+      </button>
       <button onclick="triggerBothSyncs(); toggleMobileDrawer();" id="mobileSyncBtn"
               class="w-full rounded-xl bg-slate-900 dark:bg-slate-700 text-white py-2.5 text-sm font-medium hover:opacity-90 transition">
         <span id="mobileSyncBtnText">⚡ Sync All</span>
