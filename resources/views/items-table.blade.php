@@ -59,14 +59,14 @@
       <select id="categoryFilter" class="px-4 py-2 border border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-100 rounded-xl focus:ring-2 focus:ring-slate-900 focus:border-transparent">
         <option value="">All Categories</option>
         @foreach($categories as $category)
-          <option value="{{$category}}">{{$category}}</option>
+          <option value="{{$category}}" {{ request('category') == $category ? 'selected' : '' }}>{{$category}}</option>
         @endforeach
       </select>
       <select id="statusFilter" class="px-4 py-2 border border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-100 rounded-xl focus:ring-2 focus:ring-slate-900 focus:border-transparent">
         <option value="">All Items</option>
-        <option value="online">Available — all 3 platforms</option>
-        <option value="has_issue">Has Issues — missing 1+ platform</option>
-        <option value="offline">Unavailable — 0 platforms</option>
+        <option value="online"    {{ request('status') == 'online'    ? 'selected' : '' }}>Available — all 3 platforms</option>
+        <option value="has_issue" {{ request('status') == 'has_issue' ? 'selected' : '' }}>Has Issues — missing 1+ platform</option>
+        <option value="offline"   {{ request('status') == 'offline'   ? 'selected' : '' }}>Unavailable — 0 platforms</option>
       </select>
     </div>
   </section>
@@ -301,31 +301,31 @@
   const statusFilter     = document.getElementById('statusFilter');
   const rows = document.querySelectorAll('.item-row');
 
+  // Search is client-side (instant, filters current page only)
   function filterItems() {
-    const searchTerm       = searchInput.value.toLowerCase();
-    const selectedCategory = categoryFilter.value;
-    const selectedStatus   = statusFilter.value;
+    const searchTerm = searchInput.value.toLowerCase();
     rows.forEach(row => {
-      const matchesSearch   = row.dataset.name.includes(searchTerm)
-                           || row.dataset.restaurant.toLowerCase().includes(searchTerm)
-                           || row.dataset.category.toLowerCase().includes(searchTerm);
-      const matchesCategory = !selectedCategory || row.dataset.category === selectedCategory;
-      const matchesStatus   = !selectedStatus
-                           || (selectedStatus === 'has_issue'
-                               ? (row.dataset.status === 'partial' || row.dataset.status === 'offline')
-                               : row.dataset.status === selectedStatus);
-      row.style.display = (matchesSearch && matchesCategory && matchesStatus) ? '' : 'none';
+      const match = row.dataset.name.includes(searchTerm)
+                 || row.dataset.restaurant.toLowerCase().includes(searchTerm)
+                 || row.dataset.category.toLowerCase().includes(searchTerm);
+      row.style.display = match ? '' : 'none';
     });
   }
-
   searchInput.addEventListener('input', filterItems);
-  categoryFilter.addEventListener('change', filterItems);
-  statusFilter.addEventListener('change', filterItems);
 
-  restaurantFilter.addEventListener('change', function() {
-    const val = this.value;
-    window.location.href = val ? '?restaurant=' + encodeURIComponent(val) : '/items';
-  });
+  // Helper: rebuild URL keeping existing filters, reset to page 1
+  function applyFilter(key, val) {
+    const params = new URLSearchParams(window.location.search);
+    params.delete('page');
+    if (val) params.set(key, val);
+    else params.delete(key);
+    window.location.href = '/items?' + params.toString();
+  }
+
+  // Restaurant, category, status all reload the page (server-side, all pages)
+  restaurantFilter.addEventListener('change', function() { applyFilter('restaurant', this.value); });
+  categoryFilter.addEventListener('change',   function() { applyFilter('category',   this.value); });
+  statusFilter.addEventListener('change',     function() { applyFilter('status',     this.value); });
 
   function showItemsInfo() {
     const lastUpdate = '{{ $lastUpdate ?? "Never" }}';
