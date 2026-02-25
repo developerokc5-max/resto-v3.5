@@ -6,6 +6,24 @@
 @section('page-description', 'Browse all items across delivery platforms')
 
 @section('top-actions')
+  {{-- Mobile: compact filter selects next to Reload --}}
+  <div class="flex sm:hidden items-center gap-1.5">
+    <select id="restaurantFilterTop"
+            class="text-[11px] bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-600 rounded-lg px-2 py-1.5 max-w-[95px] text-slate-700 dark:text-slate-300 focus:outline-none">
+      <option value="">Restaurant</option>
+      @foreach($restaurants as $r)
+        <option value="{{ $r }}" {{ request('restaurant') == $r ? 'selected' : '' }}>{{ $r }}</option>
+      @endforeach
+    </select>
+    <select id="categoryFilterTop"
+            class="text-[11px] bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-600 rounded-lg px-2 py-1.5 max-w-[85px] text-slate-700 dark:text-slate-300 focus:outline-none">
+      <option value="">Category</option>
+      @foreach($categories as $c)
+        <option value="{{ $c }}">{{ $c }}</option>
+      @endforeach
+    </select>
+  </div>
+  {{-- Desktop: Last Updated --}}
   <div class="hidden sm:block text-right">
     <div class="text-xs text-slate-500 dark:text-slate-400">Last Updated (SGT)</div>
     <div id="lastUpdateTime" class="text-sm font-semibold text-slate-900 dark:text-slate-100 break-words leading-tight">{{ $lastUpdate ?? 'Never' }}</div>
@@ -35,9 +53,9 @@
     </div>
   </section>
 
-  <!-- Filters -->
-  <section class="bg-white dark:bg-slate-800 border dark:border-slate-700 rounded-2xl shadow-sm p-6">
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+  <!-- Filters — desktop full card (hidden on mobile) -->
+  <section class="hidden sm:block bg-white dark:bg-slate-800 border dark:border-slate-700 rounded-2xl shadow-sm p-6">
+    <div class="grid grid-cols-3 gap-4">
       <input type="text" id="searchInput" placeholder="Search items..."
              class="px-4 py-2 border border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-100 dark:placeholder-slate-400 rounded-xl focus:ring-2 focus:ring-slate-900 focus:border-transparent">
       <select id="restaurantFilter" class="px-4 py-2 border border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-100 rounded-xl focus:ring-2 focus:ring-slate-900 focus:border-transparent">
@@ -54,6 +72,15 @@
       </select>
     </div>
   </section>
+
+  <!-- Mobile search bar only -->
+  <div class="sm:hidden relative">
+    <svg class="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+    </svg>
+    <input type="text" id="searchInputMobile" placeholder="Search items..."
+           class="w-full pl-10 pr-4 py-3 bg-white dark:bg-slate-800 border dark:border-slate-700 rounded-2xl text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-slate-900 dark:text-slate-100 dark:placeholder-slate-400">
+  </div>
 
   <!-- Items Table -->
   <section class="bg-white dark:bg-slate-800 rounded-2xl shadow-sm overflow-hidden border dark:border-slate-700">
@@ -276,45 +303,41 @@
 
 @section('extra-scripts')
 <script>
-  const searchInput = document.getElementById('searchInput');
-  const restaurantFilter = document.getElementById('restaurantFilter');
-  const categoryFilter = document.getElementById('categoryFilter');
-  const rows = document.querySelectorAll('.item-row'); // targets both mobile cards + desktop table rows
+  // ── Filter controls (desktop + mobile variants) ──────────────────────────
+  const searchInput        = document.getElementById('searchInput');        // desktop
+  const searchInputMobile  = document.getElementById('searchInputMobile');  // mobile
+  const restaurantFilter   = document.getElementById('restaurantFilter');   // desktop
+  const restaurantFilterTop= document.getElementById('restaurantFilterTop');// mobile topbar
+  const categoryFilter     = document.getElementById('categoryFilter');     // desktop
+  const categoryFilterTop  = document.getElementById('categoryFilterTop');  // mobile topbar
+  const rows = document.querySelectorAll('.item-row');
+
+  function getSearchVal()   { return (searchInput?.value || searchInputMobile?.value || '').toLowerCase(); }
+  function getCategoryVal() { return categoryFilter?.value || categoryFilterTop?.value || ''; }
 
   function filterItems() {
-    const searchTerm = searchInput.value.toLowerCase();
-    const selectedCategory = categoryFilter.value;
-
+    const searchTerm       = getSearchVal();
+    const selectedCategory = getCategoryVal();
     rows.forEach(row => {
-      const itemName = row.dataset.name;
-      const itemRestaurant = row.dataset.restaurant;
-      const itemCategory = row.dataset.category;
-
-      const matchesSearch = itemName.includes(searchTerm) ||
-                           itemRestaurant.toLowerCase().includes(searchTerm) ||
-                           itemCategory.toLowerCase().includes(searchTerm);
-      const matchesCategory = !selectedCategory || itemCategory === selectedCategory;
-
-      if (matchesSearch && matchesCategory) {
-        row.style.display = '';
-      } else {
-        row.style.display = 'none';
-      }
+      const matchesSearch   = row.dataset.name.includes(searchTerm)
+                           || row.dataset.restaurant.toLowerCase().includes(searchTerm)
+                           || row.dataset.category.toLowerCase().includes(searchTerm);
+      const matchesCategory = !selectedCategory || row.dataset.category === selectedCategory;
+      row.style.display = (matchesSearch && matchesCategory) ? '' : 'none';
     });
   }
 
-  searchInput.addEventListener('input', filterItems);
-  categoryFilter.addEventListener('change', filterItems);
+  function applyRestaurantFilter(val) {
+    window.location.href = val ? '?restaurant=' + encodeURIComponent(val) : '/items';
+  }
 
-  // Restaurant filter should reload page with query parameter
-  restaurantFilter.addEventListener('change', function() {
-    const selectedRestaurant = this.value;
-    if (selectedRestaurant) {
-      window.location.href = '?restaurant=' + encodeURIComponent(selectedRestaurant);
-    } else {
-      window.location.href = '/items';
-    }
-  });
+  // Bind all inputs
+  searchInput?.addEventListener('input', filterItems);
+  searchInputMobile?.addEventListener('input', filterItems);
+  categoryFilter?.addEventListener('change', filterItems);
+  categoryFilterTop?.addEventListener('change', filterItems);
+  restaurantFilter?.addEventListener('change',    function() { applyRestaurantFilter(this.value); });
+  restaurantFilterTop?.addEventListener('change', function() { applyRestaurantFilter(this.value); });
 
   function showItemsInfo() {
     const lastUpdate = '{{ $lastUpdate ?? "Never" }}';
