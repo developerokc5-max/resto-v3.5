@@ -107,23 +107,27 @@
     <header class="bg-white dark:bg-slate-900 border-b-2 border-slate-200 dark:border-slate-800 sticky top-0 z-50 shadow-sm">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5">
             <div class="flex items-center justify-between">
-                <div class="flex-1">
-                    <h1 class="text-2xl font-bold text-slate-900 dark:text-slate-100">{{ $brandName }}</h1>
-                    <p class="text-sm text-slate-600 dark:text-slate-300 mt-0.5">{{ $shopName }} - Status Log Timeline</p>
+                <div class="flex-1 min-w-0">
+                    <div class="flex items-center gap-2 mb-0.5">
+                      <a href="/stores" class="text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 flex-shrink-0">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
+                        </svg>
+                      </a>
+                      <h1 class="text-base md:text-2xl font-bold text-slate-900 dark:text-slate-100 truncate">{{ $brandName }}</h1>
+                    </div>
+                    <p class="text-xs md:text-sm text-slate-600 dark:text-slate-300 truncate">{{ $shopName }} — Status Log</p>
                 </div>
-                <div class="flex items-center gap-2">
+                <div class="flex items-center gap-2 flex-shrink-0">
                     <button onclick="toggleDarkMode()" id="darkToggle" class="h-8 w-8 rounded-full bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 text-slate-600 dark:text-slate-300 text-xs flex items-center justify-center transition" title="Toggle dark mode">
                         <span id="darkIcon">🌙</span>
                     </button>
                     <button onclick="toggleInfoPopup()" class="h-8 w-8 rounded-full bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 text-slate-600 dark:text-slate-300 text-xs font-bold flex items-center justify-center transition">
                         i
                     </button>
-                    <a href="/dashboard" class="px-4 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-lg text-sm font-medium transition flex items-center gap-2">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
-                        </svg>
-                        Back to Dashboard
-                    </a>
+                    <button onclick="window.location.reload()" class="px-3 py-2 bg-slate-900 dark:bg-slate-700 text-white rounded-xl text-sm font-medium hover:opacity-90 transition">
+                        Reload
+                    </button>
                 </div>
             </div>
         </div>
@@ -143,48 +147,46 @@
                 <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-lg border-2 border-slate-200 dark:border-slate-700 overflow-hidden">
 
                     <!-- Card Header -->
-                    <div class="bg-white dark:bg-slate-800 border-b-2 border-slate-200 dark:border-slate-700 p-6">
-                        <div class="flex items-center justify-between">
-                            <div class="flex items-center gap-4">
-                                <div class="flex items-center gap-3">
-                                    <div class="w-12 h-12 bg-slate-100 dark:bg-slate-700 rounded-xl flex items-center justify-center border-2 border-slate-300 dark:border-slate-600">
-                                        <span class="text-xl font-bold text-slate-700 dark:text-slate-300">#{{ $cardNumber }}</span>
+                    <div class="bg-white dark:bg-slate-800 border-b-2 border-slate-200 dark:border-slate-700 p-4 md:p-6">
+                        <div class="flex items-start justify-between gap-3">
+                            <div class="flex items-center gap-3 min-w-0">
+                                <div class="w-9 h-9 md:w-12 md:h-12 flex-shrink-0 bg-slate-100 dark:bg-slate-700 rounded-xl flex items-center justify-center border-2 border-slate-300 dark:border-slate-600">
+                                    <span class="text-sm md:text-xl font-bold text-slate-700 dark:text-slate-300">#{{ $cardNumber }}</span>
+                                </div>
+                                <div class="min-w-0">
+                                    <div class="flex items-center gap-2 flex-wrap">
+                                        <h3 class="text-sm md:text-xl font-bold text-slate-900 dark:text-slate-100">{{ $isCurrent ? 'CURRENT STATUS' : 'Status Record' }}</h3>
+                                        @if($isCurrent)
+                                            <span class="px-2 py-0.5 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 rounded text-xs font-semibold">LIVE</span>
+                                        @endif
                                     </div>
-                                    <div>
-                                        <div class="flex items-center gap-2">
-                                            <h3 class="text-xl font-bold text-slate-900 dark:text-slate-100">{{ $isCurrent ? 'CURRENT STATUS' : 'Status Record' }}</h3>
-                                            @if($isCurrent)
-                                                <span class="px-2 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 rounded text-xs font-semibold">LIVE</span>
-                                            @endif
-                                        </div>
-                                        <p class="text-sm text-slate-600 dark:text-slate-300 mt-0.5">{{ \Carbon\Carbon::parse($card['timestamp'])->setTimezone('Asia/Singapore')->format('l, F j, Y \a\t g:i A \S\G\T') }}</p>
-                                    </div>
+                                    <p class="text-[10px] md:text-sm text-slate-600 dark:text-slate-300 mt-0.5">{{ \Carbon\Carbon::parse($card['timestamp'])->setTimezone('Asia/Singapore')->format('M j, Y g:i A') }} SGT</p>
                                 </div>
                             </div>
 
                             <!-- Status Summary -->
-                            <div class="flex items-center gap-4">
+                            <div class="flex items-center gap-2 flex-shrink-0">
                                 @if($card['outlet_status'] === 'All Online')
-                                    <div class="px-5 py-3 bg-green-50 dark:bg-green-900/30 border-2 border-green-500 dark:border-green-700 rounded-xl">
-                                        <div class="text-lg font-bold text-green-700 dark:text-green-400">All Online</div>
-                                        <div class="text-xs text-green-600 dark:text-green-500">{{ $card['platforms_online'] }}/3 Platforms</div>
+                                    <div class="px-3 md:px-5 py-2 md:py-3 bg-green-50 dark:bg-green-900/30 border-2 border-green-500 dark:border-green-700 rounded-xl text-center">
+                                        <div class="text-sm md:text-lg font-bold text-green-700 dark:text-green-400">All On</div>
+                                        <div class="text-[10px] md:text-xs text-green-600 dark:text-green-500">{{ $card['platforms_online'] }}/3</div>
                                     </div>
                                 @elseif($card['outlet_status'] === 'All Offline')
-                                    <div class="px-5 py-3 bg-red-50 dark:bg-red-900/30 border-2 border-red-500 dark:border-red-700 rounded-xl">
-                                        <div class="text-lg font-bold text-red-700 dark:text-red-400">All Offline</div>
-                                        <div class="text-xs text-red-600 dark:text-red-500">{{ $card['platforms_online'] }}/3 Platforms</div>
+                                    <div class="px-3 md:px-5 py-2 md:py-3 bg-red-50 dark:bg-red-900/30 border-2 border-red-500 dark:border-red-700 rounded-xl text-center">
+                                        <div class="text-sm md:text-lg font-bold text-red-700 dark:text-red-400">All Off</div>
+                                        <div class="text-[10px] md:text-xs text-red-600 dark:text-red-500">{{ $card['platforms_online'] }}/3</div>
                                     </div>
                                 @else
-                                    <div class="px-5 py-3 bg-amber-50 dark:bg-amber-900/30 border-2 border-amber-500 dark:border-amber-700 rounded-xl">
-                                        <div class="text-lg font-bold text-amber-700 dark:text-amber-400">Mixed</div>
-                                        <div class="text-xs text-amber-600 dark:text-amber-500">{{ $card['platforms_online'] }}/3 Online</div>
+                                    <div class="px-3 md:px-5 py-2 md:py-3 bg-amber-50 dark:bg-amber-900/30 border-2 border-amber-500 dark:border-amber-700 rounded-xl text-center">
+                                        <div class="text-sm md:text-lg font-bold text-amber-700 dark:text-amber-400">Mixed</div>
+                                        <div class="text-[10px] md:text-xs text-amber-600 dark:text-amber-500">{{ $card['platforms_online'] }}/3</div>
                                     </div>
                                 @endif
 
                                 @if($card['total_offline_items'] > 0)
-                                    <div class="px-5 py-3 bg-slate-900 rounded-xl">
-                                        <div class="text-2xl font-bold text-white">{{ $card['total_offline_items'] }}</div>
-                                        <div class="text-xs text-slate-300">Items Off</div>
+                                    <div class="px-3 md:px-5 py-2 md:py-3 bg-slate-900 rounded-xl text-center">
+                                        <div class="text-lg md:text-2xl font-bold text-white">{{ $card['total_offline_items'] }}</div>
+                                        <div class="text-[10px] md:text-xs text-slate-300">Items Off</div>
                                     </div>
                                 @endif
                             </div>
@@ -192,7 +194,7 @@
                     </div>
 
                     <!-- Platform Breakdown -->
-                    <div class="p-6 bg-slate-50 dark:bg-slate-900/30 space-y-3">
+                    <div class="p-3 md:p-6 bg-slate-50 dark:bg-slate-900/30 space-y-3">
                         @foreach(['grab', 'foodpanda', 'deliveroo'] as $platform)
                             @php
                                 $data = $card['platform_data'][$platform];
@@ -209,34 +211,34 @@
 
                             <div class="bg-white dark:bg-slate-800 border-2 {{ $colors['border'] }} rounded-xl overflow-hidden hover:shadow-md transition">
                                 <!-- Platform Header (Clickable) -->
-                                <button onclick="toggleDropdown('{{ $dropdownId }}')" class="w-full p-4 {{ $colors['bg'] }} flex items-center justify-between hover:opacity-90 transition">
-                                    <div class="flex items-center gap-4">
-                                        <div class="w-12 h-12 {{ $colors['icon'] }} rounded-lg flex items-center justify-center shadow-sm">
-                                            <span class="text-lg font-bold text-white">{{ strtoupper(substr($data['name'], 0, 1)) }}</span>
+                                <button onclick="toggleDropdown('{{ $dropdownId }}')" class="w-full p-3 md:p-4 {{ $colors['bg'] }} flex items-center justify-between hover:opacity-90 transition">
+                                    <div class="flex items-center gap-3">
+                                        <div class="w-9 h-9 md:w-12 md:h-12 flex-shrink-0 {{ $colors['icon'] }} rounded-lg flex items-center justify-center shadow-sm">
+                                            <span class="text-sm md:text-lg font-bold text-white">{{ strtoupper(substr($data['name'], 0, 1)) }}</span>
                                         </div>
-                                        <div class="text-left">
-                                            <h4 class="font-bold text-slate-900 dark:text-slate-100 text-base">{{ $data['name'] }}</h4>
+                                        <div class="text-left min-w-0">
+                                            <h4 class="font-bold text-slate-900 dark:text-slate-100 text-sm md:text-base">{{ $data['name'] }}</h4>
                                             @if(isset($data['last_checked']) && $data['last_checked'])
-                                                <p class="text-xs text-slate-600 dark:text-slate-300">Checked {{ \Carbon\Carbon::parse($data['last_checked'])->setTimezone('Asia/Singapore')->format('M d, Y \a\t g:i A \S\G\T') }}</p>
+                                                <p class="text-[10px] md:text-xs text-slate-600 dark:text-slate-300 truncate">{{ \Carbon\Carbon::parse($data['last_checked'])->setTimezone('Asia/Singapore')->format('M d, g:i A') }} SGT</p>
                                             @else
-                                                <p class="text-xs text-slate-500 dark:text-slate-400">Not checked yet</p>
+                                                <p class="text-[10px] md:text-xs text-slate-500 dark:text-slate-400">Not checked yet</p>
                                             @endif
                                         </div>
                                     </div>
 
-                                    <div class="flex items-center gap-3">
+                                    <div class="flex items-center gap-2 flex-shrink-0">
                                         @if($hasOfflineItems)
-                                            <div class="px-4 py-2 bg-red-600 text-white rounded-lg font-bold shadow-sm">
-                                                <div class="text-sm">{{ $data['offline_count'] }} OFF</div>
+                                            <div class="px-3 py-1.5 bg-red-600 text-white rounded-lg font-bold shadow-sm">
+                                                <div class="text-xs md:text-sm">{{ $data['offline_count'] }} OFF</div>
                                             </div>
                                         @else
-                                            <div class="px-4 py-2 bg-green-600 text-white rounded-lg font-bold shadow-sm">
-                                                <div class="text-sm">0 OFF</div>
+                                            <div class="px-3 py-1.5 bg-green-600 text-white rounded-lg font-bold shadow-sm">
+                                                <div class="text-xs md:text-sm">0 OFF</div>
                                             </div>
                                         @endif
 
                                         @if($hasOfflineItems)
-                                            <svg id="arrow-{{ $dropdownId }}" class="w-5 h-5 text-slate-600 dark:text-slate-300 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <svg id="arrow-{{ $dropdownId }}" class="w-4 h-4 md:w-5 md:h-5 text-slate-600 dark:text-slate-300 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
                                             </svg>
                                         @endif
@@ -245,9 +247,9 @@
 
                                 @if($hasOfflineItems)
                                     <div id="dropdown-{{ $dropdownId }}" class="platform-dropdown">
-                                        <div class="p-5 bg-slate-50 dark:bg-slate-700/50 border-t-2 border-slate-200 dark:border-slate-600">
-                                            <h5 class="font-bold text-slate-900 dark:text-slate-100 mb-4 text-sm">Offline Items ({{ $data['offline_count'] }})</h5>
-                                            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                                        <div class="p-3 md:p-5 bg-slate-50 dark:bg-slate-700/50 border-t-2 border-slate-200 dark:border-slate-600">
+                                            <h5 class="font-bold text-slate-900 dark:text-slate-100 mb-3 text-sm">Offline Items ({{ $data['offline_count'] }})</h5>
+                                            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                                                 @foreach($data['offline_items'] as $item)
                                                     @php
                                                         $itemData = is_array($item) ? (object)$item : $item;

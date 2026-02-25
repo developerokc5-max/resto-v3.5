@@ -24,20 +24,24 @@
     <header class="bg-white dark:bg-slate-900 border-b-2 border-slate-200 dark:border-slate-800 sticky top-0 z-50 shadow-sm">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5">
             <div class="flex items-center justify-between">
-                <div class="flex-1">
-                    <h1 class="text-2xl font-bold text-slate-900 dark:text-slate-100">{{ $brandName }}</h1>
-                    <p class="text-sm text-slate-600 dark:text-slate-300 mt-0.5">{{ $shopName }}</p>
+                <div class="flex-1 min-w-0">
+                    <div class="flex items-center gap-2">
+                      <a href="/stores" class="text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 flex-shrink-0">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
+                        </svg>
+                      </a>
+                      <h1 class="text-base md:text-2xl font-bold text-slate-900 dark:text-slate-100 truncate">{{ $brandName }}</h1>
+                    </div>
+                    <p class="text-xs md:text-sm text-slate-600 dark:text-slate-300 mt-0.5 truncate">{{ $shopName }}</p>
                 </div>
-                <div class="flex items-center gap-2">
+                <div class="flex items-center gap-2 flex-shrink-0">
                     <button onclick="toggleDarkMode()" id="darkToggle" class="h-8 w-8 rounded-full bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 text-slate-600 dark:text-slate-300 text-xs flex items-center justify-center transition" title="Toggle dark mode">
                         <span id="darkIcon">🌙</span>
                     </button>
-                    <a href="/" class="px-4 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-lg text-sm font-medium transition flex items-center gap-2">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
-                        </svg>
-                        Back to Dashboard
-                    </a>
+                    <button onclick="window.location.reload()" class="px-3 py-2 bg-slate-900 dark:bg-slate-700 text-white rounded-xl text-sm font-medium hover:opacity-90 transition">
+                        Reload
+                    </button>
                 </div>
             </div>
         </div>
@@ -46,20 +50,20 @@
     <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
 
         <!-- Summary Banner -->
-        <div class="bg-gradient-to-r from-red-500 to-rose-600 rounded-2xl p-6 mb-8 shadow-lg">
-            <div class="flex items-center justify-between text-white">
-                <div>
-                    <div class="flex items-center gap-3 mb-2">
-                        <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <div class="bg-gradient-to-r from-red-500 to-rose-600 rounded-2xl p-4 md:p-6 mb-6 md:mb-8 shadow-lg">
+            <div class="flex items-center justify-between text-white gap-3">
+                <div class="min-w-0">
+                    <div class="flex items-center gap-2 mb-1 md:mb-2">
+                        <svg class="w-5 h-5 md:w-8 md:h-8 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
                         </svg>
-                        <h2 class="text-3xl font-bold">ITEMS CURRENTLY OFF</h2>
+                        <h2 class="text-lg md:text-3xl font-bold">ITEMS CURRENTLY OFF</h2>
                     </div>
-                    <p class="text-red-100 text-sm">Items marked as unavailable across delivery platforms</p>
+                    <p class="text-red-100 text-xs md:text-sm">Items marked as unavailable across delivery platforms</p>
                 </div>
-                <div class="text-right">
-                    <div class="text-5xl font-bold">{{ $totalOfflineItems }}</div>
-                    <div class="text-sm text-red-100">Total Offline</div>
+                <div class="text-right flex-shrink-0">
+                    <div class="text-4xl md:text-5xl font-bold">{{ $totalOfflineItems }}</div>
+                    <div class="text-xs md:text-sm text-red-100">Total Offline</div>
                 </div>
             </div>
         </div>
@@ -106,34 +110,34 @@
 
                 <section class="mb-8">
                     <!-- Platform Header -->
-                    <div class="{{ $color['header'] }} rounded-t-2xl p-4 shadow-md">
-                        <div class="flex items-center justify-between text-white">
-                            <div class="flex items-center gap-3">
-                                <div class="w-12 h-12 bg-white bg-opacity-20 rounded-xl flex items-center justify-center">
-                                    <svg class="w-7 h-7" fill="currentColor" viewBox="0 0 24 24">
+                    <div class="{{ $color['header'] }} rounded-t-2xl p-3 md:p-4 shadow-md">
+                        <div class="flex items-center justify-between text-white gap-3">
+                            <div class="flex items-center gap-3 min-w-0">
+                                <div class="w-9 h-9 md:w-12 md:h-12 flex-shrink-0 bg-white bg-opacity-20 rounded-xl flex items-center justify-center">
+                                    <svg class="w-5 h-5 md:w-7 md:h-7" fill="currentColor" viewBox="0 0 24 24">
                                         <path d="M12 2L2 7v10c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V7l-10-5z"></path>
                                     </svg>
                                 </div>
-                                <div>
-                                    <h3 class="text-xl font-bold">{{ $config['name'] }}</h3>
+                                <div class="min-w-0">
+                                    <h3 class="text-base md:text-xl font-bold">{{ $config['name'] }}</h3>
                                     @if($config['last_checked'])
-                                        <p class="text-sm text-white text-opacity-90">
-                                            Last checked: {{ \Carbon\Carbon::parse($config['last_checked'])->diffForHumans() }}
+                                        <p class="text-[10px] md:text-sm text-white text-opacity-90">
+                                            {{ \Carbon\Carbon::parse($config['last_checked'])->diffForHumans() }}
                                         </p>
                                     @else
-                                        <p class="text-sm text-white text-opacity-90">Never checked</p>
+                                        <p class="text-[10px] md:text-sm text-white text-opacity-90">Never checked</p>
                                     @endif
                                 </div>
                             </div>
-                            <div class="text-right">
+                            <div class="text-right flex-shrink-0">
                                 @if($itemCount > 0)
-                                    <div class="px-4 py-2 bg-white bg-opacity-25 rounded-lg">
-                                        <div class="text-3xl font-bold">{{ $itemCount }}</div>
+                                    <div class="px-3 md:px-4 py-2 bg-white bg-opacity-25 rounded-lg">
+                                        <div class="text-2xl md:text-3xl font-bold">{{ $itemCount }}</div>
                                         <div class="text-xs text-white text-opacity-90">Items OFF</div>
                                     </div>
                                 @else
-                                    <div class="px-4 py-2 bg-white bg-opacity-20 rounded-lg">
-                                        <div class="text-2xl font-bold">0</div>
+                                    <div class="px-3 md:px-4 py-2 bg-white bg-opacity-20 rounded-lg">
+                                        <div class="text-xl md:text-2xl font-bold">0</div>
                                         <div class="text-xs text-white text-opacity-90">Items OFF</div>
                                     </div>
                                 @endif
@@ -203,21 +207,21 @@
         @endif
 
         <!-- Footer Actions -->
-        <div class="mt-8 bg-white dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-700 rounded-2xl p-6 shadow-sm">
-            <div class="flex items-center justify-between">
+        <div class="mt-6 md:mt-8 bg-white dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-700 rounded-2xl p-4 md:p-6 shadow-sm">
+            <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
                 <div>
                     <h4 class="font-bold text-slate-900 dark:text-slate-100">Need to update items?</h4>
-                    <p class="text-sm text-slate-600 dark:text-slate-400">Manage your menu items directly on the platform apps</p>
+                    <p class="text-xs md:text-sm text-slate-600 dark:text-slate-400">Manage your menu items directly on the platform apps</p>
                 </div>
-                <div class="flex gap-3">
-                    <a href="/dashboard" class="px-6 py-3 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-300 rounded-lg font-medium transition">
-                        Back to Dashboard
+                <div class="flex gap-3 self-end sm:self-auto">
+                    <a href="/stores" class="px-4 py-2 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-300 rounded-xl text-sm font-medium transition">
+                        ← Stores
                     </a>
-                    <button onclick="window.location.reload()" class="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition flex items-center gap-2">
+                    <button onclick="window.location.reload()" class="px-4 py-2 bg-slate-900 dark:bg-slate-700 hover:opacity-90 text-white rounded-xl text-sm font-medium transition flex items-center gap-2">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
                         </svg>
-                        Refresh Data
+                        Reload
                     </button>
                 </div>
             </div>
