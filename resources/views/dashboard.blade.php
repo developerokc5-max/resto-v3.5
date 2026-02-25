@@ -158,7 +158,8 @@
         <div class="p-5 flex-grow flex flex-col justify-between">
           @if(isset($s['platforms']))
           <div class="space-y-3 mb-4 min-h-[240px]">
-            @foreach($s['platforms'] as $platform => $status)
+            @php $platformOrder = ['grab', 'foodpanda', 'deliveroo']; $sortedPlatforms = []; foreach ($platformOrder as $_pk) { if (isset($s['platforms'][$_pk])) $sortedPlatforms[$_pk] = $s['platforms'][$_pk]; } foreach ($s['platforms'] as $_pk => $_pv) { if (!isset($sortedPlatforms[$_pk])) $sortedPlatforms[$_pk] = $_pv; } @endphp
+            @foreach($sortedPlatforms as $platform => $status)
               @if($status['online'] !== null)
                 @php
                   $config = $platformConfig[$platform] ?? $platformConfig['grab'];
