@@ -7,7 +7,7 @@
 
 @section('top-actions')
   <div class="flex items-center gap-3">
-    <div class="text-right">
+    <div class="hidden sm:block text-right">
       <div class="text-xs text-slate-500 dark:text-slate-400">Last Updated</div>
       <div class="text-sm font-semibold text-slate-900 dark:text-slate-100 break-words leading-tight">{{ $lastScrape ?? '—' }}</div>
     </div>
@@ -21,7 +21,7 @@
 
 @section('content')
   <!-- Summary KPIs -->
-  <section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+  <section class="grid grid-cols-2 lg:grid-cols-4 gap-4">
     <div class="bg-white dark:bg-slate-800 border dark:border-slate-700 rounded-2xl p-5 shadow-sm">
       <div class="text-sm text-slate-500 dark:text-slate-400">Total Platforms</div>
       <div class="mt-2 text-3xl font-semibold">{{ $stats['total'] ?? 0 }}</div>
@@ -89,34 +89,30 @@
       <table class="w-full">
         <thead class="bg-slate-50 dark:bg-slate-900 border-b dark:border-slate-700">
           <tr>
-            <th class="px-5 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">Shop</th>
-            <th class="px-5 py-3 text-center text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">Grab</th>
-            <th class="px-5 py-3 text-center text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">FoodPanda</th>
-            <th class="px-5 py-3 text-center text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">Deliveroo</th>
-            <th class="px-5 py-3 text-right text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">Status</th>
+            <th class="px-3 md:px-5 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">Shop</th>
+            <th class="px-2 md:px-5 py-3 text-center text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">Grab</th>
+            <th class="px-2 md:px-5 py-3 text-center text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">FoodPanda</th>
+            <th class="px-2 md:px-5 py-3 text-center text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">Deliveroo</th>
+            <th class="hidden md:table-cell px-5 py-3 text-right text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">Status</th>
           </tr>
         </thead>
         <tbody class="divide-y divide-slate-100 dark:divide-slate-700">
           @forelse($shops as $shop)
             <tr class="hover:bg-slate-50 dark:hover:bg-slate-700 transition">
-              <td class="px-5 py-4">
-                <div class="font-medium text-sm text-slate-900 dark:text-slate-100">{{ $shop['shop_name'] }}</div>
-                <div class="text-xs text-slate-500 dark:text-slate-400">{{ $shop['brand'] }}</div>
-                <div class="text-xs text-slate-400 dark:text-slate-500 mt-0.5">ID: {{ $shop['shop_id'] }}</div>
+              <td class="px-3 md:px-5 py-3 md:py-4">
+                <div class="font-medium text-xs md:text-sm text-slate-900 dark:text-slate-100 leading-tight">{{ $shop['shop_name'] }}</div>
+                <div class="text-[10px] md:text-xs text-slate-500 dark:text-slate-400">{{ $shop['brand'] }}</div>
               </td>
 
               @foreach(['grab', 'foodpanda', 'deliveroo'] as $platform)
-                <td class="px-5 py-4 text-center">
+                <td class="px-2 md:px-5 py-3 md:py-4 text-center">
                   @if(isset($shop['platforms'][$platform]))
                     @php $p = $shop['platforms'][$platform]; @endphp
-                    <div class="inline-flex flex-col items-center gap-1">
-                      <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium {{ $p['is_online'] ? 'bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-400 border border-green-200 dark:border-green-700' : 'bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-400 border border-red-200 dark:border-red-700' }}">
-                        {{ $p['is_online'] ? 'ONLINE' : 'OFFLINE' }}
+                    <div class="inline-flex flex-col items-center gap-0.5">
+                      <span class="inline-flex items-center px-2 py-1 rounded-lg text-[10px] md:text-xs font-medium {{ $p['is_online'] ? 'bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-400 border border-green-200 dark:border-green-700' : 'bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-400 border border-red-200 dark:border-red-700' }}">
+                        {{ $p['is_online'] ? 'ON' : 'OFF' }}
                       </span>
-                      @if($p['items_synced'] > 0)
-                        <span class="text-[10px] text-slate-500 dark:text-slate-400">{{ $p['items_synced'] }} items</span>
-                      @endif
-                      <span class="text-[10px] text-slate-400 dark:text-slate-500">{{ $p['last_checked'] }}</span>
+                      <span class="text-[9px] text-slate-400 dark:text-slate-500 hidden md:block">{{ $p['last_checked'] }}</span>
                     </div>
                   @else
                     <span class="text-xs text-slate-400 dark:text-slate-500">No data</span>
@@ -124,7 +120,7 @@
                 </td>
               @endforeach
 
-              <td class="px-5 py-4 text-right">
+              <td class="hidden md:table-cell px-5 py-4 text-right">
                 @php
                   $onlineCount = 0;
                   foreach(['grab', 'foodpanda', 'deliveroo'] as $platform) {

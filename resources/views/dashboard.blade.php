@@ -31,7 +31,7 @@
 @section('content')
 
   <!-- KPI cards -->
-  <section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+  <section class="grid grid-cols-2 lg:grid-cols-4 gap-4">
     <div class="bg-white dark:bg-slate-800 border dark:border-slate-700 rounded-2xl p-5 shadow-sm hover:shadow-md transition">
       <div class="text-sm text-slate-500 dark:text-slate-400">Stores Online</div>
       <div class="mt-2 text-3xl font-semibold">{{ $kpis['stores_online'] ?? 0 }}</div>
