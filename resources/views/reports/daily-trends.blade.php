@@ -7,14 +7,14 @@
 
 @section('content')
   <!-- Date Range Filter -->
-  <section class="bg-white dark:bg-slate-800 border dark:border-slate-700 rounded-2xl shadow-sm p-6">
-    <div class="flex items-center justify-between">
+  <section class="bg-white dark:bg-slate-800 border dark:border-slate-700 rounded-2xl shadow-sm p-5 md:p-6">
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
       <h2 class="text-lg font-bold text-slate-900 dark:text-slate-100">Date Range</h2>
-      <div class="flex items-center gap-3">
-        <input type="date" id="startDate" class="px-4 py-2 border border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-100 rounded-xl focus:ring-2 focus:ring-slate-900 focus:border-transparent">
-        <span class="text-slate-500 dark:text-slate-400">to</span>
-        <input type="date" id="endDate" class="px-4 py-2 border border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-100 rounded-xl focus:ring-2 focus:ring-slate-900 focus:border-transparent">
-        <button class="px-6 py-2 bg-slate-900 dark:bg-slate-700 text-white rounded-xl font-medium hover:opacity-90 transition">
+      <div class="flex flex-wrap items-center gap-2">
+        <input type="date" id="startDate" class="flex-1 sm:flex-none px-3 py-2 text-sm border border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-100 rounded-xl focus:ring-2 focus:ring-slate-900 focus:border-transparent">
+        <span class="text-slate-500 dark:text-slate-400 text-sm">to</span>
+        <input type="date" id="endDate" class="flex-1 sm:flex-none px-3 py-2 text-sm border border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-100 rounded-xl focus:ring-2 focus:ring-slate-900 focus:border-transparent">
+        <button class="w-full sm:w-auto px-5 py-2 bg-slate-900 dark:bg-slate-700 text-white rounded-xl text-sm font-medium hover:opacity-90 transition">
           Apply
         </button>
       </div>
@@ -22,7 +22,7 @@
   </section>
 
   <!-- Summary Stats -->
-  <section class="grid grid-cols-1 md:grid-cols-4 gap-4">
+  <section class="grid grid-cols-2 md:grid-cols-4 gap-4">
     <div class="bg-white dark:bg-slate-800 border dark:border-slate-700 rounded-2xl p-5 shadow-sm">
       <div class="text-sm text-slate-500 dark:text-slate-400 mb-1">Avg Platform Uptime</div>
       <div class="text-3xl font-bold text-slate-900 dark:text-slate-100">{{ $trends['avg_uptime'] ?? '98.5' }}%</div>

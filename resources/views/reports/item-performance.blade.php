@@ -7,7 +7,7 @@
 
 @section('content')
   <!-- Summary Stats -->
-  <section class="grid grid-cols-1 md:grid-cols-4 gap-4">
+  <section class="grid grid-cols-2 md:grid-cols-4 gap-4">
     <div class="bg-white dark:bg-slate-800 border dark:border-slate-700 rounded-2xl p-5 shadow-sm">
       <div class="text-sm text-slate-500 dark:text-slate-400 mb-1">Total Items Tracked</div>
       <div class="text-3xl font-bold text-slate-900 dark:text-slate-100">{{ $itemStats['total'] ?? '2,450' }}</div>
