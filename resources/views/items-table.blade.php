@@ -6,7 +6,7 @@
 @section('page-description', 'Browse all items across delivery platforms')
 
 @section('top-actions')
-  <div class="text-right">
+  <div class="hidden sm:block text-right">
     <div class="text-xs text-slate-500 dark:text-slate-400">Last Updated (SGT)</div>
     <div id="lastUpdateTime" class="text-sm font-semibold text-slate-900 dark:text-slate-100 break-words leading-tight">{{ $lastUpdate ?? 'Never' }}</div>
   </div>
@@ -16,7 +16,7 @@
 
 @section('content')
   <!-- Stats Cards -->
-  <section class="grid grid-cols-1 md:grid-cols-4 gap-4">
+  <section class="grid grid-cols-2 md:grid-cols-4 gap-4">
     <div class="bg-white dark:bg-slate-800 border dark:border-slate-700 rounded-2xl p-5 shadow-sm">
       <div class="text-sm text-slate-500 dark:text-slate-400">Total Items</div>
       <div class="mt-2 text-3xl font-semibold dark:text-slate-100">{{$stats['total']}}</div>
@@ -57,7 +57,59 @@
 
   <!-- Items Table -->
   <section class="bg-white dark:bg-slate-800 rounded-2xl shadow-sm overflow-hidden border dark:border-slate-700">
-    <div class="overflow-x-auto">
+
+    {{-- ── MOBILE: card list (hidden on md+) ───────────────────────── --}}
+    <div id="itemsTableMobile" class="md:hidden divide-y divide-slate-100 dark:divide-slate-700">
+      @foreach($items as $item)
+      @php
+        $oc = 0;
+        if ($item['platforms']['grab']) $oc++;
+        if ($item['platforms']['foodpanda']) $oc++;
+        if ($item['platforms']['deliveroo']) $oc++;
+      @endphp
+      <div class="px-4 py-3 item-row"
+           data-name="{{strtolower($item['name'])}}"
+           data-restaurant="{{$item['shop_name']}}"
+           data-category="{{$item['category']}}">
+        <div class="flex items-center gap-3">
+          @if($item['image_url'])
+            <img src="{{$item['image_url']}}" alt="{{$item['name']}}"
+                 class="w-11 h-11 object-cover rounded-lg flex-shrink-0"
+                 loading="lazy"
+                 onerror="this.style.display='none'">
+          @else
+            <div class="w-11 h-11 bg-slate-100 dark:bg-slate-700 rounded-lg flex items-center justify-center flex-shrink-0">
+              <i class="fas fa-utensils text-slate-400 dark:text-slate-500 text-sm"></i>
+            </div>
+          @endif
+          <div class="flex-1 min-w-0">
+            <div class="font-medium text-sm text-slate-900 dark:text-slate-100 truncate">{{$item['name']}}</div>
+            <div class="text-xs text-slate-500 dark:text-slate-400 truncate">{{$item['shop_name']}}</div>
+            <div class="flex items-center gap-2 mt-1 flex-wrap">
+              <span class="text-xs font-semibold text-slate-800 dark:text-slate-200">${{number_format($item['price'], 2)}}</span>
+              <span class="text-[10px] bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-400 px-2 py-0.5 rounded-full">{{$item['category']}}</span>
+            </div>
+          </div>
+          <div class="flex-shrink-0 flex flex-col items-end gap-1">
+            <span class="text-xs font-medium px-2 py-0.5 rounded-full
+              {{ $oc === 3 ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400'
+                 : ($oc > 0 ? 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400'
+                 : 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400') }}">
+              {{$oc}}/3
+            </span>
+            <div class="flex gap-1">
+              <span class="text-[9px] px-1.5 py-0.5 rounded font-bold {{ $item['platforms']['grab'] ? 'bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-400' : 'bg-red-100 dark:bg-red-900/40 text-red-600 dark:text-red-400' }}">G</span>
+              <span class="text-[9px] px-1.5 py-0.5 rounded font-bold {{ $item['platforms']['foodpanda'] ? 'bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-400' : 'bg-red-100 dark:bg-red-900/40 text-red-600 dark:text-red-400' }}">F</span>
+              <span class="text-[9px] px-1.5 py-0.5 rounded font-bold {{ $item['platforms']['deliveroo'] ? 'bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-400' : 'bg-red-100 dark:bg-red-900/40 text-red-600 dark:text-red-400' }}">D</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      @endforeach
+    </div>
+
+    {{-- ── DESKTOP: full table (hidden on mobile) ──────────────────── --}}
+    <div class="hidden md:block overflow-x-auto">
       <table class="w-full">
         <thead class="bg-slate-50 dark:bg-slate-900 border-b dark:border-slate-700">
           <tr>
@@ -227,7 +279,7 @@
   const searchInput = document.getElementById('searchInput');
   const restaurantFilter = document.getElementById('restaurantFilter');
   const categoryFilter = document.getElementById('categoryFilter');
-  const rows = document.querySelectorAll('.item-row');
+  const rows = document.querySelectorAll('.item-row'); // targets both mobile cards + desktop table rows
 
   function filterItems() {
     const searchTerm = searchInput.value.toLowerCase();
