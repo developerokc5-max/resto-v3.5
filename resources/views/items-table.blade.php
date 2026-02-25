@@ -63,10 +63,10 @@
         @endforeach
       </select>
       <select id="statusFilter" class="px-4 py-2 border border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-100 rounded-xl focus:ring-2 focus:ring-slate-900 focus:border-transparent">
-        <option value="">All Status</option>
-        <option value="online">✓ All Online (3/3)</option>
-        <option value="partial">⚠ Partial (1–2/3)</option>
-        <option value="offline">✕ All Offline (0/3)</option>
+        <option value="">All Items</option>
+        <option value="online">Available — all 3 platforms</option>
+        <option value="has_issue">Has Issues — missing 1+ platform</option>
+        <option value="offline">Unavailable — 0 platforms</option>
       </select>
     </div>
   </section>
@@ -310,7 +310,10 @@
                            || row.dataset.restaurant.toLowerCase().includes(searchTerm)
                            || row.dataset.category.toLowerCase().includes(searchTerm);
       const matchesCategory = !selectedCategory || row.dataset.category === selectedCategory;
-      const matchesStatus   = !selectedStatus   || row.dataset.status   === selectedStatus;
+      const matchesStatus   = !selectedStatus
+                           || (selectedStatus === 'has_issue'
+                               ? (row.dataset.status === 'partial' || row.dataset.status === 'offline')
+                               : row.dataset.status === selectedStatus);
       row.style.display = (matchesSearch && matchesCategory && matchesStatus) ? '' : 'none';
     });
   }
