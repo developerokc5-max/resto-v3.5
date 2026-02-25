@@ -9,10 +9,10 @@
   <!-- Platform Comparison -->
   <section class="grid grid-cols-1 md:grid-cols-3 gap-6">
     <!-- Grab -->
-    <div class="bg-white dark:bg-slate-800 border-2 border-green-200 dark:border-green-800 rounded-2xl p-6 shadow-sm">
+    <div class="bg-white dark:bg-slate-800 border-2 border-green-200 dark:border-green-800 rounded-2xl p-4 md:p-6 shadow-sm">
       <div class="flex items-center justify-between mb-4">
         <div class="flex items-center gap-3">
-          <div class="w-12 h-12 bg-green-600 rounded-xl flex items-center justify-center text-white font-bold text-xl">G</div>
+          <div class="w-10 h-10 md:w-12 md:h-12 bg-green-600 rounded-xl flex items-center justify-center text-white font-bold text-xl">G</div>
           <div>
             <h3 class="font-bold text-slate-900 dark:text-slate-100">Grab</h3>
             <p class="text-xs text-slate-500 dark:text-slate-400">Food Delivery</p>
@@ -48,10 +48,10 @@
     </div>
 
     <!-- FoodPanda -->
-    <div class="bg-white dark:bg-slate-800 border-2 border-pink-200 dark:border-pink-800 rounded-2xl p-6 shadow-sm">
+    <div class="bg-white dark:bg-slate-800 border-2 border-pink-200 dark:border-pink-800 rounded-2xl p-4 md:p-6 shadow-sm">
       <div class="flex items-center justify-between mb-4">
         <div class="flex items-center gap-3">
-          <div class="w-12 h-12 bg-pink-600 rounded-xl flex items-center justify-center text-white font-bold text-xl">F</div>
+          <div class="w-10 h-10 md:w-12 md:h-12 bg-pink-600 rounded-xl flex items-center justify-center text-white font-bold text-xl">F</div>
           <div>
             <h3 class="font-bold text-slate-900 dark:text-slate-100">FoodPanda</h3>
             <p class="text-xs text-slate-500 dark:text-slate-400">Food Delivery</p>
@@ -87,10 +87,10 @@
     </div>
 
     <!-- Deliveroo -->
-    <div class="bg-white dark:bg-slate-800 border-2 border-cyan-200 dark:border-cyan-800 rounded-2xl p-6 shadow-sm">
+    <div class="bg-white dark:bg-slate-800 border-2 border-cyan-200 dark:border-cyan-800 rounded-2xl p-4 md:p-6 shadow-sm">
       <div class="flex items-center justify-between mb-4">
         <div class="flex items-center gap-3">
-          <div class="w-12 h-12 bg-cyan-600 rounded-xl flex items-center justify-center text-white font-bold text-xl">D</div>
+          <div class="w-10 h-10 md:w-12 md:h-12 bg-cyan-600 rounded-xl flex items-center justify-center text-white font-bold text-xl">D</div>
           <div>
             <h3 class="font-bold text-slate-900 dark:text-slate-100">Deliveroo</h3>
             <p class="text-xs text-slate-500 dark:text-slate-400">Food Delivery</p>
@@ -127,8 +127,8 @@
   </section>
 
   <!-- Detailed Stats Table -->
-  <section class="bg-white dark:bg-slate-800 border dark:border-slate-700 rounded-2xl shadow-sm p-6">
-    <h2 class="text-xl font-bold text-slate-900 dark:text-slate-100 mb-4">Detailed Platform Statistics</h2>
+  <section class="bg-white dark:bg-slate-800 border dark:border-slate-700 rounded-2xl shadow-sm p-4 md:p-6">
+    <h2 class="text-lg md:text-xl font-bold text-slate-900 dark:text-slate-100 mb-4">Detailed Platform Statistics</h2>
 
     <div class="overflow-x-auto">
       <table class="w-full">

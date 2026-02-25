@@ -7,8 +7,8 @@
 
 @section('content')
   <!-- Quick Exports -->
-  <section class="bg-white dark:bg-slate-800 border dark:border-slate-700 rounded-2xl shadow-sm p-6">
-    <h2 class="text-xl font-bold text-slate-900 dark:text-slate-100 mb-4">Quick Exports</h2>
+  <section class="bg-white dark:bg-slate-800 border dark:border-slate-700 rounded-2xl shadow-sm p-4 md:p-6">
+    <h2 class="text-lg md:text-xl font-bold text-slate-900 dark:text-slate-100 mb-4">Quick Exports</h2>
 
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
       <div class="border-2 border-slate-200 dark:border-slate-700 rounded-xl p-5 hover:border-slate-300 dark:hover:border-slate-600 transition">
@@ -98,8 +98,8 @@
   </section>
 
   <!-- Custom Export -->
-  <section class="bg-white dark:bg-slate-800 border dark:border-slate-700 rounded-2xl shadow-sm p-6">
-    <h2 class="text-xl font-bold text-slate-900 dark:text-slate-100 mb-4">Custom Export</h2>
+  <section class="bg-white dark:bg-slate-800 border dark:border-slate-700 rounded-2xl shadow-sm p-4 md:p-6">
+    <h2 class="text-lg md:text-xl font-bold text-slate-900 dark:text-slate-100 mb-4">Custom Export</h2>
 
     <form action="/export/custom" method="POST" id="customExportForm">
       @csrf
@@ -165,7 +165,7 @@
         </div>
 
         <div class="flex justify-end pt-4">
-          <button type="submit" class="px-8 py-3 bg-slate-900 dark:bg-slate-700 text-white rounded-xl font-medium hover:opacity-90 transition">
+          <button type="submit" class="px-5 md:px-8 py-2.5 md:py-3 bg-slate-900 dark:bg-slate-700 text-white rounded-xl font-medium hover:opacity-90 transition">
             Generate Export
           </button>
         </div>

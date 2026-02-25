@@ -23,8 +23,8 @@
     @csrf
 
     <!-- Scraper Settings -->
-    <section class="bg-white dark:bg-slate-800 border dark:border-slate-700 rounded-2xl shadow-sm p-6">
-      <h2 class="text-xl font-bold text-slate-900 dark:text-slate-100 mb-4">Scraper Schedule Settings</h2>
+    <section class="bg-white dark:bg-slate-800 border dark:border-slate-700 rounded-2xl shadow-sm p-4 md:p-6">
+      <h2 class="text-lg md:text-xl font-bold text-slate-900 dark:text-slate-100 mb-4">Scraper Schedule Settings</h2>
 
       <div class="space-y-4">
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -67,8 +67,8 @@
     </section>
 
     <!-- Alert & Notification Settings -->
-    <section class="bg-white dark:bg-slate-800 border dark:border-slate-700 rounded-2xl shadow-sm p-6">
-      <h2 class="text-xl font-bold text-slate-900 dark:text-slate-100 mb-4">Alert & Notification Settings</h2>
+    <section class="bg-white dark:bg-slate-800 border dark:border-slate-700 rounded-2xl shadow-sm p-4 md:p-6">
+      <h2 class="text-lg md:text-xl font-bold text-slate-900 dark:text-slate-100 mb-4">Alert & Notification Settings</h2>
 
       <div class="space-y-4">
         <div class="flex items-center justify-between p-4 bg-slate-50 dark:bg-slate-700 rounded-xl">
@@ -110,8 +110,8 @@
     </section>
 
     <!-- Display Settings -->
-    <section class="bg-white dark:bg-slate-800 border dark:border-slate-700 rounded-2xl shadow-sm p-6">
-      <h2 class="text-xl font-bold text-slate-900 dark:text-slate-100 mb-4">Display Settings</h2>
+    <section class="bg-white dark:bg-slate-800 border dark:border-slate-700 rounded-2xl shadow-sm p-4 md:p-6">
+      <h2 class="text-lg md:text-xl font-bold text-slate-900 dark:text-slate-100 mb-4">Display Settings</h2>
 
       <div class="space-y-4">
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -151,10 +151,10 @@
     
     <!-- Save Button -->
     <div class="flex justify-end gap-4 mt-6">
-      <button type="reset" class="px-8 py-3 border-2 border-slate-300 dark:border-slate-600 text-slate-900 dark:text-slate-100 rounded-xl font-medium hover:bg-slate-50 dark:hover:bg-slate-700 transition">
+      <button type="reset" class="px-5 md:px-8 py-2.5 md:py-3 border-2 border-slate-300 dark:border-slate-600 text-slate-900 dark:text-slate-100 rounded-xl font-medium hover:bg-slate-50 dark:hover:bg-slate-700 transition">
         Reset
       </button>
-      <button type="submit" class="px-8 py-3 bg-slate-900 dark:bg-slate-700 text-white rounded-xl font-medium hover:opacity-90 transition">
+      <button type="submit" class="px-5 md:px-8 py-2.5 md:py-3 bg-slate-900 dark:bg-slate-700 text-white rounded-xl font-medium hover:opacity-90 transition">
         Save Configuration
       </button>
     </div>

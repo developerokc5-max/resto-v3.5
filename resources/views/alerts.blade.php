@@ -15,7 +15,7 @@
       <div class="absolute top-0 right-0 w-1.5 h-full bg-red-500 rounded-r-2xl"></div>
     @endif
     <p class="text-xs font-semibold uppercase tracking-wide {{ $stats['critical'] > 0 ? 'text-red-500' : 'text-slate-400 dark:text-slate-500' }}">Critical</p>
-    <p class="text-4xl font-bold mt-1 {{ $stats['critical'] > 0 ? 'text-red-600 dark:text-red-400' : 'text-slate-300 dark:text-slate-600' }}">{{ $stats['critical'] }}</p>
+    <p class="text-3xl md:text-4xl font-bold mt-1 {{ $stats['critical'] > 0 ? 'text-red-600 dark:text-red-400' : 'text-slate-300 dark:text-slate-600' }}">{{ $stats['critical'] }}</p>
     <p class="text-xs text-slate-400 dark:text-slate-500 mt-1">{{ $stats['critical'] === 0 ? 'All clear' : 'Needs attention' }}</p>
   </div>
 
@@ -25,7 +25,7 @@
       <div class="absolute top-0 right-0 w-1.5 h-full bg-amber-400 rounded-r-2xl"></div>
     @endif
     <p class="text-xs font-semibold uppercase tracking-wide {{ $stats['warnings'] > 0 ? 'text-amber-500' : 'text-slate-400 dark:text-slate-500' }}">Warnings</p>
-    <p class="text-4xl font-bold mt-1 {{ $stats['warnings'] > 0 ? 'text-amber-500' : 'text-slate-300 dark:text-slate-600' }}">{{ $stats['warnings'] }}</p>
+    <p class="text-3xl md:text-4xl font-bold mt-1 {{ $stats['warnings'] > 0 ? 'text-amber-500' : 'text-slate-300 dark:text-slate-600' }}">{{ $stats['warnings'] }}</p>
     <p class="text-xs text-slate-400 dark:text-slate-500 mt-1">{{ $stats['warnings'] === 0 ? 'No warnings' : 'Monitor closely' }}</p>
   </div>
 
@@ -35,7 +35,7 @@
       <div class="absolute top-0 right-0 w-1.5 h-full bg-blue-400 rounded-r-2xl"></div>
     @endif
     <p class="text-xs font-semibold uppercase tracking-wide {{ $stats['info'] > 0 ? 'text-blue-500' : 'text-slate-400 dark:text-slate-500' }}">Info</p>
-    <p class="text-4xl font-bold mt-1 {{ $stats['info'] > 0 ? 'text-blue-500' : 'text-slate-300 dark:text-slate-600' }}">{{ $stats['info'] }}</p>
+    <p class="text-3xl md:text-4xl font-bold mt-1 {{ $stats['info'] > 0 ? 'text-blue-500' : 'text-slate-300 dark:text-slate-600' }}">{{ $stats['info'] }}</p>
     <p class="text-xs text-slate-400 dark:text-slate-500 mt-1">{{ $stats['info'] === 0 ? 'Nothing to note' : 'For your attention' }}</p>
   </div>
 
@@ -45,7 +45,7 @@
       <div class="absolute top-0 right-0 w-1.5 h-full bg-green-400 rounded-r-2xl"></div>
     @endif
     <p class="text-xs font-semibold uppercase tracking-wide text-green-600 dark:text-green-400">Healthy Stores</p>
-    <p class="text-4xl font-bold mt-1 text-green-600 dark:text-green-400">{{ $stats['healthy'] ?? 0 }}<span class="text-lg text-slate-400 dark:text-slate-500 font-normal">/{{ $stats['total'] ?? 0 }}</span></p>
+    <p class="text-3xl md:text-4xl font-bold mt-1 text-green-600 dark:text-green-400">{{ $stats['healthy'] ?? 0 }}<span class="text-lg text-slate-400 dark:text-slate-500 font-normal">/{{ $stats['total'] ?? 0 }}</span></p>
     <p class="text-xs text-slate-400 dark:text-slate-500 mt-1">All platforms online</p>
   </div>
 
