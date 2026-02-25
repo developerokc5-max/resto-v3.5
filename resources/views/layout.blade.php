@@ -132,22 +132,19 @@
     <main class="flex-1">
       <!-- Topbar -->
       <header class="sticky top-0 z-10 bg-white/80 dark:bg-slate-900/80 backdrop-blur border-b border-slate-200 dark:border-slate-800">
-        <div class="px-4 md:px-8 py-3 md:py-4 flex items-center justify-between gap-3">
+        <div class="px-4 md:px-8 py-3 md:py-4 flex items-center gap-3">
+          {{-- Hamburger: mobile only --}}
+          <button onclick="toggleMobileDrawer()" class="md:hidden flex-shrink-0 h-9 w-9 rounded-xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-700 dark:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-700 transition" aria-label="Menu">
+            <svg id="hamburger-icon" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
+            </svg>
+          </button>
           <div class="flex-1 min-w-0">
             <h1 class="text-lg md:text-xl font-semibold dark:text-slate-100 truncate">@yield('page-title', 'Overview')</h1>
             <p class="text-xs md:text-sm text-slate-500 dark:text-slate-400 hidden md:block">@yield('page-description', 'Monitor items & add-ons disabled during peak hours')</p>
           </div>
           <div class="flex items-center gap-2 flex-shrink-0">
             @yield('top-actions')
-            {{-- Mobile: show sync + dark toggle in topbar --}}
-            <button onclick="triggerSync()" id="mobileSyncBtn"
-                    class="md:hidden rounded-xl bg-slate-900 dark:bg-slate-700 text-white px-3 py-2 text-xs font-medium hover:opacity-90 transition">
-              <span id="mobileSyncBtnText">⚡ Sync</span>
-            </button>
-            <button onclick="toggleDarkMode()" id="mobileDarkToggle"
-                    class="md:hidden h-8 w-8 rounded-full bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300 text-sm flex items-center justify-center transition">
-              <span id="mobileDarkIcon">🌙</span>
-            </button>
             <button onclick="window.location.reload()" class="rounded-xl bg-slate-900 dark:bg-slate-700 text-white px-4 py-2 text-sm font-medium hover:opacity-90 transition">
               Reload
             </button>
@@ -156,74 +153,104 @@
       </header>
 
       <!-- Page Content -->
-      <div class="px-4 md:px-8 py-6 pb-24 md:pb-6 space-y-6">
+      <div class="px-4 md:px-8 py-6 space-y-6">
         @yield('content')
       </div>
     </main>
   </div>
 
-  <!-- ── Mobile Bottom Navigation (visible on phones only) ───────────────── -->
-  <nav class="md:hidden fixed bottom-0 left-0 right-0 z-30 bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800"
+  <!-- ── Mobile Drawer Overlay ───────────────────────────────────────────── -->
+  <div id="mobile-drawer-overlay"
+       class="md:hidden hidden fixed inset-0 z-40 bg-black/50"
+       onclick="toggleMobileDrawer()"></div>
+
+  <!-- ── Mobile Drawer Panel ────────────────────────────────────────────── -->
+  <div id="mobile-drawer"
+       class="md:hidden fixed top-0 left-0 bottom-0 z-50 w-72 bg-white dark:bg-slate-900 shadow-2xl flex flex-col
+              transform -translate-x-full transition-transform duration-300 ease-in-out"
        style="padding-bottom: env(safe-area-inset-bottom);">
-    <div class="flex items-stretch">
 
-      <a href="/dashboard"
-         class="flex-1 flex flex-col items-center justify-center py-2 gap-0.5
-                @if(Request::is('/') || Request::is('dashboard'))
-                  text-green-600 dark:text-green-400
-                @else
-                  text-slate-400 dark:text-slate-500
-                @endif">
-        <span class="text-xl leading-none">📊</span>
-        <span class="text-[10px] font-medium tracking-tight">Overview</span>
-      </a>
-
-      <a href="/stores"
-         class="flex-1 flex flex-col items-center justify-center py-2 gap-0.5
-                @if(Request::is('stores') || Request::is('stores/*'))
-                  text-green-600 dark:text-green-400
-                @else
-                  text-slate-400 dark:text-slate-500
-                @endif">
-        <span class="text-xl leading-none">🏪</span>
-        <span class="text-[10px] font-medium tracking-tight">Stores</span>
-      </a>
-
-      <a href="/platforms"
-         class="flex-1 flex flex-col items-center justify-center py-2 gap-0.5
-                @if(Request::is('platforms'))
-                  text-green-600 dark:text-green-400
-                @else
-                  text-slate-400 dark:text-slate-500
-                @endif">
-        <span class="text-xl leading-none">🌐</span>
-        <span class="text-[10px] font-medium tracking-tight">Platforms</span>
-      </a>
-
-      <a href="/alerts"
-         class="flex-1 flex flex-col items-center justify-center py-2 gap-0.5
-                @if(Request::is('alerts'))
-                  text-green-600 dark:text-green-400
-                @else
-                  text-slate-400 dark:text-slate-500
-                @endif">
-        <span class="text-xl leading-none">🔔</span>
-        <span class="text-[10px] font-medium tracking-tight">Alerts</span>
-      </a>
-
-      <a href="/items"
-         class="flex-1 flex flex-col items-center justify-center py-2 gap-0.5
-                @if(Request::is('items'))
-                  text-green-600 dark:text-green-400
-                @else
-                  text-slate-400 dark:text-slate-500
-                @endif">
-        <span class="text-xl leading-none">📦</span>
-        <span class="text-[10px] font-medium tracking-tight">Items</span>
-      </a>
-
+    {{-- Drawer header --}}
+    <div class="flex items-center justify-between px-5 py-4 border-b border-slate-200 dark:border-slate-800">
+      <div class="flex items-center gap-3">
+        <div class="h-9 w-9 rounded-xl bg-slate-900 dark:bg-slate-700 text-white grid place-items-center font-bold text-sm">HO</div>
+        <div>
+          <div class="font-semibold text-sm dark:text-slate-100">HawkerOps</div>
+          <div class="text-xs text-slate-500 dark:text-slate-400">Store Management</div>
+        </div>
+      </div>
+      <button onclick="toggleMobileDrawer()" class="h-8 w-8 rounded-lg bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700 transition text-lg">
+        &times;
+      </button>
     </div>
-  </nav>
+
+    {{-- Nav links --}}
+    <nav class="flex-1 overflow-y-auto px-3 py-4 space-y-1">
+      <a href="/dashboard" onclick="toggleMobileDrawer()"
+         class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition
+                @if(Request::is('/') || Request::is('dashboard')) bg-slate-900 dark:bg-slate-700 text-white @else text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 @endif">
+        📊 Overview
+      </a>
+      <a href="/stores" onclick="toggleMobileDrawer()"
+         class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition
+                @if(Request::is('stores') || Request::is('stores/*')) bg-slate-900 dark:bg-slate-700 text-white @else text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 @endif">
+        🏪 Stores
+      </a>
+      <a href="/items" onclick="toggleMobileDrawer()"
+         class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition
+                @if(Request::is('items')) bg-slate-900 dark:bg-slate-700 text-white @else text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 @endif">
+        📦 Items
+      </a>
+      <a href="/platforms" onclick="toggleMobileDrawer()"
+         class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition
+                @if(Request::is('platforms')) bg-slate-900 dark:bg-slate-700 text-white @else text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 @endif">
+        🌐 Platforms
+      </a>
+      <a href="/alerts" onclick="toggleMobileDrawer()"
+         class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition
+                @if(Request::is('alerts')) bg-slate-900 dark:bg-slate-700 text-white @else text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 @endif">
+        🔔 Alerts
+      </a>
+
+      <div class="border-t border-slate-200 dark:border-slate-700 my-2"></div>
+
+      <a href="/reports/daily-trends" onclick="toggleMobileDrawer()"
+         class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition
+                @if(Request::is('reports/daily-trends')) bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-white @else text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 @endif">
+        📈 Daily Trends
+      </a>
+      <a href="/reports/platform-reliability" onclick="toggleMobileDrawer()"
+         class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition
+                @if(Request::is('reports/platform-reliability')) bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-white @else text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 @endif">
+        📉 Platform Reliability
+      </a>
+      <a href="/reports/store-comparison" onclick="toggleMobileDrawer()"
+         class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition
+                @if(Request::is('reports/store-comparison')) bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-white @else text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 @endif">
+        🏆 Store Comparison
+      </a>
+
+      <div class="border-t border-slate-200 dark:border-slate-700 my-2"></div>
+
+      <a href="/settings/scraper-status" onclick="toggleMobileDrawer()"
+         class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition
+                @if(Request::is('settings/scraper-status')) bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-white @else text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 @endif">
+        ⚙️ Scraper Status
+      </a>
+    </nav>
+
+    {{-- Drawer footer: sync + dark mode --}}
+    <div class="px-4 pb-4 space-y-2">
+      <button onclick="triggerSync(); toggleMobileDrawer();" id="mobileSyncBtn"
+              class="w-full rounded-xl bg-slate-900 dark:bg-slate-700 text-white py-2.5 text-sm font-medium hover:opacity-90 transition">
+        <span id="mobileSyncBtnText">⚡ Sync</span>
+      </button>
+      <button onclick="toggleDarkMode()" id="mobileDarkToggle"
+              class="w-full rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 py-2.5 text-sm font-medium hover:bg-slate-200 dark:hover:bg-slate-700 transition">
+        <span id="mobileDarkIcon">🌙</span> Dark Mode
+      </button>
+    </div>
+  </div>
 
   <!-- Info Popup Modal -->
   <div id="infoPopup" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 pointer-events-none">
@@ -417,6 +444,19 @@
     document.getElementById('infoPopup')?.addEventListener('click', function(e) {
       if (e.target === this) toggleInfoPopup();
     });
+
+    function toggleMobileDrawer() {
+      const drawer = document.getElementById('mobile-drawer');
+      const overlay = document.getElementById('mobile-drawer-overlay');
+      const isOpen = !drawer.classList.contains('-translate-x-full');
+      if (isOpen) {
+        drawer.classList.add('-translate-x-full');
+        overlay.classList.add('hidden');
+      } else {
+        drawer.classList.remove('-translate-x-full');
+        overlay.classList.remove('hidden');
+      }
+    }
 
     function toggleSection(sectionName) {
       const section = document.getElementById(sectionName + '-section');
