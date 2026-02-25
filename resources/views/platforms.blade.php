@@ -98,8 +98,12 @@
           <tr>
             <th class="w-2/5 md:w-1/3 px-3 md:px-5 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">Shop</th>
             <th class="w-1/5 md:w-1/6 px-2 md:px-5 py-3 text-center text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">Grab</th>
-            <th class="w-1/5 md:w-1/6 px-2 md:px-5 py-3 text-center text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">FoodPanda</th>
-            <th class="w-1/5 md:w-1/6 px-2 md:px-5 py-3 text-center text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">Deliveroo</th>
+            <th class="w-1/5 md:w-1/6 px-2 md:px-5 py-3 text-center text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+              <span class="md:hidden">Panda</span><span class="hidden md:inline">FoodPanda</span>
+            </th>
+            <th class="w-1/5 md:w-1/6 px-2 md:px-5 py-3 text-center text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+              <span class="md:hidden">Delivroo</span><span class="hidden md:inline">Deliveroo</span>
+            </th>
             <th class="hidden md:table-cell md:w-1/6 px-5 py-3 text-right text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">Status</th>
           </tr>
         </thead>
