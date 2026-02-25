@@ -7,7 +7,7 @@
 
 @section('content')
   <!-- Scraper Overview -->
-  <section class="grid grid-cols-1 md:grid-cols-4 gap-4">
+  <section class="grid grid-cols-2 md:grid-cols-4 gap-4">
     <div class="bg-green-50 dark:bg-green-900/30 border-2 border-green-200 dark:border-green-700 rounded-2xl p-5 shadow-sm">
       <div class="flex items-center justify-between">
         <div>
@@ -51,17 +51,17 @@
   <section class="space-y-4">
     <!-- Platform Scraper -->
     <div class="bg-white dark:bg-slate-800 border-2 border-blue-200 dark:border-blue-800 rounded-2xl p-6 shadow-sm">
-      <div class="flex items-start justify-between mb-4">
-        <div class="flex items-center gap-4">
-          <div class="w-16 h-16 bg-blue-600 rounded-xl flex items-center justify-center text-white font-bold text-2xl">
+      <div class="flex items-start justify-between mb-4 gap-3">
+        <div class="flex items-center gap-3 min-w-0">
+          <div class="w-10 h-10 md:w-16 md:h-16 bg-blue-600 rounded-xl flex items-center justify-center text-white font-bold text-lg md:text-2xl flex-shrink-0">
             📡
           </div>
-          <div>
-            <h3 class="text-xl font-bold text-slate-900 dark:text-slate-100">Platform Status Scraper</h3>
-            <p class="text-sm text-slate-600 dark:text-slate-400">Monitors all 3 platforms: Grab, FoodPanda, Deliveroo</p>
+          <div class="min-w-0">
+            <h3 class="text-base md:text-xl font-bold text-slate-900 dark:text-slate-100 leading-tight">Platform Status Scraper</h3>
+            <p class="text-xs md:text-sm text-slate-600 dark:text-slate-400 mt-0.5">Monitors all 3 platforms: Grab, FoodPanda, Deliveroo</p>
           </div>
         </div>
-        <div class="flex items-center gap-2">
+        <div class="hidden sm:flex items-center gap-2 flex-shrink-0">
           <span class="px-4 py-2 bg-green-600 text-white rounded-lg text-sm font-bold">HEALTHY</span>
         </div>
       </div>
@@ -98,17 +98,17 @@
 
     <!-- Items Scraper -->
     <div class="bg-white dark:bg-slate-800 border-2 border-purple-200 dark:border-purple-800 rounded-2xl p-6 shadow-sm">
-      <div class="flex items-start justify-between mb-4">
-        <div class="flex items-center gap-4">
-          <div class="w-16 h-16 bg-purple-600 rounded-xl flex items-center justify-center text-white font-bold text-2xl">
+      <div class="flex items-start justify-between mb-4 gap-3">
+        <div class="flex items-center gap-3 min-w-0">
+          <div class="w-10 h-10 md:w-16 md:h-16 bg-purple-600 rounded-xl flex items-center justify-center text-white font-bold text-lg md:text-2xl flex-shrink-0">
             📦
           </div>
-          <div>
-            <h3 class="text-xl font-bold text-slate-900 dark:text-slate-100">Items Scraper (Multi-Platform)</h3>
-            <p class="text-sm text-slate-600 dark:text-slate-400">Extracts menu items from Grab, FoodPanda, and Deliveroo</p>
+          <div class="min-w-0">
+            <h3 class="text-base md:text-xl font-bold text-slate-900 dark:text-slate-100 leading-tight">Items Scraper (Multi-Platform)</h3>
+            <p class="text-xs md:text-sm text-slate-600 dark:text-slate-400 mt-0.5">Extracts menu items from Grab, FoodPanda, and Deliveroo</p>
           </div>
         </div>
-        <div class="flex items-center gap-2">
+        <div class="hidden sm:flex items-center gap-2 flex-shrink-0">
           <span class="px-4 py-2 bg-green-600 text-white rounded-lg text-sm font-bold">HEALTHY</span>
         </div>
       </div>

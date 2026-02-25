@@ -12,8 +12,66 @@
 
 @section('content')
 
-  <!-- Store List -->
-  <div class="bg-white dark:bg-slate-800 border dark:border-slate-700 rounded-2xl overflow-hidden">
+  <!-- Mobile Search (visible on small screens only) -->
+  <div class="sm:hidden">
+    <div class="flex items-center bg-white dark:bg-slate-800 border dark:border-slate-700 rounded-xl px-3 py-2 shadow-sm">
+      <svg class="w-4 h-4 text-slate-400 mr-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+      </svg>
+      <input id="storeSearchMobile" class="bg-transparent outline-none text-sm w-full dark:text-slate-100 dark:placeholder-slate-400" placeholder="Search store..." onkeyup="searchTable()" />
+    </div>
+  </div>
+
+  <!-- Mobile Card List (hidden on md+) -->
+  <div class="sm:hidden space-y-2" id="storeMobileList">
+    @forelse($stores ?? [] as $store)
+    <div class="store-row bg-white dark:bg-slate-800 border dark:border-slate-700 rounded-2xl px-4 py-3 shadow-sm"
+         data-name="{{ strtolower($store['store']) }}">
+      <div class="flex items-center justify-between gap-3">
+        <div class="flex-1 min-w-0">
+          <div class="font-medium text-sm text-slate-900 dark:text-slate-100 truncate">{{ $store['store'] }}</div>
+          <div class="text-[10px] font-mono text-slate-400 dark:text-slate-500 mt-0.5">{{ $store['shop_id'] }}</div>
+        </div>
+        <div class="flex items-center gap-2 flex-shrink-0">
+          @if($store['status'] === 'all_online')
+            <span class="px-2 py-0.5 rounded-full text-[10px] font-medium bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-700">
+              ✓ {{ $store['status_text'] }}
+            </span>
+          @elseif($store['status'] === 'all_offline')
+            <span class="px-2 py-0.5 rounded-full text-[10px] font-medium bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-400 border border-red-200 dark:border-red-700">
+              ✕ {{ $store['status_text'] }}
+            </span>
+          @else
+            <span class="px-2 py-0.5 rounded-full text-[10px] font-medium bg-amber-50 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-700">
+              ⚠ {{ $store['status_text'] }}
+            </span>
+          @endif
+        </div>
+      </div>
+      <div class="flex items-center justify-between mt-2">
+        <div class="flex items-center gap-3 text-xs text-slate-500 dark:text-slate-400">
+          <span>{{ $store['total_items'] ?? 0 }} items</span>
+          @if($store['items_off'] > 0)
+            <span class="font-semibold text-red-600 dark:text-red-400">{{ $store['items_off'] }} OFF</span>
+          @else
+            <span class="text-slate-400 dark:text-slate-500">0 OFF</span>
+          @endif
+          <span class="text-[10px]">{{ $store['last_change'] ?? '—' }}</span>
+        </div>
+        <a href="/store/{{ $store['shop_id'] }}" class="text-xs font-medium text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-slate-100">
+          View →
+        </a>
+      </div>
+    </div>
+    @empty
+    <div class="px-5 py-8 text-center text-sm text-slate-500 dark:text-slate-400 bg-white dark:bg-slate-800 rounded-2xl border dark:border-slate-700">
+      No stores found. Run sync to load data.
+    </div>
+    @endforelse
+  </div>
+
+  <!-- Desktop Table (hidden on mobile) -->
+  <div class="hidden sm:block bg-white dark:bg-slate-800 border dark:border-slate-700 rounded-2xl overflow-hidden">
     <div class="overflow-x-auto">
       <table class="w-full">
         <thead class="bg-slate-50 dark:bg-slate-900 border-b dark:border-slate-700">
@@ -85,7 +143,11 @@
 @section('extra-scripts')
 <script>
   function searchTable() {
-    const filter = document.getElementById('storeSearch').value.toLowerCase();
+    // Grab value from whichever search input is active
+    const desktopVal = document.getElementById('storeSearch')?.value.toLowerCase() || '';
+    const mobileVal  = document.getElementById('storeSearchMobile')?.value.toLowerCase() || '';
+    const filter = desktopVal || mobileVal;
+
     document.querySelectorAll('.store-row').forEach(row => {
       const name = row.getAttribute('data-name') || '';
       row.style.display = name.includes(filter) ? '' : 'none';

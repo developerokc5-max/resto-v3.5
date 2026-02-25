@@ -110,7 +110,8 @@
                     @php $p = $shop['platforms'][$platform]; @endphp
                     <div class="inline-flex flex-col items-center gap-0.5">
                       <span class="inline-flex items-center px-2 py-1 rounded-lg text-[10px] md:text-xs font-medium {{ $p['is_online'] ? 'bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-400 border border-green-200 dark:border-green-700' : 'bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-400 border border-red-200 dark:border-red-700' }}">
-                        {{ $p['is_online'] ? 'ON' : 'OFF' }}
+                        <span class="md:hidden">{{ $p['is_online'] ? 'ON' : 'OFF' }}</span>
+                        <span class="hidden md:inline">{{ $p['is_online'] ? 'ONLINE' : 'OFFLINE' }}</span>
                       </span>
                       <span class="text-[9px] text-slate-400 dark:text-slate-500 hidden md:block">{{ $p['last_checked'] }}</span>
                     </div>
