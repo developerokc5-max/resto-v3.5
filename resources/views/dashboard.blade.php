@@ -114,14 +114,14 @@
         ];
       @endphp
 
-      <div class="store-card bg-white dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-700 rounded-2xl shadow-sm hover:shadow-xl hover:border-slate-300 dark:hover:border-slate-600 transition-all duration-300 flex flex-col h-full"
+      <div class="store-card bg-white dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-700 rounded-2xl shadow-sm hover:shadow-xl hover:border-slate-300 dark:hover:border-slate-600 transition-all duration-300 flex flex-col h-full min-h-[420px]"
            data-status="{{ $s['overall_status'] ?? 'mixed' }}"
            data-offline-count="{{ $offlineCount }}"
            data-store-name="{{ strtolower($s['store'] ?? '') }}">
 
         <!-- Card Header -->
-        <div class="bg-gradient-to-r from-slate-50 to-slate-100 dark:from-slate-700 dark:to-slate-800 border-b-2 border-slate-200 dark:border-slate-600 px-5 py-4 rounded-t-2xl">
-          <div class="flex items-center justify-between">
+        <div class="bg-gradient-to-r from-slate-50 to-slate-100 dark:from-slate-700 dark:to-slate-800 border-b-2 border-slate-200 dark:border-slate-600 px-5 min-h-[6rem] flex items-center rounded-t-2xl">
+          <div class="flex items-center justify-between w-full">
             <div class="flex-1">
               <h3 class="text-xl font-bold text-slate-900 dark:text-slate-100">{{ $s['store'] ?? 'Store' }}</h3>
               @if(isset($s['brand']) && $s['brand'])
