@@ -358,13 +358,15 @@ Route::get('/store/{shop_id}', function ($shop_id) {
 Route::get('/items', function (Request $request) {
     // Get filter parameters
     $selectedRestaurant = $request->get('restaurant');
+    $selectedCategory   = $request->get('category');
+    $selectedStatus     = $request->get('status'); // 'online' | 'has_issue' | 'offline'
     $currentPage = (int) $request->get('page', 1);
 
-    // Create unique cache key based on filters - cache grouped items for 10 minutes
-    $cacheKey = 'items_grouped_' . md5($selectedRestaurant ?? 'all');
+    // Cache key includes restaurant + category (both applied at DB level)
+    $cacheKey = 'items_grouped_' . md5(($selectedRestaurant ?? 'all') . '|' . ($selectedCategory ?? 'all'));
 
     // Cache the GROUPED items (not raw items) for better performance
-    $itemsGrouped = Cache::remember($cacheKey, 600, function () use ($selectedRestaurant) {
+    $itemsGrouped = Cache::remember($cacheKey, 600, function () use ($selectedRestaurant, $selectedCategory) {
         // Build query for items - only select needed columns
         $query = DB::table('items')
             ->select('shop_name', 'name', 'category', 'price', 'image_url', 'sku', 'platform', 'is_available');
@@ -372,6 +374,11 @@ Route::get('/items', function (Request $request) {
         // Apply restaurant filter if provided
         if ($selectedRestaurant) {
             $query->where('shop_name', $selectedRestaurant);
+        }
+
+        // Apply category filter at DB level
+        if ($selectedCategory) {
+            $query->where('category', $selectedCategory);
         }
 
         // Get all items from the items table
@@ -407,6 +414,21 @@ Route::get('/items', function (Request $request) {
 
         return array_values($grouped);
     });
+
+    // Apply status filter AFTER grouping (platform count is a computed value)
+    if ($selectedStatus) {
+        $itemsGrouped = array_values(array_filter($itemsGrouped, function ($item) use ($selectedStatus) {
+            $oc = (int)$item['platforms']['grab']
+                + (int)$item['platforms']['foodpanda']
+                + (int)$item['platforms']['deliveroo'];
+            return match ($selectedStatus) {
+                'online'    => $oc === 3,
+                'has_issue' => $oc < 3,
+                'offline'   => $oc === 0,
+                default     => true,
+            };
+        }));
+    }
 
     // Get ALL restaurants from shops table (including those without items)
     $restaurants = DB::table('shops')
