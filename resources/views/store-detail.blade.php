@@ -126,13 +126,13 @@
       <header class="bg-white dark:bg-slate-900 border-b dark:border-slate-800 px-4 md:px-8 py-4">
         <div class="flex items-center justify-between">
           <div>
-            <div class="flex items-center gap-3">
-              <a href="/stores" class="text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100">
+            <div class="flex items-center gap-3 min-w-0">
+              <a href="/stores" class="flex-shrink-0 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100">
                 <i class="fas fa-arrow-left"></i>
               </a>
-              <div>
-                <h2 class="text-2xl font-bold text-slate-900 dark:text-slate-100">{{ $shopInfo['name'] }}</h2>
-                <p class="text-sm text-slate-500 dark:text-slate-400">{{ count($items) }} items from {{ $shopInfo['brand'] }}</p>
+              <div class="min-w-0">
+                <h2 class="text-base md:text-2xl font-bold text-slate-900 dark:text-slate-100 leading-tight truncate">{{ $shopInfo['name'] }}</h2>
+                <p class="text-xs md:text-sm text-slate-500 dark:text-slate-400">{{ count($items) }} items · {{ $shopInfo['brand'] }}</p>
               </div>
             </div>
           </div>
@@ -151,7 +151,7 @@
         </div>
       </header>
 
-      <div class="px-8 py-6 space-y-6 max-w-[1600px] mx-auto">
+      <div class="px-4 md:px-8 py-4 md:py-6 space-y-6 max-w-[1600px] mx-auto">
         <!-- Platform Status Cards -->
         <section class="grid grid-cols-1 md:grid-cols-3 gap-4">
           @foreach(['grab' => 'Grab', 'foodpanda' => 'FoodPanda', 'deliveroo' => 'Deliveroo'] as $platform => $name)
@@ -177,15 +177,22 @@
         </section>
 
         <!-- Filter and View Toggle -->
-        <section class="bg-white dark:bg-slate-800 border dark:border-slate-700 rounded-2xl shadow-sm p-6">
-          <div class="flex items-center justify-between mb-4">
-            <div class="flex gap-4">
-              <select id="statusFilter" class="px-4 py-2 border border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-100 rounded-xl focus:ring-2 focus:ring-slate-900 focus:border-transparent">
+        <section class="bg-white dark:bg-slate-800 border dark:border-slate-700 rounded-2xl shadow-sm p-4 md:p-6">
+          {{-- Mobile search --}}
+          <div class="sm:hidden mb-3">
+            <div class="flex items-center bg-slate-100 dark:bg-slate-700 rounded-xl px-3 py-2">
+              <i class="fas fa-search text-slate-400 dark:text-slate-500 mr-2 text-sm"></i>
+              <input id="searchInputMobile" class="bg-transparent outline-none text-sm w-full dark:text-slate-100 dark:placeholder-slate-400" placeholder="Search items..." />
+            </div>
+          </div>
+          <div class="flex flex-col sm:flex-row gap-3 sm:items-center sm:justify-between">
+            <div class="flex flex-wrap gap-2">
+              <select id="statusFilter" class="flex-1 min-w-[120px] px-3 py-2 border border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-100 rounded-xl text-sm focus:ring-2 focus:ring-slate-900 focus:border-transparent">
                 <option value="">All Status</option>
                 <option value="active">Active Only</option>
                 <option value="inactive">Inactive Only</option>
               </select>
-              <select id="categoryFilter" class="px-4 py-2 border border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-100 rounded-xl focus:ring-2 focus:ring-slate-900 focus:border-transparent">
+              <select id="categoryFilter" class="flex-1 min-w-[140px] px-3 py-2 border border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-100 rounded-xl text-sm focus:ring-2 focus:ring-slate-900 focus:border-transparent">
                 <option value="">All Categories</option>
                 @php
                   $categories = array_unique(array_column($items, 'category'));
@@ -196,26 +203,26 @@
                 @endforeach
               </select>
             </div>
-            <div class="flex items-center gap-2">
-              <button id="gridViewBtn" class="px-4 py-2 bg-slate-900 dark:bg-slate-700 text-white rounded-xl font-medium">
-                <i class="fas fa-th"></i> Grid View
+            <div class="flex items-center gap-2 self-end sm:self-auto flex-shrink-0">
+              <button id="gridViewBtn" class="px-3 py-2 bg-slate-900 dark:bg-slate-700 text-white rounded-xl text-sm font-medium">
+                <i class="fas fa-th"></i> <span class="hidden sm:inline">Grid</span>
               </button>
-              <button id="tableViewBtn" class="px-4 py-2 border border-slate-300 dark:border-slate-600 dark:text-slate-300 rounded-xl font-medium hover:bg-slate-50 dark:hover:bg-slate-700">
-                <i class="fas fa-list"></i> Table View
+              <button id="tableViewBtn" class="px-3 py-2 border border-slate-300 dark:border-slate-600 dark:text-slate-300 rounded-xl text-sm font-medium hover:bg-slate-50 dark:hover:bg-slate-700">
+                <i class="fas fa-list"></i> <span class="hidden sm:inline">Table</span>
               </button>
             </div>
           </div>
         </section>
 
         <!-- Items Grid View -->
-        <section id="gridView" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-6">
+        <section id="gridView" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-3 md:gap-6">
           @foreach($items as $item)
             <div class="item-card bg-white dark:bg-slate-800 rounded-2xl shadow-sm overflow-hidden"
                  data-category="{{ $item['category'] }}"
                  data-status="{{ $item['all_active'] ? 'active' : 'inactive' }}"
                  data-name="{{ strtolower($item['name']) }}">
               <!-- Image -->
-              <div class="relative h-48 bg-slate-100 dark:bg-slate-700">
+              <div class="relative h-32 md:h-48 bg-slate-100 dark:bg-slate-700">
                 @if($item['image_url'])
                   <img src="{{ $item['image_url'] }}" alt="{{ $item['name'] }}" class="w-full h-full object-cover" loading="lazy">
                 @else
@@ -239,13 +246,13 @@
               </div>
 
               <!-- Details -->
-              <div class="p-4 flex flex-col h-[140px]">
-                <h3 class="font-semibold text-slate-900 dark:text-slate-100 mb-1 line-clamp-2 min-h-[48px]">{{ $item['name'] }}</h3>
-                <p class="text-xs text-slate-500 dark:text-slate-400 mb-2 truncate">{{ $item['category'] }}</p>
+              <div class="p-3 md:p-4 flex flex-col">
+                <h3 class="font-semibold text-xs md:text-sm text-slate-900 dark:text-slate-100 mb-1 line-clamp-2">{{ $item['name'] }}</h3>
+                <p class="text-[10px] md:text-xs text-slate-500 dark:text-slate-400 mb-2 truncate">{{ $item['category'] }}</p>
 
-                <div class="mt-auto">
-                  <div class="mb-3">
-                    <span class="text-lg font-bold text-slate-900 dark:text-slate-100">${{ number_format($item['price'], 2) }}</span>
+                <div class="mt-2">
+                  <div class="mb-2">
+                    <span class="text-sm md:text-lg font-bold text-slate-900 dark:text-slate-100">${{ number_format($item['price'], 2) }}</span>
                   </div>
 
                   <!-- Platform Status -->
@@ -275,13 +282,13 @@
             <table class="w-full">
               <thead class="bg-slate-50 dark:bg-slate-900 border-b dark:border-slate-700">
                 <tr>
-                  <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase">Item</th>
-                  <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase">Category</th>
-                  <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase">Price</th>
-                  <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase">Status</th>
-                  <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase">Grab</th>
-                  <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase">FoodPanda</th>
-                  <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase">Deliveroo</th>
+                  <th class="px-3 md:px-6 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase">Item</th>
+                  <th class="hidden sm:table-cell px-3 md:px-6 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase">Category</th>
+                  <th class="px-3 md:px-6 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase">Price</th>
+                  <th class="px-3 md:px-6 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase">Status</th>
+                  <th class="px-2 md:px-6 py-3 text-center text-xs font-medium text-slate-500 dark:text-slate-400 uppercase">Grab</th>
+                  <th class="px-2 md:px-6 py-3 text-center text-xs font-medium text-slate-500 dark:text-slate-400 uppercase"><span class="md:hidden">Panda</span><span class="hidden md:inline">FoodPanda</span></th>
+                  <th class="px-2 md:px-6 py-3 text-center text-xs font-medium text-slate-500 dark:text-slate-400 uppercase"><span class="md:hidden">Delvro</span><span class="hidden md:inline">Deliveroo</span></th>
                 </tr>
               </thead>
               <tbody class="divide-y divide-slate-200 dark:divide-slate-700">
@@ -290,33 +297,33 @@
                       data-category="{{ $item['category'] }}"
                       data-status="{{ $item['all_active'] ? 'active' : 'inactive' }}"
                       data-name="{{ strtolower($item['name']) }}">
-                    <td class="px-6 py-4">
-                      <div class="font-medium text-slate-900 dark:text-slate-100">{{ $item['name'] }}</div>
+                    <td class="px-3 md:px-6 py-3 md:py-4">
+                      <div class="font-medium text-xs md:text-sm text-slate-900 dark:text-slate-100 leading-tight">{{ $item['name'] }}</div>
                     </td>
-                    <td class="px-6 py-4">
-                      <div class="text-sm text-slate-600 dark:text-slate-300">{{ $item['category'] }}</div>
+                    <td class="hidden sm:table-cell px-3 md:px-6 py-3 md:py-4">
+                      <div class="text-xs md:text-sm text-slate-600 dark:text-slate-300">{{ $item['category'] }}</div>
                     </td>
-                    <td class="px-6 py-4">
-                      <div class="font-semibold text-slate-900 dark:text-slate-100">${{ number_format($item['price'], 2) }}</div>
+                    <td class="px-3 md:px-6 py-3 md:py-4">
+                      <div class="text-xs md:text-sm font-semibold text-slate-900 dark:text-slate-100">${{ number_format($item['price'], 2) }}</div>
                     </td>
-                    <td class="px-6 py-4">
+                    <td class="px-3 md:px-6 py-3 md:py-4">
                       @if($item['all_active'])
-                        <span class="px-2.5 py-1 rounded-full text-xs font-medium bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400">
-                          ACTIVE
+                        <span class="px-1.5 md:px-2.5 py-0.5 md:py-1 rounded-full text-[10px] md:text-xs font-medium bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400">
+                          ON
                         </span>
                       @else
-                        <span class="px-2.5 py-1 rounded-full text-xs font-medium bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400">
-                          INACTIVE
+                        <span class="px-1.5 md:px-2.5 py-0.5 md:py-1 rounded-full text-[10px] md:text-xs font-medium bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400">
+                          OFF
                         </span>
                       @endif
                     </td>
                     @foreach(['grab', 'foodpanda', 'deliveroo'] as $platform)
-                      <td class="px-6 py-4">
+                      <td class="px-2 md:px-6 py-3 md:py-4 text-center">
                         @if(isset($item['platforms'][$platform]))
                           @if($item['platforms'][$platform]['is_available'])
-                            <i class="fas fa-check-circle text-green-500"></i>
+                            <i class="fas fa-check-circle text-green-500 text-sm md:text-base"></i>
                           @else
-                            <i class="fas fa-times-circle text-red-500"></i>
+                            <i class="fas fa-times-circle text-red-500 text-sm md:text-base"></i>
                           @endif
                         @else
                           <span class="text-slate-300 dark:text-slate-600">—</span>
@@ -350,6 +357,7 @@
 
     // Search functionality
     const searchInput = document.getElementById('searchInput');
+    const searchInputMobile = document.getElementById('searchInputMobile');
     const statusFilter = document.getElementById('statusFilter');
     const categoryFilter = document.getElementById('categoryFilter');
     const gridViewBtn = document.getElementById('gridViewBtn');
@@ -358,7 +366,7 @@
     const tableView = document.getElementById('tableView');
 
     function filterItems() {
-      const searchTerm = searchInput.value.toLowerCase();
+      const searchTerm = (searchInput?.value || searchInputMobile?.value || '').toLowerCase();
       const statusValue = statusFilter.value;
       const categoryValue = categoryFilter.value;
 
@@ -381,7 +389,8 @@
       });
     }
 
-    searchInput.addEventListener('input', filterItems);
+    searchInput?.addEventListener('input', filterItems);
+    searchInputMobile?.addEventListener('input', filterItems);
     statusFilter.addEventListener('change', filterItems);
     categoryFilter.addEventListener('change', filterItems);
 
