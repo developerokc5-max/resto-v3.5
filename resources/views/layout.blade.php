@@ -237,6 +237,11 @@
                 @if(Request::is('settings/scraper-status')) bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-white @else text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 @endif">
         ⚙️ Scraper Status
       </a>
+      <a href="/settings/configuration" onclick="toggleMobileDrawer()"
+         class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition
+                @if(Request::is('settings/configuration')) bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-white @else text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 @endif">
+        ⚙️ Settings
+      </a>
     </nav>
 
     {{-- Drawer footer: sync + dark mode --}}
