@@ -241,7 +241,7 @@
 
     {{-- Drawer footer: sync + dark mode --}}
     <div class="px-4 pb-4 space-y-2">
-      <button onclick="triggerSync(); toggleMobileDrawer();" id="mobileRefreshBtn"
+      <button onclick="window.location.reload();" id="mobileRefreshBtn"
               class="w-full rounded-xl bg-slate-600 dark:bg-slate-600 text-white py-2.5 text-sm font-medium hover:opacity-90 transition">
         <span id="mobileRefreshBtnText">🔄 Data Refresh</span>
       </button>
