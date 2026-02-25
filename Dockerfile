@@ -37,8 +37,11 @@ RUN apt-get update && apt-get install -y \
         pdo_sqlite \
         zip \
         mbstring \
+        opcache \
     && apt-get clean \
-    && rm -rf /var/lib/apt/lists/*
+    && rm -rf /var/lib/apt/lists/* \
+    && echo "opcache.enable=1\nopcache.memory_consumption=256\nopcache.interned_strings_buffer=16\nopcache.max_accelerated_files=10000\nopcache.validate_timestamps=0\nopcache.revalidate_freq=0\nopcache.fast_shutdown=1" \
+       > /usr/local/etc/php/conf.d/opcache.ini
 
 # 3️⃣ Install Composer
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer

@@ -405,6 +405,7 @@ Route::get('/items', function (Request $request) {
 
     // Get ALL restaurants from shops table (including those without items)
     $restaurants = DB::table('shops')
+        ->select('shop_name')
         ->orderBy('shop_name')
         ->pluck('shop_name')
         ->values();
@@ -412,7 +413,8 @@ Route::get('/items', function (Request $request) {
     // Get unique categories - with caching
     $categories = Cache::remember('items_categories', 300, function () {
         return DB::table('items')
-            ->distinct('category')
+            ->select('category')
+            ->distinct()
             ->whereNotNull('category')
             ->pluck('category')
             ->sort()
@@ -515,15 +517,17 @@ Route::get('/items/management', function (Request $request) {
     // Limit to requested number of unique items
     $itemsGrouped = array_slice(array_values($itemsGrouped), 0, $limit);
 
-    // Get unique shops and categories for filters
+    // Get unique shops and categories for filters (select only needed columns)
     $shops = DB::table('items')
-        ->distinct('shop_name')
+        ->select('shop_name')
+        ->distinct()
         ->pluck('shop_name')
         ->sort()
         ->values();
 
     $categories = DB::table('items')
-        ->distinct('category')
+        ->select('category')
+        ->distinct()
         ->whereNotNull('category')
         ->pluck('category')
         ->sort()
@@ -1206,29 +1210,67 @@ Route::get('/items-mock', function () {
 
 // Alerts Page
 Route::get('/alerts', function () {
+    // Cache all 6 Neon DB round-trips for 5 minutes (data only changes when scraper runs)
+    $dbData = \Illuminate\Support\Facades\Cache::remember('alerts_db_data', 300, function () {
+        $allPlatformCounts = DB::table('platform_status')
+            ->selectRaw('shop_id, COUNT(*) as total_platforms')
+            ->groupBy('shop_id')
+            ->pluck('total_platforms', 'shop_id');
+
+        return [
+            'allPlatformCounts' => $allPlatformCounts,
+
+            'offlineCounts' => DB::table('platform_status')
+                ->selectRaw('shop_id, COUNT(*) as offline_count, MAX(last_checked_at) as last_checked')
+                ->where('is_online', false)
+                ->groupBy('shop_id')
+                ->get()
+                ->keyBy('shop_id'),
+
+            'storeNameMap' => DB::table('platform_status')
+                ->selectRaw('shop_id, MIN(store_name) as store_name')
+                ->groupBy('shop_id')
+                ->pluck('store_name', 'shop_id'),
+
+            'platformStats' => DB::table('platform_status')
+                ->selectRaw('platform,
+                    SUM(CASE WHEN is_online = false THEN 1 ELSE 0 END) as offline_count,
+                    SUM(CASE WHEN is_online = true THEN 1 ELSE 0 END) as online_count,
+                    COUNT(*) as total,
+                    MAX(last_checked_at) as last_checked')
+                ->groupBy('platform')
+                ->get()
+                ->keyBy('platform'),
+
+            'storesWithOfflineItems' => DB::table('items')
+                ->selectRaw('shop_name, shop_id,
+                    SUM(CASE WHEN is_available = false THEN 1 ELSE 0 END) as offline_count,
+                    COUNT(*) as total_items,
+                    MAX(updated_at) as last_updated')
+                ->groupBy('shop_name', 'shop_id')
+                ->havingRaw('SUM(CASE WHEN is_available = false THEN 1 ELSE 0 END) > 20')
+                ->orderByRaw('offline_count DESC')
+                ->limit(8)
+                ->get(),
+
+            'latestScrape' => DB::table('platform_status')->max('last_checked_at'),
+            'totalStores'  => DB::table('platform_status')->distinct()->count('shop_id'),
+        ];
+    });
+
+    // Unpack cached data
+    $allPlatformCounts      = $dbData['allPlatformCounts'];
+    $offlineCounts          = $dbData['offlineCounts'];
+    $storeNameMap           = $dbData['storeNameMap'];
+    $platformStats          = $dbData['platformStats'];
+    $storesWithOfflineItems = $dbData['storesWithOfflineItems'];
+    $latestScrape           = $dbData['latestScrape'];
+    $totalStores            = $dbData['totalStores'];
+
+    // All logic below is pure PHP (no DB) — runs fresh every request, microseconds fast
     $alerts = [];
 
     // ── 1. Stores where ALL platforms are offline ──────────────────────────────
-    // Get every shop_id and how many platforms are tracked for it
-    $allPlatformCounts = DB::table('platform_status')
-        ->selectRaw('shop_id, COUNT(*) as total_platforms')
-        ->groupBy('shop_id')
-        ->pluck('total_platforms', 'shop_id');
-
-    $offlineCounts = DB::table('platform_status')
-        ->selectRaw('shop_id, COUNT(*) as offline_count, MAX(last_checked_at) as last_checked')
-        ->where('is_online', false)
-        ->groupBy('shop_id')
-        ->get()
-        ->keyBy('shop_id');
-
-    // Pre-fetch all store names in ONE query (avoids N+1: one query per shop)
-    $storeNameMap = DB::table('platform_status')
-        ->whereIn('shop_id', $allPlatformCounts->keys()->toArray())
-        ->selectRaw('shop_id, MIN(store_name) as store_name')
-        ->groupBy('shop_id')
-        ->pluck('store_name', 'shop_id');
-
     $fullyOfflineStores = [];
     foreach ($allPlatformCounts as $shopId => $total) {
         $offlineRow = $offlineCounts->get($shopId);
@@ -1243,10 +1285,8 @@ Route::get('/alerts', function () {
     }
 
     if (count($fullyOfflineStores) > 0) {
-        // Sort by last_checked ascending (longest offline first)
         usort($fullyOfflineStores, fn($a, $b) => strcmp($a['last_checked'] ?? '', $b['last_checked'] ?? ''));
-
-        $oldest = $fullyOfflineStores[0]['last_checked'] ?? null;
+        $oldest    = $fullyOfflineStores[0]['last_checked'] ?? null;
         $timeLabel = $oldest ? \Carbon\Carbon::parse($oldest)->diffForHumans() : 'Unknown';
 
         if (count($fullyOfflineStores) === 1) {
@@ -1274,25 +1314,13 @@ Route::get('/alerts', function () {
         }
     }
 
-    // ── 2. Per-platform offline counts (with real last_checked timestamp) ──────
-    $platformStats = DB::table('platform_status')
-        ->selectRaw('platform,
-            SUM(CASE WHEN is_online = false THEN 1 ELSE 0 END) as offline_count,
-            SUM(CASE WHEN is_online = true THEN 1 ELSE 0 END) as online_count,
-            COUNT(*) as total,
-            MAX(last_checked_at) as last_checked')
-        ->groupBy('platform')
-        ->get()
-        ->keyBy('platform');
-
+    // ── 2. Per-platform offline counts ────────────────────────────────────────
     foreach ($platformStats as $platform => $stat) {
         if ($stat->offline_count >= 3) {
-            $pct = $stat->total > 0 ? round(($stat->offline_count / $stat->total) * 100) : 0;
-            $timeLabel = $stat->last_checked
-                ? \Carbon\Carbon::parse($stat->last_checked)->diffForHumans()
-                : 'Unknown';
-            $type = $pct >= 50 ? 'critical' : 'warning';
-            $alerts[] = [
+            $pct       = $stat->total > 0 ? round(($stat->offline_count / $stat->total) * 100) : 0;
+            $timeLabel = $stat->last_checked ? \Carbon\Carbon::parse($stat->last_checked)->diffForHumans() : 'Unknown';
+            $type      = $pct >= 50 ? 'critical' : 'warning';
+            $alerts[]  = [
                 'type'        => $type,
                 'title'       => ucfirst($platform) . ' — ' . $stat->offline_count . ' Stores Offline',
                 'message'     => $pct . '% of ' . ucfirst($platform) . ' stores are offline (' . $stat->offline_count . '/' . $stat->total . ')',
@@ -1304,25 +1332,12 @@ Route::get('/alerts', function () {
         }
     }
 
-    // ── 3. Stores with many unavailable items (with real updated_at) ──────────
-    $storesWithOfflineItems = DB::table('items')
-        ->selectRaw('shop_name, shop_id,
-            SUM(CASE WHEN is_available = false THEN 1 ELSE 0 END) as offline_count,
-            COUNT(*) as total_items,
-            MAX(updated_at) as last_updated')
-        ->groupBy('shop_name', 'shop_id')
-        ->havingRaw('SUM(CASE WHEN is_available = false THEN 1 ELSE 0 END) > 20')
-        ->orderByRaw('offline_count DESC')
-        ->limit(8)
-        ->get();
-
+    // ── 3. Stores with many unavailable items ─────────────────────────────────
     foreach ($storesWithOfflineItems as $store) {
-        $pct = $store->total_items > 0 ? round(($store->offline_count / $store->total_items) * 100) : 0;
-        $timeLabel = $store->last_updated
-            ? \Carbon\Carbon::parse($store->last_updated)->diffForHumans()
-            : 'Unknown';
-        $type = $pct >= 70 ? 'critical' : 'warning';
-        $alerts[] = [
+        $pct       = $store->total_items > 0 ? round(($store->offline_count / $store->total_items) * 100) : 0;
+        $timeLabel = $store->last_updated ? \Carbon\Carbon::parse($store->last_updated)->diffForHumans() : 'Unknown';
+        $type      = $pct >= 70 ? 'critical' : 'warning';
+        $alerts[]  = [
             'type'        => $type,
             'title'       => $store->shop_name . ' — ' . $store->offline_count . ' Items Unavailable',
             'message'     => $pct . '% of menu items are currently unavailable (' . $store->offline_count . '/' . $store->total_items . ' items)',
@@ -1334,16 +1349,13 @@ Route::get('/alerts', function () {
     }
 
     // ── 4. Stale data warning (no scrape in > 2 hours) ────────────────────────
-    $latestScrape = DB::table('platform_status')->max('last_checked_at');
-    $staleThresholdMinutes = 120;
     if ($latestScrape) {
         $minutesAgo = \Carbon\Carbon::parse($latestScrape)->diffInMinutes(now());
-        if ($minutesAgo > $staleThresholdMinutes) {
-            $hoursAgo = round($minutesAgo / 60, 1);
+        if ($minutesAgo > 120) {
             $alerts[] = [
                 'type'        => 'info',
                 'title'       => 'Data May Be Stale',
-                'message'     => 'Last scrape was ' . $hoursAgo . ' hours ago. Run a scrape to get fresh platform data.',
+                'message'     => 'Last scrape was ' . round($minutesAgo / 60, 1) . ' hours ago. Run a scrape to get fresh platform data.',
                 'time'        => \Carbon\Carbon::parse($latestScrape)->diffForHumans(),
                 'store'       => 'All stores',
                 'detail'      => null,
@@ -1366,16 +1378,11 @@ Route::get('/alerts', function () {
     $order = ['critical' => 0, 'warning' => 1, 'info' => 2];
     usort($alerts, fn($a, $b) => ($order[$a['type']] ?? 9) <=> ($order[$b['type']] ?? 9));
 
-    // ── Stats ─────────────────────────────────────────────────────────────────
     $criticalCount = count(array_filter($alerts, fn($a) => $a['type'] === 'critical'));
     $warningCount  = count(array_filter($alerts, fn($a) => $a['type'] === 'warning'));
     $infoCount     = count(array_filter($alerts, fn($a) => $a['type'] === 'info'));
-
-    // Total online stores (no alerts) = all stores minus fully-offline ones
-    $totalStores   = DB::table('platform_status')->distinct()->count('shop_id');
     $healthyStores = max(0, $totalStores - count($fullyOfflineStores));
 
-    // Per-platform summary for sidebar
     $platformSummary = [];
     foreach ($platformStats as $platform => $stat) {
         $platformSummary[] = [
@@ -1383,9 +1390,7 @@ Route::get('/alerts', function () {
             'online'  => (int) $stat->online_count,
             'offline' => (int) $stat->offline_count,
             'total'   => (int) $stat->total,
-            'checked' => $stat->last_checked
-                ? \Carbon\Carbon::parse($stat->last_checked)->diffForHumans()
-                : 'Never',
+            'checked' => $stat->last_checked ? \Carbon\Carbon::parse($stat->last_checked)->diffForHumans() : 'Never',
         ];
     }
 
@@ -1400,9 +1405,7 @@ Route::get('/alerts', function () {
         ],
         'platformSummary' => $platformSummary,
         'lastSync'        => getLastSyncTimestamp(),
-        'latestScrape'    => $latestScrape
-            ? \Carbon\Carbon::parse($latestScrape)->diffForHumans()
-            : 'Never',
+        'latestScrape'    => $latestScrape ? \Carbon\Carbon::parse($latestScrape)->diffForHumans() : 'Never',
     ]);
 });
 
@@ -1574,37 +1577,43 @@ Route::get('/reports/item-performance', function () {
 Route::get('/reports/store-comparison', function () {
     $shopMap = ShopHelper::getShopMap();
 
-    // Get all unique store IDs from platform_status
-    $shopIds = DB::table('platform_status')->distinct()->pluck('shop_id')->toArray();
+    // Cache the 3 Neon DB round-trips for 5 minutes
+    $dbData = \Illuminate\Support\Facades\Cache::remember('store_comparison_db', 300, function () {
+        $shopIds = DB::table('platform_status')->select('shop_id')->distinct()->pluck('shop_id')->toArray();
 
-    // Build store list with names
+        return [
+            'shopIds' => $shopIds,
+
+            'allPlatformStatuses' => DB::table('platform_status')
+                ->whereIn('shop_id', $shopIds)
+                ->get()
+                ->groupBy('shop_id')
+                ->map(fn($items) => $items->keyBy('platform')),
+
+            // Fetch all item counts (no whereIn filter — avoids needing shopNames at cache time)
+            'itemCounts' => DB::table('items')
+                ->select(
+                    'shop_name',
+                    DB::raw('COUNT(*) as total'),
+                    DB::raw('SUM(CASE WHEN is_available = false THEN 1 ELSE 0 END) as offline')
+                )
+                ->groupBy('shop_name')
+                ->get()
+                ->keyBy('shop_name'),
+        ];
+    });
+
+    $shopIds             = $dbData['shopIds'];
+    $allPlatformStatuses = $dbData['allPlatformStatuses'];
+    $itemCounts          = $dbData['itemCounts'];
+
+    // Build store list with names (uses shopMap, fast in-memory)
     $stores = collect($shopIds)->map(function ($shopId) use ($shopMap) {
         return [
             'id' => $shopId,
             'name' => $shopMap[$shopId]['name'] ?? 'Unknown Store'
         ];
     })->sortBy('name')->values();
-
-    $shopNames = $stores->pluck('name')->toArray();
-
-    // Batch fetch platform statuses (one query)
-    $allPlatformStatuses = DB::table('platform_status')
-        ->whereIn('shop_id', $shopIds)
-        ->get()
-        ->groupBy('shop_id')
-        ->map(fn($items) => $items->keyBy('platform'));
-
-    // Batch fetch item counts per shop (one query)
-    $itemCounts = DB::table('items')
-        ->whereIn('shop_name', $shopNames)
-        ->select(
-            'shop_name',
-            DB::raw('COUNT(*) as total'),
-            DB::raw('SUM(CASE WHEN is_available = false THEN 1 ELSE 0 END) as offline')
-        )
-        ->groupBy('shop_name')
-        ->get()
-        ->keyBy('shop_name');
 
     // Process each store
     $allStoresData = [];
@@ -1708,16 +1717,29 @@ Route::get('/settings/scraper-status', function () {
         }
     }
 
-    // Fall back to DB if log files not found yet (first run)
-    if (!$platformTime) {
-        $dbTime = DB::table('platform_status')->max('last_checked_at');
-        $platformTime = $dbTime ? \Carbon\Carbon::parse($dbTime)->setTimezone('Asia/Singapore') : null;
-        $platformItems = DB::table('platform_status')->count();
-    }
-    if (!$itemsTime) {
-        $dbTime = DB::table('items')->max('updated_at');
-        $itemsTime = $dbTime ? \Carbon\Carbon::parse($dbTime)->setTimezone('Asia/Singapore') : null;
-        $itemsCollected = DB::table('items')->count();
+    // Fall back to DB if log files not found yet — cache these queries for 5 minutes
+    if (!$platformTime || !$itemsTime) {
+        $dbFallback = \Illuminate\Support\Facades\Cache::remember('scraper_status_db', 300, function () {
+            return [
+                'platform_last'  => DB::table('platform_status')->max('last_checked_at'),
+                'platform_count' => DB::table('platform_status')->count(),
+                'items_last'     => DB::table('items')->max('updated_at'),
+                'items_count'    => DB::table('items')->count(),
+            ];
+        });
+
+        if (!$platformTime) {
+            $platformTime  = $dbFallback['platform_last']
+                ? \Carbon\Carbon::parse($dbFallback['platform_last'])->setTimezone('Asia/Singapore')
+                : null;
+            $platformItems = $dbFallback['platform_count'];
+        }
+        if (!$itemsTime) {
+            $itemsTime      = $dbFallback['items_last']
+                ? \Carbon\Carbon::parse($dbFallback['items_last'])->setTimezone('Asia/Singapore')
+                : null;
+            $itemsCollected = $dbFallback['items_count'];
+        }
     }
 
     // Overall last run: whichever ran more recently
@@ -1732,11 +1754,13 @@ Route::get('/settings/scraper-status', function () {
 
     $lastRunTimeFormatted = $lastRunTime ? $lastRunTime->diffForHumans() : 'Never';
 
-    // Get database logs for reference
-    $scraperLogs = DB::table('scraper_logs')
-        ->orderBy('executed_at', 'desc')
-        ->limit(20)
-        ->get();
+    // Get database logs for reference (cached 5 minutes)
+    $scraperLogs = \Illuminate\Support\Facades\Cache::remember('scraper_logs_recent', 300, function () {
+        return DB::table('scraper_logs')
+            ->orderBy('executed_at', 'desc')
+            ->limit(20)
+            ->get();
+    });
 
     $scraperStatus = [
         'active_scrapers' => 2,
