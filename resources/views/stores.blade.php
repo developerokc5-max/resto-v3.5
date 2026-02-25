@@ -45,7 +45,11 @@
           </div>
           <!-- Items OFF counter -->
           <div class="flex-shrink-0 text-right">
-            @if($store['items_off'] > 0)
+            @if($isOffline)
+              {{-- Store fully offline — items data irrelevant --}}
+              <div class="text-lg font-bold leading-none text-red-500">✕</div>
+              <div class="text-[9px] text-slate-400 dark:text-slate-500 mt-0.5 uppercase tracking-wide">offline</div>
+            @elseif($store['items_off'] > 0)
               <div class="text-lg font-bold leading-none text-red-600 dark:text-red-400">{{ $store['items_off'] }}</div>
               <div class="text-[9px] text-slate-400 dark:text-slate-500 mt-0.5 uppercase tracking-wide">items off</div>
             @else
