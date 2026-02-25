@@ -9,34 +9,34 @@
 {{-- ── Summary Cards ─────────────────────────────────────────────────────── --}}
 <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
 
-  <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-sm p-5 border border-slate-100 dark:border-slate-700">
+  <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-sm p-3 md:p-5 border border-slate-100 dark:border-slate-700">
     <p class="text-xs text-slate-500 dark:text-slate-400 font-medium uppercase tracking-wide mb-1">Total Stores</p>
-    <p class="text-3xl font-bold text-slate-900 dark:text-slate-100">{{ $summary['total'] }}</p>
+    <p class="text-2xl md:text-3xl font-bold text-slate-900 dark:text-slate-100">{{ $summary['total'] }}</p>
   </div>
 
-  <div class="bg-green-50 dark:bg-green-900/30 rounded-2xl shadow-sm p-5 border border-green-200 dark:border-green-700">
+  <div class="bg-green-50 dark:bg-green-900/30 rounded-2xl shadow-sm p-3 md:p-5 border border-green-200 dark:border-green-700">
     <p class="text-xs text-green-700 dark:text-green-400 font-medium uppercase tracking-wide mb-1">All Online</p>
-    <p class="text-3xl font-bold text-green-800 dark:text-green-100">{{ $summary['all_online'] }}</p>
+    <p class="text-2xl md:text-3xl font-bold text-green-800 dark:text-green-100">{{ $summary['all_online'] }}</p>
   </div>
 
-  <div class="bg-amber-50 dark:bg-amber-900/30 rounded-2xl shadow-sm p-5 border border-amber-200 dark:border-amber-700">
+  <div class="bg-amber-50 dark:bg-amber-900/30 rounded-2xl shadow-sm p-3 md:p-5 border border-amber-200 dark:border-amber-700">
     <p class="text-xs text-amber-700 dark:text-amber-400 font-medium uppercase tracking-wide mb-1">Partial</p>
-    <p class="text-3xl font-bold text-amber-800 dark:text-amber-100">{{ $summary['partial'] }}</p>
+    <p class="text-2xl md:text-3xl font-bold text-amber-800 dark:text-amber-100">{{ $summary['partial'] }}</p>
   </div>
 
-  <div class="bg-red-50 dark:bg-red-900/30 rounded-2xl shadow-sm p-5 border border-red-200 dark:border-red-700">
+  <div class="bg-red-50 dark:bg-red-900/30 rounded-2xl shadow-sm p-3 md:p-5 border border-red-200 dark:border-red-700">
     <p class="text-xs text-red-700 dark:text-red-400 font-medium uppercase tracking-wide mb-1">All Offline</p>
-    <p class="text-3xl font-bold text-red-800 dark:text-red-100">{{ $summary['all_offline'] }}</p>
+    <p class="text-2xl md:text-3xl font-bold text-red-800 dark:text-red-100">{{ $summary['all_offline'] }}</p>
   </div>
 
-  <div class="bg-blue-50 dark:bg-blue-900/30 rounded-2xl shadow-sm p-5 border border-blue-200 dark:border-blue-700">
+  <div class="bg-blue-50 dark:bg-blue-900/30 rounded-2xl shadow-sm p-3 md:p-5 border border-blue-200 dark:border-blue-700">
     <p class="text-xs text-blue-700 dark:text-blue-400 font-medium uppercase tracking-wide mb-1">Total Items</p>
-    <p class="text-3xl font-bold text-blue-800 dark:text-blue-100">{{ number_format($summary['total_items']) }}</p>
+    <p class="text-2xl md:text-3xl font-bold text-blue-800 dark:text-blue-100">{{ number_format($summary['total_items']) }}</p>
   </div>
 
-  <div class="bg-rose-50 dark:bg-rose-900/30 rounded-2xl shadow-sm p-5 border border-rose-200 dark:border-rose-700">
+  <div class="bg-rose-50 dark:bg-rose-900/30 rounded-2xl shadow-sm p-3 md:p-5 border border-rose-200 dark:border-rose-700">
     <p class="text-xs text-rose-700 dark:text-rose-400 font-medium uppercase tracking-wide mb-1">Offline Items</p>
-    <p class="text-3xl font-bold text-rose-800 dark:text-rose-100">{{ number_format($summary['offline_items']) }}</p>
+    <p class="text-2xl md:text-3xl font-bold text-rose-800 dark:text-rose-100">{{ number_format($summary['offline_items']) }}</p>
   </div>
 
 </div>
