@@ -1057,47 +1057,24 @@ Route::get('/dashboard/export', function () {
         ];
     }
 
-    // Generate CSV filename with timestamp
-    $filename = 'hawkerops_dashboard_' . date('Y-m-d_His') . '.csv';
+    // Build CSV in memory (more reliable than streaming on all server setups)
+    $nowSgt   = \Carbon\Carbon::now('Asia/Singapore')->format('Y-m-d_His');
+    $filename = 'hawkerops_export_' . $nowSgt . '_SGT.csv';
 
-    // Set headers for CSV download
-    $headers = [
-        'Content-Type' => 'text/csv; charset=UTF-8',
-        'Content-Disposition' => 'attachment; filename="' . $filename . '"',
-    ];
+    // BOM for Excel UTF-8 + column headers
+    $csv = "\xEF\xBB\xBF";
+    $csv .= "Brand,Store Name,Shop ID,Overall Status,Platforms Online,Total Offline Items,";
+    $csv .= "Grab Status,Grab Offline Items,Grab Last Checked (SGT),";
+    $csv .= "FoodPanda Status,FoodPanda Offline Items,FoodPanda Last Checked (SGT),";
+    $csv .= "Deliveroo Status,Deliveroo Offline Items,Deliveroo Last Checked (SGT),";
+    $csv .= "Exported At (SGT)\n";
 
-    // Create CSV content
-    $callback = function() use ($exportData) {
-        $file = fopen('php://output', 'w');
+    $exportedAt = \Carbon\Carbon::now('Asia/Singapore')->format('Y-m-d H:i:s');
 
-        // Add BOM for Excel UTF-8 support
-        fprintf($file, chr(0xEF).chr(0xBB).chr(0xBF));
-
-        // CSV Headers
-        fputcsv($file, [
-            'Brand',
-            'Store Name',
-            'Shop ID',
-            'Overall Status',
-            'Platforms Online',
-            'Total Offline Items',
-
-            'Grab Status',
-            'Grab Offline Items',
-            'Grab Last Checked',
-
-            'FoodPanda Status',
-            'FoodPanda Offline Items',
-            'FoodPanda Last Checked',
-
-            'Deliveroo Status',
-            'Deliveroo Offline Items',
-            'Deliveroo Last Checked',
-        ]);
-
-        // CSV Data
-        foreach ($exportData as $row) {
-            fputcsv($file, [
+    foreach ($exportData as $row) {
+        $csv .= implode(',', array_map(
+            fn($v) => '"' . str_replace('"', '""', (string) $v) . '"',
+            [
                 $row['brand'],
                 $row['store_name'],
                 $row['shop_id'],
@@ -1116,13 +1093,18 @@ Route::get('/dashboard/export', function () {
                 $row['deliveroo_status'],
                 $row['deliveroo_offline_items'],
                 $row['deliveroo_last_checked'],
-            ]);
-        }
 
-        fclose($file);
-    };
+                $exportedAt,
+            ]
+        )) . "\n";
+    }
 
-    return response()->stream($callback, 200, $headers);
+    return response($csv, 200, [
+        'Content-Type'        => 'text/csv; charset=UTF-8',
+        'Content-Disposition' => 'attachment; filename="' . $filename . '"',
+        'Cache-Control'       => 'no-store, no-cache',
+        'Pragma'              => 'no-cache',
+    ]);
 });
 
 // Export Logs to CSV
