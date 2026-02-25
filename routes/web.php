@@ -10,6 +10,11 @@ use App\Helpers\CacheOptimizationHelper;
 // Increase execution time for heavy operations
 set_time_limit(300);
 
+// PWA offline fallback page
+Route::get('/offline', function () {
+    return response()->view('pwa.offline')->header('Cache-Control', 'no-store');
+});
+
 /**
  * Get the last sync/update timestamp for consistent display across all pages
  * Uses priority order: restosuite_item_snapshots > platform_status

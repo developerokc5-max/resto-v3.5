@@ -1,0 +1,43 @@
+{
+  "name": "HawkerOps",
+  "short_name": "HawkerOps",
+  "description": "Restaurant platform monitoring — Grab, FoodPanda, Deliveroo",
+  "start_url": "/dashboard",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#0f172a",
+  "theme_color": "#0f172a",
+  "lang": "en",
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Dashboard",
+      "url": "/dashboard",
+      "description": "Overview of all stores"
+    },
+    {
+      "name": "Platforms",
+      "url": "/platforms",
+      "description": "Grab, FoodPanda, Deliveroo status"
+    },
+    {
+      "name": "Alerts",
+      "url": "/alerts",
+      "description": "Active alerts and warnings"
+    }
+  ]
+}
