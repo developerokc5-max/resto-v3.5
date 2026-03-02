@@ -653,6 +653,88 @@ Route::post('/history/snapshot', function () {
     }
 });
 
+// Store logs bulk snapshot — called by GitHub Actions after each scrape
+// Saves today's entry in store_status_logs for EVERY shop automatically
+Route::post('/store-logs/snapshot', function () {
+    try {
+        $nowSgt          = \Carbon\Carbon::now('Asia/Singapore');
+        $todayUtcStart   = $nowSgt->copy()->startOfDay()->setTimezone('UTC');
+        $tomorrowUtcStart = $todayUtcStart->copy()->addDay();
+
+        // 2 queries to get all data at once
+        $allPlatformStatus = DB::table('platform_status')->get()->groupBy('shop_id');
+
+        $allOfflineItems = DB::table('items')
+            ->where('is_available', false)
+            ->whereIn('platform', ['grab', 'foodpanda', 'deliveroo'])
+            ->get()
+            ->groupBy(fn($item) => $item->shop_id . '|' . $item->platform);
+
+        $insertRows = [];
+        $shopIds    = [];
+
+        foreach ($allPlatformStatus as $shopId => $platforms) {
+            $platformData    = [];
+            $onlinePlatforms = 0;
+            $totalOffline    = 0;
+
+            foreach (['grab', 'foodpanda', 'deliveroo'] as $platform) {
+                $status       = $platforms->firstWhere('platform', $platform);
+                $offlineItems = $allOfflineItems->get($shopId . '|' . $platform, collect());
+                $offlineCount = $offlineItems->count();
+                $isOnline     = $status && $status->is_online;
+
+                if ($isOnline) $onlinePlatforms++;
+                $totalOffline += $offlineCount;
+
+                $platformData[$platform] = [
+                    'name'          => ucfirst($platform),
+                    'status'        => $isOnline ? 'Online' : 'Offline',
+                    'last_checked'  => $status ? $status->last_checked_at : null,
+                    'offline_items' => $offlineItems->map(fn($i) => [
+                        'name'      => $i->name,
+                        'sku'       => $i->sku       ?? null,
+                        'category'  => $i->category  ?? null,
+                        'price'     => $i->price      ?? null,
+                        'image_url' => $i->image_url  ?? null,
+                    ])->values()->toArray(),
+                    'offline_count' => $offlineCount,
+                ];
+            }
+
+            $shopIds[]    = $shopId;
+            $insertRows[] = [
+                'shop_id'             => $shopId,
+                'shop_name'           => $platforms->first()->store_name ?? $shopId,
+                'platforms_online'    => $onlinePlatforms,
+                'total_platforms'     => 3,
+                'total_offline_items' => $totalOffline,
+                'platform_data'       => json_encode($platformData),
+                'logged_at'           => $todayUtcStart,
+                'created_at'          => $todayUtcStart,
+                'updated_at'          => $todayUtcStart,
+            ];
+        }
+
+        if (!empty($insertRows)) {
+            DB::table('store_status_logs')
+                ->whereIn('shop_id', $shopIds)
+                ->whereBetween('logged_at', [$todayUtcStart, $tomorrowUtcStart])
+                ->delete();
+            DB::table('store_status_logs')->insert($insertRows);
+        }
+
+        return response()->json([
+            'success' => true,
+            'stores'  => count($insertRows),
+            'date'    => $nowSgt->format('Y-m-d'),
+        ]);
+
+    } catch (\Exception $e) {
+        return response()->json(['success' => false, 'error' => $e->getMessage()], 500);
+    }
+});
+
 // Health check
 Route::get('/health', function () {
     // Single consolidated query instead of 4 separate queries

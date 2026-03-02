@@ -50,3 +50,10 @@ jobs:
                --retry 3 \
                --retry-delay 10 \
                --retry-all-errors || echo "History snapshot ping failed (non-fatal)"
+
+      - name: Update Store Status Logs
+        run: |
+          curl -s -X POST "https://resto-v3-5.onrender.com/api/store-logs/snapshot" \
+               -H "Content-Type: application/json" \
+               --max-time 30 \
+               --retry 2 || echo "Store logs snapshot ping failed (non-fatal)"
