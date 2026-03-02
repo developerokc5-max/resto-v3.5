@@ -99,10 +99,10 @@
           </div>
           <div class="w-px h-10 bg-slate-200 dark:bg-slate-700"></div>
           <div class="text-center">
-            <div class="text-3xl font-bold {{ $day['total_offline_items'] > 0 ? 'text-red-500' : 'text-slate-300 dark:text-slate-600' }}">
+            <div class="text-3xl font-bold {{ $day['total_offline_items'] > 0 ? 'text-red-500' : 'text-emerald-500' }}">
               {{ $day['total_offline_items'] }}
             </div>
-            <div class="text-[11px] text-slate-400 dark:text-slate-500 mt-0.5">items off</div>
+            <div class="text-[11px] text-slate-400 dark:text-slate-500 mt-0.5">menu items off</div>
           </div>
         </div>
 
