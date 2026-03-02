@@ -19,6 +19,14 @@
     </svg>
     Back
   </a>
+  <a href="/history/{{ $date }}/export"
+     class="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold transition shadow-sm">
+    <svg class="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+    </svg>
+    <span class="hidden sm:inline">Export CSV</span>
+    <span class="sm:hidden">CSV</span>
+  </a>
 @endsection
 
 @section('content')
@@ -69,7 +77,7 @@
   </div>
   <div class="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-2.5 shadow-sm text-center">
     <div class="text-[10px] leading-tight text-slate-500 dark:text-slate-400 font-medium">Items<br>Offline</div>
-    <div class="text-xl font-bold text-red-500 mt-1">{{ number_format($totalOffline) }}</div>
+    <div class="text-xl font-bold {{ $totalOffline > 0 ? 'text-red-500' : 'text-emerald-500' }} mt-1">{{ number_format($totalOffline) }}</div>
   </div>
 </div>
 
