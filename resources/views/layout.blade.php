@@ -68,7 +68,7 @@
         <a class="flex items-center gap-3 px-3 py-2 rounded-xl @if(Request::is('alerts')) bg-slate-900 dark:bg-slate-700 text-white shadow-sm @else text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 @endif transition" href="/alerts">
           <span class="text-sm font-medium">🔔 Alerts</span>
         </a>
-        <a class="flex items-center gap-3 px-3 py-2 rounded-xl @if(Request::is('history')) bg-slate-900 dark:bg-slate-700 text-white shadow-sm @else text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 @endif transition" href="/history">
+        <a class="flex items-center gap-3 px-3 py-2 rounded-xl @if(Request::is('history') || Request::is('history/*')) bg-slate-900 dark:bg-slate-700 text-white shadow-sm @else text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 @endif transition" href="/history">
           <span class="text-sm font-medium">📋 History</span>
         </a>
 
@@ -203,7 +203,7 @@
       </a>
       <a href="/history" onclick="toggleMobileDrawer()"
          class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition
-                @if(Request::is('history')) bg-slate-900 dark:bg-slate-700 text-white @else text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 @endif">
+                @if(Request::is('history') || Request::is('history/*')) bg-slate-900 dark:bg-slate-700 text-white @else text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 @endif">
         📋 History
       </a>
 

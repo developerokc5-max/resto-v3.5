@@ -41,3 +41,10 @@ jobs:
         env:
           NEON_DB: ${{ secrets.NEON_DB }}
         run: python item-test-trait-1/scrape_items_sync_v2.py
+
+      - name: Update Daily History Snapshot
+        run: |
+          curl -s -X POST "https://resto-v3-5.onrender.com/api/history/snapshot" \
+               -H "Content-Type: application/json" \
+               --max-time 30 \
+               --retry 2 || echo "History snapshot ping failed (non-fatal)"

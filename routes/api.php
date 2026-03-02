@@ -550,6 +550,109 @@ Route::post('/alerts/check', function () {
     }
 });
 
+// History snapshot — called by GitHub Actions after each scrape completes
+// Reads current platform_status + items tables, writes fresh daily_history rows for today
+Route::post('/history/snapshot', function () {
+    try {
+        // Auto-create daily_history table if migration didn't run (Neon cold-start guard)
+        if (!\Illuminate\Support\Facades\Schema::hasTable('daily_history')) {
+            \Illuminate\Support\Facades\Schema::create('daily_history', function (\Illuminate\Database\Schema\Blueprint $table) {
+                $table->id();
+                $table->date('snapshot_date');
+                $table->string('shop_id');
+                $table->string('shop_name');
+                $table->integer('platforms_online')->default(0);
+                $table->integer('total_platforms')->default(3);
+                $table->integer('total_offline_items')->default(0);
+                $table->text('platform_data')->nullable();
+                $table->timestamp('last_updated_at')->nullable();
+                $table->timestamps();
+                $table->unique(['snapshot_date', 'shop_id']);
+                $table->index('snapshot_date');
+            });
+        }
+
+        $nowSgt   = \Carbon\Carbon::now('Asia/Singapore');
+        $todaySgt = $nowSgt->format('Y-m-d');
+        $nowUtc   = $nowSgt->copy()->setTimezone('UTC');
+
+        // Read current state from both tables (2 queries)
+        $allPlatformStatus = DB::table('platform_status')->get()->groupBy('shop_id');
+
+        $allOfflineItems = DB::table('items')
+            ->where('is_available', false)
+            ->whereIn('platform', ['grab', 'foodpanda', 'deliveroo'])
+            ->get()
+            ->groupBy(fn($item) => $item->shop_id . '|' . $item->platform);
+
+        $insertRows = [];
+        foreach ($allPlatformStatus as $shopId => $platforms) {
+            $platformData    = [];
+            $onlinePlatforms = 0;
+            $totalOffline    = 0;
+
+            foreach (['grab', 'foodpanda', 'deliveroo'] as $platform) {
+                $status       = $platforms->firstWhere('platform', $platform);
+                $offlineItems = $allOfflineItems->get($shopId . '|' . $platform, collect());
+                $offlineCount = $offlineItems->count();
+                $isOnline     = $status && $status->is_online;
+
+                if ($isOnline) $onlinePlatforms++;
+                $totalOffline += $offlineCount;
+
+                $platformData[$platform] = [
+                    'name'          => ucfirst($platform),
+                    'status'        => $isOnline ? 'Online' : 'Offline',
+                    'offline_items' => $offlineItems->map(fn($i) => [
+                        'name'      => $i->name,
+                        'sku'       => $i->sku       ?? null,
+                        'category'  => $i->category  ?? null,
+                        'price'     => $i->price      ?? null,
+                        'image_url' => $i->image_url  ?? null,
+                    ])->values()->toArray(),
+                    'offline_count' => $offlineCount,
+                ];
+            }
+
+            $insertRows[] = [
+                'snapshot_date'       => $todaySgt,
+                'shop_id'             => $shopId,
+                'shop_name'           => $platforms->first()->store_name ?? $shopId,
+                'platforms_online'    => $onlinePlatforms,
+                'total_platforms'     => 3,
+                'total_offline_items' => $totalOffline,
+                'platform_data'       => json_encode($platformData),
+                'last_updated_at'     => $nowUtc,
+                'created_at'          => $nowUtc,
+                'updated_at'          => $nowUtc,
+            ];
+        }
+
+        if (!empty($insertRows)) {
+            DB::table('daily_history')
+                ->where('snapshot_date', $todaySgt)
+                ->whereIn('shop_id', array_column($insertRows, 'shop_id'))
+                ->delete();
+            DB::table('daily_history')->insert($insertRows);
+        }
+
+        return response()->json([
+            'success'   => true,
+            'message'   => 'Daily history snapshot updated',
+            'date'      => $todaySgt,
+            'stores'    => count($insertRows),
+            'timestamp' => $nowUtc->toIso8601String(),
+        ]);
+
+    } catch (\Exception $e) {
+        \Illuminate\Support\Facades\Log::error('History snapshot failed: ' . $e->getMessage());
+        return response()->json([
+            'success' => false,
+            'message' => 'Snapshot failed: ' . $e->getMessage(),
+        ], 500);
+    }
+});
+
 // Health check
 Route::get('/health', function () {
     // Single consolidated query instead of 4 separate queries

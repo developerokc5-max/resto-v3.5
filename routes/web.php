@@ -1543,6 +1543,53 @@ Route::get('/history', function () {
     ]);
 });
 
+// History Detail: All stores for a specific day
+Route::get('/history/{date}', function ($date) {
+    // Validate YYYY-MM-DD format
+    if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $date)) {
+        abort(404);
+    }
+
+    if (!\Illuminate\Support\Facades\Schema::hasTable('daily_history')) {
+        return redirect('/history');
+    }
+
+    $nowSgt   = \Carbon\Carbon::now('Asia/Singapore');
+    $todaySgt = $nowSgt->format('Y-m-d');
+
+    // Load all stores for this date, issues first, then alphabetical
+    $stores = DB::table('daily_history')
+        ->where('snapshot_date', $date)
+        ->orderByRaw('CASE WHEN platforms_online < total_platforms OR total_offline_items > 0 THEN 0 ELSE 1 END')
+        ->orderBy('shop_name')
+        ->get()
+        ->map(function ($store) {
+            $store->platform_data = json_decode($store->platform_data, true);
+            return $store;
+        });
+
+    if ($stores->isEmpty()) {
+        abort(404);
+    }
+
+    $lastUpdatedRaw = DB::table('daily_history')
+        ->where('snapshot_date', $date)
+        ->max('last_updated_at');
+
+    $lastUpdated = $lastUpdatedRaw
+        ? \Carbon\Carbon::parse($lastUpdatedRaw)->setTimezone('Asia/Singapore')->format('g:i A') . ' SGT'
+        : null;
+
+    return view('history-detail', [
+        'date'         => $date,
+        'parsedDate'   => \Carbon\Carbon::parse($date)->setTimezone('Asia/Singapore'),
+        'isToday'      => $date === $todaySgt,
+        'stores'       => $stores,
+        'lastUpdated'  => $lastUpdated,
+        'lastSync'     => getLastSyncTimestamp(),
+    ]);
+});
+
 // Reports: Daily Trends
 Route::get('/reports/daily-trends', function () {
     $today = \Carbon\Carbon::now('Asia/Singapore')->startOfDay();
