@@ -1418,52 +1418,26 @@ Route::get('/alerts', function () {
     ]);
 });
 
-// Temporary debug route — remove after diagnosing history 500
-Route::get('/history-debug', function () {
-    try {
-        $hasTable = \Illuminate\Support\Facades\Schema::hasTable('daily_history');
-        $migrationRan = DB::table('migrations')
-            ->where('migration', '2026_03_02_000000_create_daily_history_table')
-            ->exists();
-        $tables = DB::select("SELECT tablename FROM pg_tables WHERE schemaname = 'public' ORDER BY tablename");
-
-        // Try the actual history logic
-        $nowSgt   = \Carbon\Carbon::now('Asia/Singapore');
-        $todaySgt = $nowSgt->format('Y-m-d');
-        $nowUtc   = $nowSgt->copy()->setTimezone('UTC');
-
-        $allPlatformStatus = DB::table('platform_status')->get()->groupBy('shop_id');
-        $allOfflineItems   = DB::table('items')
-            ->where('is_available', false)
-            ->whereIn('platform', ['grab', 'foodpanda', 'deliveroo'])
-            ->get()
-            ->groupBy(fn($item) => $item->shop_id . '|' . $item->platform);
-
-        $insertRows = [];
-        foreach ($allPlatformStatus as $shopId => $platforms) {
-            $insertRows[] = ['snapshot_date' => $todaySgt, 'shop_id' => $shopId];
-        }
-
-        return response()->json([
-            'has_table'      => $hasTable,
-            'migration_ran'  => $migrationRan,
-            'tables'         => array_column($tables, 'tablename'),
-            'platform_count' => $allPlatformStatus->count(),
-            'offline_items'  => $allOfflineItems->count(),
-            'insert_preview' => count($insertRows) . ' rows to insert',
-        ]);
-    } catch (\Throwable $e) {
-        return response()->json([
-            'error'   => $e->getMessage(),
-            'file'    => $e->getFile(),
-            'line'    => $e->getLine(),
-            'trace'   => array_slice(explode("\n", $e->getTraceAsString()), 0, 10),
-        ], 500);
-    }
-});
-
 // History: Daily snapshot log — one row per store per day in daily_history table
 Route::get('/history', function () {
+    // Auto-create daily_history table if the migration didn't run in the container
+    if (!\Illuminate\Support\Facades\Schema::hasTable('daily_history')) {
+        \Illuminate\Support\Facades\Schema::create('daily_history', function (\Illuminate\Database\Schema\Blueprint $table) {
+            $table->id();
+            $table->date('snapshot_date');
+            $table->string('shop_id');
+            $table->string('shop_name');
+            $table->integer('platforms_online')->default(0);
+            $table->integer('total_platforms')->default(3);
+            $table->integer('total_offline_items')->default(0);
+            $table->text('platform_data')->nullable();
+            $table->timestamp('last_updated_at')->nullable();
+            $table->timestamps();
+            $table->unique(['snapshot_date', 'shop_id']);
+            $table->index('snapshot_date');
+        });
+    }
+
     $nowSgt     = \Carbon\Carbon::now('Asia/Singapore');
     $todaySgt   = $nowSgt->format('Y-m-d');
     $nowUtc     = $nowSgt->copy()->setTimezone('UTC');
