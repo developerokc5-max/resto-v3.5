@@ -47,9 +47,6 @@ NUM_WORKERS = 6
 # Thread-safe logging
 log_lock = Lock()
 
-# Database lock for thread-safe writes
-db_lock = Lock()
-
 
 def log(msg, worker_id=None):
     """Thread-safe logging to both console and file"""
@@ -75,6 +72,10 @@ def save_items_with_history(items, worker_id):
     - Updates existing items
     - Inserts new items
     - Records status changes in item_status_history
+
+    No global db_lock needed: outlets are distributed one-per-worker by
+    distribute_outlets(), so two workers will never write the same shop's
+    items concurrently.  Each call already uses its own connection.
     """
     if not items:
         return 0, 0, 0
@@ -87,88 +88,30 @@ def save_items_with_history(items, worker_id):
     changes_recorded = 0
 
     try:
-        with db_lock:
-            for item in items:
-                shop_name = item['shop_name']
-                name = item['name']
-                sku = item.get('sku', '')
-                platform = item['platform']
+        for item in items:
+            shop_name = item['shop_name']
+            name = item['name']
+            sku = item.get('sku', '')
+            platform = item['platform']
 
-                # Check if item exists
-                cursor.execute("""
-                    SELECT id, is_available, price, category, image_url
-                    FROM items
-                    WHERE shop_name = %s AND name = %s AND platform = %s AND (sku = %s OR (sku IS NULL AND %s = ''))
-                """, (shop_name, name, platform, sku, sku))
+            # Check if item exists (also needed to detect availability change for history)
+            cursor.execute("""
+                SELECT id, is_available, price, category, image_url
+                FROM items
+                WHERE shop_name = %s AND name = %s AND platform = %s AND (sku = %s OR (sku IS NULL AND %s = ''))
+            """, (shop_name, name, platform, sku, sku))
 
-                existing = cursor.fetchone()
+            existing = cursor.fetchone()
 
-                now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
-                if existing:
-                    # Item exists - check for changes
-                    old_available = bool(existing[1])
-                    new_available = bool(item['is_available'])
+            if existing:
+                # Item exists - check for changes
+                old_available = bool(existing[1])
+                new_available = bool(item['is_available'])
 
-                    # Record status change if availability changed
-                    if old_available != new_available:
-                        cursor.execute("""
-                            INSERT INTO item_status_history
-                            (item_name, shop_id, shop_name, platform, is_available, price, category, image_url, changed_at, created_at, updated_at)
-                            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-                        """, (
-                            name,
-                            item['shop_id'],
-                            shop_name,
-                            platform,
-                            bool(new_available),
-                            item['price'],
-                            item['category'],
-                            item['image_url'],
-                            now,
-                            now,
-                            now
-                        ))
-                        changes_recorded += 1
-                        log(f"  STATUS CHANGE: {name} @ {shop_name} [{platform}] -> {'ONLINE' if new_available else 'OFFLINE'}", worker_id)
-
-                    # Update existing item
-                    cursor.execute("""
-                        UPDATE items
-                        SET is_available = %s, price = %s, category = %s, image_url = %s, updated_at = %s
-                        WHERE id = %s
-                    """, (
-                        bool(item['is_available']),
-                        item['price'],
-                        item['category'],
-                        item['image_url'],
-                        now,
-                        existing[0]
-                    ))
-                    updated += 1
-
-                else:
-                    # New item - insert it
-                    cursor.execute("""
-                        INSERT INTO items
-                        (shop_id, shop_name, name, sku, category, price, image_url, is_available, platform, created_at, updated_at)
-                        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-                    """, (
-                        item['shop_id'],
-                        shop_name,
-                        name,
-                        sku,
-                        item['category'],
-                        item['price'],
-                        item['image_url'],
-                        bool(item['is_available']),
-                        platform,
-                        now,
-                        now
-                    ))
-                    inserted += 1
-
-                    # Also record initial status in history (only for new items, skip if exists)
+                # Record status change if availability changed
+                if old_available != new_available:
                     cursor.execute("""
                         INSERT INTO item_status_history
                         (item_name, shop_id, shop_name, platform, is_available, price, category, image_url, changed_at, created_at, updated_at)
@@ -178,7 +121,7 @@ def save_items_with_history(items, worker_id):
                         item['shop_id'],
                         shop_name,
                         platform,
-                        bool(item['is_available']),
+                        bool(new_available),
                         item['price'],
                         item['category'],
                         item['image_url'],
@@ -186,8 +129,65 @@ def save_items_with_history(items, worker_id):
                         now,
                         now
                     ))
+                    changes_recorded += 1
+                    log(f"  STATUS CHANGE: {name} @ {shop_name} [{platform}] -> {'ONLINE' if new_available else 'OFFLINE'}", worker_id)
 
-            conn.commit()
+                # Update existing item
+                cursor.execute("""
+                    UPDATE items
+                    SET is_available = %s, price = %s, category = %s, image_url = %s, updated_at = %s
+                    WHERE id = %s
+                """, (
+                    bool(item['is_available']),
+                    item['price'],
+                    item['category'],
+                    item['image_url'],
+                    now,
+                    existing[0]
+                ))
+                updated += 1
+
+            else:
+                # New item - insert it
+                cursor.execute("""
+                    INSERT INTO items
+                    (shop_id, shop_name, name, sku, category, price, image_url, is_available, platform, created_at, updated_at)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                """, (
+                    item['shop_id'],
+                    shop_name,
+                    name,
+                    sku,
+                    item['category'],
+                    item['price'],
+                    item['image_url'],
+                    bool(item['is_available']),
+                    platform,
+                    now,
+                    now
+                ))
+                inserted += 1
+
+                # Also record initial status in history (only for new items, skip if exists)
+                cursor.execute("""
+                    INSERT INTO item_status_history
+                    (item_name, shop_id, shop_name, platform, is_available, price, category, image_url, changed_at, created_at, updated_at)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                """, (
+                    name,
+                    item['shop_id'],
+                    shop_name,
+                    platform,
+                    bool(item['is_available']),
+                    item['price'],
+                    item['category'],
+                    item['image_url'],
+                    now,
+                    now,
+                    now
+                ))
+
+        conn.commit()
 
     except Exception as e:
         log(f"ERROR saving items: {str(e)}", worker_id)
@@ -199,48 +199,37 @@ def save_items_with_history(items, worker_id):
 
 
 def save_shop(shop_info, worker_id=None):
-    """Save or update shop info"""
+    """
+    Save or update shop info via UPSERT.
+    shops.shop_id has a UNIQUE constraint, so ON CONFLICT is safe.
+    No global lock needed — each outlet belongs to exactly one worker.
+    """
     conn = get_db_connection()
     cursor = conn.cursor()
 
     try:
-        with db_lock:
-            now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
-            # Check if shop exists
-            cursor.execute("SELECT id FROM shops WHERE shop_id = %s", (shop_info['shop_id'],))
-            existing = cursor.fetchone()
+        cursor.execute("""
+            INSERT INTO shops (shop_id, shop_name, organization_name, has_items, last_synced_at, created_at, updated_at)
+            VALUES (%s, %s, %s, %s, %s, %s, %s)
+            ON CONFLICT (shop_id) DO UPDATE SET
+                shop_name         = EXCLUDED.shop_name,
+                organization_name = EXCLUDED.organization_name,
+                has_items         = EXCLUDED.has_items,
+                last_synced_at    = EXCLUDED.last_synced_at,
+                updated_at        = EXCLUDED.updated_at
+        """, (
+            shop_info['shop_id'],
+            shop_info['shop_name'],
+            shop_info['organization_name'],
+            bool(shop_info['has_items']),
+            now,
+            now,
+            now
+        ))
 
-            if existing:
-                # Update
-                cursor.execute("""
-                    UPDATE shops
-                    SET shop_name = %s, organization_name = %s, has_items = %s, last_synced_at = %s, updated_at = %s
-                    WHERE shop_id = %s
-                """, (
-                    shop_info['shop_name'],
-                    shop_info['organization_name'],
-                    bool(shop_info['has_items']),
-                    now,
-                    now,
-                    shop_info['shop_id']
-                ))
-            else:
-                # Insert
-                cursor.execute("""
-                    INSERT INTO shops (shop_id, shop_name, organization_name, has_items, last_synced_at, created_at, updated_at)
-                    VALUES (%s, %s, %s, %s, %s, %s, %s)
-                """, (
-                    shop_info['shop_id'],
-                    shop_info['shop_name'],
-                    shop_info['organization_name'],
-                    bool(shop_info['has_items']),
-                    now,
-                    now,
-                    now
-                ))
-
-            conn.commit()
+        conn.commit()
     except Exception as e:
         log(f"ERROR saving shop: {str(e)}", worker_id)
         conn.rollback()
