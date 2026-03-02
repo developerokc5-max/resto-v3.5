@@ -135,7 +135,7 @@
           </div>
           <div class="flex items-center gap-2 flex-shrink-0">
             @yield('top-actions')
-            <button onclick="window.location.reload()" class="rounded-xl bg-slate-900 dark:bg-slate-700 text-white px-4 py-2 text-sm font-medium hover:opacity-90 transition">
+            <button onclick="smartReload(this)" class="rounded-xl bg-slate-900 dark:bg-slate-700 text-white px-4 py-2 text-sm font-medium hover:opacity-90 transition">
               Reload
             </button>
           </div>
@@ -143,7 +143,7 @@
       </header>
 
       <!-- Page Content -->
-      <div class="px-4 md:px-8 py-6 space-y-6">
+      <div id="main-content" class="px-4 md:px-8 py-6 space-y-6">
         @yield('content')
       </div>
     </main>
@@ -241,7 +241,7 @@
 
     {{-- Drawer footer: sync + dark mode --}}
     <div class="px-4 pb-4 space-y-2">
-      <button onclick="window.location.reload();" id="mobileRefreshBtn"
+      <button onclick="smartReload(this)" id="mobileRefreshBtn"
               class="w-full rounded-xl bg-slate-600 dark:bg-slate-600 text-white py-2.5 text-sm font-medium hover:opacity-90 transition">
         <span id="mobileRefreshBtnText">🔄 Data Refresh</span>
       </button>
@@ -445,7 +445,35 @@
       }, 5000);
     }
 
-    setTimeout(() => window.location.reload(), 300000);
+    setTimeout(smartReload, 300000);
+
+    async function smartReload(btn) {
+      // Visual feedback
+      if (btn) { btn.disabled = true; btn.style.opacity = '0.6'; }
+
+      try {
+        const res = await fetch(window.location.href);
+        if (!res.ok) throw new Error('fetch failed');
+
+        const html = await res.text();
+        const doc  = new DOMParser().parseFromString(html, 'text/html');
+
+        // Swap page content
+        const freshContent = doc.getElementById('main-content');
+        const liveContent  = document.getElementById('main-content');
+        if (freshContent && liveContent) liveContent.innerHTML = freshContent.innerHTML;
+
+        // Update sidebar last-sync time
+        const freshTime = doc.getElementById('lastSyncTime');
+        const liveTime  = document.getElementById('lastSyncTime');
+        if (freshTime && liveTime) liveTime.textContent = freshTime.textContent;
+
+      } catch {
+        window.location.reload(); // hard fallback
+      } finally {
+        if (btn) { btn.disabled = false; btn.style.opacity = ''; }
+      }
+    }
 
     function toggleInfoPopup() {
       document.getElementById('infoPopup').classList.toggle('hidden');
