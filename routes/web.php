@@ -1543,6 +1543,114 @@ Route::get('/history', function () {
     ]);
 });
 
+// History Export: All-days summary CSV
+Route::get('/history/export', function () {
+    if (!\Illuminate\Support\Facades\Schema::hasTable('daily_history')) {
+        abort(404, 'No history data');
+    }
+
+    $rows = DB::table('daily_history')
+        ->selectRaw("snapshot_date,
+            COUNT(*)                                                             AS total_stores,
+            SUM(CASE WHEN platforms_online < total_platforms THEN 1 ELSE 0 END) AS stores_with_issues,
+            SUM(total_offline_items)                                             AS total_offline_items,
+            MAX(last_updated_at)                                                 AS last_updated_at")
+        ->groupBy('snapshot_date')
+        ->orderByDesc('snapshot_date')
+        ->get();
+
+    $filename = 'history_summary_' . now()->format('Ymd_His') . '.csv';
+
+    $headers = [
+        'Content-Type'        => 'text/csv',
+        'Content-Disposition' => "attachment; filename=\"{$filename}\"",
+    ];
+
+    $callback = function () use ($rows) {
+        $handle = fopen('php://output', 'w');
+        fputcsv($handle, ['Date', 'Total Stores', 'Stores w/ Issues', 'Total Items Offline', 'Last Updated (SGT)']);
+        foreach ($rows as $r) {
+            $lastUpdated = $r->last_updated_at
+                ? \Carbon\Carbon::parse($r->last_updated_at)->setTimezone('Asia/Singapore')->format('Y-m-d g:i A')
+                : '';
+            fputcsv($handle, [
+                $r->snapshot_date,
+                $r->total_stores,
+                $r->stores_with_issues,
+                $r->total_offline_items,
+                $lastUpdated,
+            ]);
+        }
+        fclose($handle);
+    };
+
+    return response()->stream($callback, 200, $headers);
+});
+
+// History Detail Export: Per-store CSV for a specific day
+Route::get('/history/{date}/export', function ($date) {
+    if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $date)) {
+        abort(404);
+    }
+    if (!\Illuminate\Support\Facades\Schema::hasTable('daily_history')) {
+        abort(404, 'No history data');
+    }
+
+    $stores = DB::table('daily_history')
+        ->where('snapshot_date', $date)
+        ->orderBy('shop_name')
+        ->get()
+        ->map(function ($s) {
+            $s->platform_data = json_decode($s->platform_data, true);
+            return $s;
+        });
+
+    if ($stores->isEmpty()) {
+        abort(404);
+    }
+
+    $filename = 'history_' . $date . '.csv';
+
+    $headers = [
+        'Content-Type'        => 'text/csv',
+        'Content-Disposition' => "attachment; filename=\"{$filename}\"",
+    ];
+
+    $callback = function () use ($stores, $date) {
+        $handle = fopen('php://output', 'w');
+        fputcsv($handle, [
+            'Date', 'Store Name', 'Store ID',
+            'Grab Status', 'Panda Status', 'Deliveroo Status',
+            'Total Items Offline',
+            'Grab Offline Items', 'Panda Offline Items', 'Deliveroo Offline Items',
+        ]);
+        foreach ($stores as $s) {
+            $pd = $s->platform_data ?? [];
+            $grabStatus  = $pd['grab']['status']      ?? 'N/A';
+            $fpStatus    = $pd['foodpanda']['status']  ?? 'N/A';
+            $delStatus   = $pd['deliveroo']['status']  ?? 'N/A';
+            $grabItems   = implode('; ', array_column($pd['grab']['offline_items']      ?? [], 'name'));
+            $fpItems     = implode('; ', array_column($pd['foodpanda']['offline_items'] ?? [], 'name'));
+            $delItems    = implode('; ', array_column($pd['deliveroo']['offline_items'] ?? [], 'name'));
+            fputcsv($handle, [
+                $date,
+                $s->shop_name,
+                $s->shop_id,
+                $grabStatus,
+                $fpStatus,
+                $delStatus,
+                $s->total_offline_items,
+                $grabItems,
+                $fpItems,
+                $delItems,
+            ]);
+        }
+        fclose($handle);
+    };
+
+    return response()->stream($callback, 200, $headers);
+});
+
 // History Detail: All stores for a specific day
 Route::get('/history/{date}', function ($date) {
     // Validate YYYY-MM-DD format
