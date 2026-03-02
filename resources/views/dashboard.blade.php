@@ -18,7 +18,7 @@
 
 @section('top-actions')
 <div class="hidden sm:flex items-center bg-slate-100 dark:bg-slate-800 rounded-xl px-3 py-2">
-  <input id="searchInput" class="bg-transparent outline-none text-sm w-64 dark:text-slate-100 dark:placeholder-slate-400" placeholder="Search store / item…" onkeyup="searchCards()" />
+  <input id="searchInput" class="bg-transparent outline-none text-sm w-64 dark:text-slate-100 dark:placeholder-slate-400" placeholder="Search store / item…" oninput="debouncedSearch()" />
 </div>
 <a href="/dashboard/export" class="rounded-xl bg-green-600 hover:bg-green-700 text-white px-4 py-2 text-sm font-semibold transition shadow-sm flex items-center gap-2">
   <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -294,6 +294,12 @@
       const name = card.getAttribute('data-store-name') || '';
       card.style.display = name.includes(filter) ? 'block' : 'none';
     });
+  }
+
+  let _searchTimer;
+  function debouncedSearch() {
+    clearTimeout(_searchTimer);
+    _searchTimer = setTimeout(searchCards, 200);
   }
 </script>
 @endsection
