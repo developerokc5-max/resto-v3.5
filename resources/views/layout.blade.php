@@ -113,19 +113,6 @@
         </div>
       </div>
 
-      <script>
-        function updateSyncButtonText() {
-          const path = window.location.pathname;
-          const btnText = document.getElementById('syncBtnText');
-          if (path === '/items' || path === '/platforms') {
-            btnText.textContent = 'Run Sync';
-          } else {
-            btnText.textContent = 'Refresh Data';
-          }
-        }
-        document.addEventListener('DOMContentLoaded', updateSyncButtonText);
-        updateSyncButtonText();
-      </script>
     </aside>
 
     <!-- Main -->
@@ -361,22 +348,14 @@
 
     async function triggerSync() {
       const btn = document.getElementById('syncBtn');
-      const mobileBtn = document.getElementById('mobileSyncBtn');
       const btnTextEl = document.getElementById('syncBtnText');
-      const mobileBtnTextEl = document.getElementById('mobileSyncBtnText');
-      const originalText = btnTextEl ? btnTextEl.textContent : (btn ? btn.textContent : 'Sync');
-      const originalMobileText = mobileBtnTextEl ? mobileBtnTextEl.textContent : '⚡ Sync';
-      const currentPath = window.location.pathname;
-      const isItemsPage = currentPath.includes('/items');
-      const isPlatformsPage = currentPath === '/platforms';
+      const originalText = btnTextEl ? btnTextEl.textContent : 'Sync';
+      const isItemsPage = window.location.pathname.includes('/items');
       const endpoint = isItemsPage ? '/api/v1/items/sync' : '/api/sync/scrape';
       const syncType = isItemsPage ? 'Items' : 'Platform';
 
       if (btn) { btn.disabled = true; btn.classList.add('opacity-50', 'cursor-not-allowed'); }
-      if (mobileBtn) { mobileBtn.disabled = true; mobileBtn.classList.add('opacity-50', 'cursor-not-allowed'); }
       if (btnTextEl) btnTextEl.textContent = `Syncing ${syncType}...`;
-      else if (btn) btn.textContent = `Syncing ${syncType}...`;
-      if (mobileBtnTextEl) mobileBtnTextEl.textContent = '⚡ Syncing...';
 
       try {
         const response = await fetch(endpoint, {
@@ -386,24 +365,15 @@
         const data = await response.json();
         if (data.success) {
           if (btn) { btn.classList.remove('bg-slate-900', 'dark:bg-slate-700'); btn.classList.add('bg-green-600'); }
-          if (mobileBtn) { mobileBtn.classList.remove('bg-slate-900', 'dark:bg-slate-700'); mobileBtn.classList.add('bg-green-600'); }
           if (isItemsPage) {
-            // Items scraper takes 10-15 min — don't reload, just notify
             if (btnTextEl) btnTextEl.textContent = 'Triggered!';
-            else if (btn) btn.textContent = 'Triggered!';
-            if (mobileBtnTextEl) mobileBtnTextEl.textContent = '✅ Triggered!';
             showNotification('✅ Items scraper triggered! Data will update in ~10–15 minutes. Come back later.', 'success');
             setTimeout(() => {
               if (btn) { btn.disabled = false; btn.classList.remove('opacity-50', 'cursor-not-allowed', 'bg-green-600'); btn.classList.add('bg-slate-900'); }
-              if (mobileBtn) { mobileBtn.disabled = false; mobileBtn.classList.remove('opacity-50', 'cursor-not-allowed', 'bg-green-600'); mobileBtn.classList.add('bg-slate-900'); }
               if (btnTextEl) btnTextEl.textContent = originalText;
-              else if (btn) btn.textContent = originalText;
-              if (mobileBtnTextEl) mobileBtnTextEl.textContent = originalMobileText;
             }, 5000);
           } else {
             if (btnTextEl) btnTextEl.textContent = 'Triggered!';
-            else if (btn) btn.textContent = 'Triggered!';
-            if (mobileBtnTextEl) mobileBtnTextEl.textContent = '✅ Triggered!';
             showNotification('✅ Platform scraper triggered! Data will update in ~3 minutes. Reloading...', 'success');
             setTimeout(() => window.location.reload(), 4000);
           }
@@ -412,17 +382,11 @@
         }
       } catch (error) {
         if (btn) { btn.classList.remove('bg-slate-900', 'dark:bg-slate-700'); btn.classList.add('bg-red-600'); }
-        if (mobileBtn) { mobileBtn.classList.remove('bg-slate-900', 'dark:bg-slate-700'); mobileBtn.classList.add('bg-red-600'); }
         if (btnTextEl) btnTextEl.textContent = 'Sync Failed';
-        else if (btn) btn.textContent = 'Sync Failed';
-        if (mobileBtnTextEl) mobileBtnTextEl.textContent = '❌ Failed';
         showNotification('❌ Sync failed: ' + error.message, 'error');
         setTimeout(() => {
           if (btn) { btn.disabled = false; btn.classList.remove('opacity-50', 'cursor-not-allowed', 'bg-red-600'); btn.classList.add('bg-slate-900'); }
-          if (mobileBtn) { mobileBtn.disabled = false; mobileBtn.classList.remove('opacity-50', 'cursor-not-allowed', 'bg-red-600'); mobileBtn.classList.add('bg-slate-900'); }
           if (btnTextEl) btnTextEl.textContent = originalText;
-          else if (btn) btn.textContent = originalText;
-          if (mobileBtnTextEl) mobileBtnTextEl.textContent = originalMobileText;
         }, 3000);
       }
     }
