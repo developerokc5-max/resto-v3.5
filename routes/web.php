@@ -1418,13 +1418,13 @@ Route::get('/alerts', function () {
     ]);
 });
 
-// History: Daily log of all platform & item offline events
+// History: Daily snapshot log — one row per store per day in daily_history table
 Route::get('/history', function () {
-    $nowSgt        = \Carbon\Carbon::now('Asia/Singapore');
-    $todayUtcStart = $nowSgt->copy()->startOfDay()->setTimezone('UTC');
-    $tomorrowUtcStart = $todayUtcStart->copy()->addDay();
+    $nowSgt     = \Carbon\Carbon::now('Asia/Singapore');
+    $todaySgt   = $nowSgt->format('Y-m-d');
+    $nowUtc     = $nowSgt->copy()->setTimezone('UTC');
 
-    // ── Snapshot ALL stores for today (3 queries total) ────────────────────
+    // ── Snapshot ALL stores for today (2 queries) ──────────────────────────
     $allPlatformStatus = DB::table('platform_status')->get()->groupBy('shop_id');
 
     $allOfflineItems = DB::table('items')
@@ -1435,15 +1435,15 @@ Route::get('/history', function () {
 
     $insertRows = [];
     foreach ($allPlatformStatus as $shopId => $platforms) {
-        $platformData  = [];
+        $platformData    = [];
         $onlinePlatforms = 0;
-        $totalOffline  = 0;
+        $totalOffline    = 0;
 
         foreach (['grab', 'foodpanda', 'deliveroo'] as $platform) {
-            $status      = $platforms->firstWhere('platform', $platform);
+            $status       = $platforms->firstWhere('platform', $platform);
             $offlineItems = $allOfflineItems->get($shopId . '|' . $platform, collect());
             $offlineCount = $offlineItems->count();
-            $isOnline    = $status && $status->is_online;
+            $isOnline     = $status && $status->is_online;
 
             if ($isOnline) $onlinePlatforms++;
             $totalOffline += $offlineCount;
@@ -1451,59 +1451,55 @@ Route::get('/history', function () {
             $platformData[$platform] = [
                 'name'          => ucfirst($platform),
                 'status'        => $isOnline ? 'Online' : 'Offline',
-                'last_checked'  => $status ? $status->last_checked_at : null,
                 'offline_items' => $offlineItems->map(fn($i) => [
                     'name'      => $i->name,
-                    'sku'       => $i->sku,
-                    'category'  => $i->category,
-                    'price'     => $i->price,
-                    'image_url' => $i->image_url,
+                    'sku'       => $i->sku       ?? null,
+                    'category'  => $i->category  ?? null,
+                    'price'     => $i->price      ?? null,
+                    'image_url' => $i->image_url  ?? null,
                 ])->values()->toArray(),
                 'offline_count' => $offlineCount,
             ];
         }
 
         $insertRows[] = [
+            'snapshot_date'       => $todaySgt,
             'shop_id'             => $shopId,
             'shop_name'           => $platforms->first()->store_name ?? $shopId,
             'platforms_online'    => $onlinePlatforms,
             'total_platforms'     => 3,
             'total_offline_items' => $totalOffline,
             'platform_data'       => json_encode($platformData),
-            'logged_at'           => $todayUtcStart,
-            'created_at'          => $todayUtcStart,
-            'updated_at'          => $todayUtcStart,
+            'last_updated_at'     => $nowUtc,
+            'created_at'          => $nowUtc,
+            'updated_at'          => $nowUtc,
         ];
     }
 
     if (!empty($insertRows)) {
-        DB::table('store_status_logs')
+        // Delete today's existing rows for these shops, then re-insert fresh snapshot
+        DB::table('daily_history')
+            ->where('snapshot_date', $todaySgt)
             ->whereIn('shop_id', array_column($insertRows, 'shop_id'))
-            ->whereBetween('logged_at', [$todayUtcStart, $tomorrowUtcStart])
             ->delete();
-        DB::table('store_status_logs')->insert($insertRows);
+        DB::table('daily_history')->insert($insertRows);
     }
 
-    // ── Build history grouped by date ──────────────────────────────────────
-    $dateSummaries = DB::table('store_status_logs')
-        ->selectRaw("DATE(logged_at) as date,
-            COUNT(*) as total_stores,
-            SUM(CASE WHEN platforms_online < total_platforms THEN 1 ELSE 0 END) as stores_with_issues,
-            SUM(total_offline_items) as total_offline_items")
-        ->groupBy(DB::raw('DATE(logged_at)'))
-        ->orderByDesc(DB::raw('DATE(logged_at)'))
+    // ── Read back all history, newest day first ────────────────────────────
+    $dateSummaries = DB::table('daily_history')
+        ->selectRaw("snapshot_date,
+            COUNT(*)                                                              AS total_stores,
+            SUM(CASE WHEN platforms_online < total_platforms THEN 1 ELSE 0 END)  AS stores_with_issues,
+            SUM(total_offline_items)                                              AS total_offline_items,
+            MAX(last_updated_at)                                                  AS last_updated_at")
+        ->groupBy('snapshot_date')
+        ->orderByDesc('snapshot_date')
         ->get();
-
-    $itemEventsByDate = DB::table('item_status_history')
-        ->selectRaw('DATE(changed_at) as date, COUNT(*) as count')
-        ->where('is_available', false)
-        ->groupBy(DB::raw('DATE(changed_at)'))
-        ->pluck('count', 'date');
 
     $history = [];
     foreach ($dateSummaries as $day) {
-        $stores = DB::table('store_status_logs')
-            ->whereRaw('DATE(logged_at) = ?', [$day->date])
+        $stores = DB::table('daily_history')
+            ->where('snapshot_date', $day->snapshot_date)
             ->orderByRaw('CASE WHEN platforms_online < total_platforms OR total_offline_items > 0 THEN 0 ELSE 1 END')
             ->orderBy('shop_name')
             ->get()
@@ -1513,13 +1509,13 @@ Route::get('/history', function () {
             });
 
         $history[] = [
-            'date'                => $day->date,
+            'date'                => $day->snapshot_date,
             'total_stores'        => (int) $day->total_stores,
             'stores_with_issues'  => (int) $day->stores_with_issues,
             'total_offline_items' => (int) $day->total_offline_items,
-            'item_events'         => (int) ($itemEventsByDate[$day->date] ?? 0),
+            'last_updated_at'     => $day->last_updated_at,
             'stores'              => $stores,
-            'is_today'            => $day->date === $nowSgt->format('Y-m-d'),
+            'is_today'            => $day->snapshot_date === $todaySgt,
         ];
     }
 
