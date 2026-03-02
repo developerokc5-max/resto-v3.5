@@ -1449,17 +1449,18 @@ Route::get('/history', function () {
         ->where('is_available', false)
         ->whereIn('platform', ['grab', 'foodpanda', 'deliveroo'])
         ->get()
-        ->groupBy(fn($item) => $item->shop_id . '|' . $item->platform);
+        ->groupBy(fn($item) => $item->shop_name . '|' . $item->platform);
 
     $insertRows = [];
     foreach ($allPlatformStatus as $shopId => $platforms) {
         $platformData    = [];
         $onlinePlatforms = 0;
         $totalOffline    = 0;
+        $storeName       = $platforms->first()->store_name ?? '';
 
         foreach (['grab', 'foodpanda', 'deliveroo'] as $platform) {
             $status       = $platforms->firstWhere('platform', $platform);
-            $offlineItems = $allOfflineItems->get($shopId . '|' . $platform, collect());
+            $offlineItems = $allOfflineItems->get($storeName . '|' . $platform, collect());
             $offlineCount = $offlineItems->count();
             $isOnline     = $status && $status->is_online;
 
