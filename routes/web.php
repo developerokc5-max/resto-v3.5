@@ -1418,6 +1418,117 @@ Route::get('/alerts', function () {
     ]);
 });
 
+// History: Daily log of all platform & item offline events
+Route::get('/history', function () {
+    $nowSgt        = \Carbon\Carbon::now('Asia/Singapore');
+    $todayUtcStart = $nowSgt->copy()->startOfDay()->setTimezone('UTC');
+    $tomorrowUtcStart = $todayUtcStart->copy()->addDay();
+
+    // ── Snapshot ALL stores for today (3 queries total) ────────────────────
+    $allPlatformStatus = DB::table('platform_status')->get()->groupBy('shop_id');
+
+    $allOfflineItems = DB::table('items')
+        ->where('is_available', false)
+        ->whereIn('platform', ['grab', 'foodpanda', 'deliveroo'])
+        ->get()
+        ->groupBy(fn($item) => $item->shop_id . '|' . $item->platform);
+
+    $insertRows = [];
+    foreach ($allPlatformStatus as $shopId => $platforms) {
+        $platformData  = [];
+        $onlinePlatforms = 0;
+        $totalOffline  = 0;
+
+        foreach (['grab', 'foodpanda', 'deliveroo'] as $platform) {
+            $status      = $platforms->firstWhere('platform', $platform);
+            $offlineItems = $allOfflineItems->get($shopId . '|' . $platform, collect());
+            $offlineCount = $offlineItems->count();
+            $isOnline    = $status && $status->is_online;
+
+            if ($isOnline) $onlinePlatforms++;
+            $totalOffline += $offlineCount;
+
+            $platformData[$platform] = [
+                'name'          => ucfirst($platform),
+                'status'        => $isOnline ? 'Online' : 'Offline',
+                'last_checked'  => $status ? $status->last_checked_at : null,
+                'offline_items' => $offlineItems->map(fn($i) => [
+                    'name'      => $i->name,
+                    'sku'       => $i->sku,
+                    'category'  => $i->category,
+                    'price'     => $i->price,
+                    'image_url' => $i->image_url,
+                ])->values()->toArray(),
+                'offline_count' => $offlineCount,
+            ];
+        }
+
+        $insertRows[] = [
+            'shop_id'             => $shopId,
+            'shop_name'           => $platforms->first()->store_name ?? $shopId,
+            'platforms_online'    => $onlinePlatforms,
+            'total_platforms'     => 3,
+            'total_offline_items' => $totalOffline,
+            'platform_data'       => json_encode($platformData),
+            'logged_at'           => $todayUtcStart,
+            'created_at'          => $todayUtcStart,
+            'updated_at'          => $todayUtcStart,
+        ];
+    }
+
+    if (!empty($insertRows)) {
+        DB::table('store_status_logs')
+            ->whereIn('shop_id', array_column($insertRows, 'shop_id'))
+            ->whereBetween('logged_at', [$todayUtcStart, $tomorrowUtcStart])
+            ->delete();
+        DB::table('store_status_logs')->insert($insertRows);
+    }
+
+    // ── Build history grouped by date ──────────────────────────────────────
+    $dateSummaries = DB::table('store_status_logs')
+        ->selectRaw("DATE(logged_at) as date,
+            COUNT(*) as total_stores,
+            SUM(CASE WHEN platforms_online < total_platforms THEN 1 ELSE 0 END) as stores_with_issues,
+            SUM(total_offline_items) as total_offline_items")
+        ->groupBy(DB::raw('DATE(logged_at)'))
+        ->orderByDesc(DB::raw('DATE(logged_at)'))
+        ->get();
+
+    $itemEventsByDate = DB::table('item_status_history')
+        ->selectRaw('DATE(changed_at) as date, COUNT(*) as count')
+        ->where('is_available', false)
+        ->groupBy(DB::raw('DATE(changed_at)'))
+        ->pluck('count', 'date');
+
+    $history = [];
+    foreach ($dateSummaries as $day) {
+        $stores = DB::table('store_status_logs')
+            ->whereRaw('DATE(logged_at) = ?', [$day->date])
+            ->orderByRaw('CASE WHEN platforms_online < total_platforms OR total_offline_items > 0 THEN 0 ELSE 1 END')
+            ->orderBy('shop_name')
+            ->get()
+            ->map(function ($store) {
+                $store->platform_data = json_decode($store->platform_data, true);
+                return $store;
+            });
+
+        $history[] = [
+            'date'                => $day->date,
+            'total_stores'        => (int) $day->total_stores,
+            'stores_with_issues'  => (int) $day->stores_with_issues,
+            'total_offline_items' => (int) $day->total_offline_items,
+            'item_events'         => (int) ($itemEventsByDate[$day->date] ?? 0),
+            'stores'              => $stores,
+            'is_today'            => $day->date === $nowSgt->format('Y-m-d'),
+        ];
+    }
+
+    return view('history', [
+        'history'  => $history,
+        'lastSync' => getLastSyncTimestamp(),
+    ]);
+});
+
 // Reports: Daily Trends
 Route::get('/reports/daily-trends', function () {
     $today = \Carbon\Carbon::now('Asia/Singapore')->startOfDay();
