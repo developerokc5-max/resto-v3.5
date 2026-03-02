@@ -57,3 +57,10 @@ jobs:
                -H "Content-Type: application/json" \
                --max-time 30 \
                --retry 2 || echo "Store logs snapshot ping failed (non-fatal)"
+
+      - name: Send Alert Email
+        run: |
+          curl -s -X POST "https://resto-v3-5.onrender.com/api/alert/email" \
+               -H "Content-Type: application/json" \
+               --max-time 30 \
+               --retry 2 || echo "Alert email ping failed (non-fatal)"

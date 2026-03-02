@@ -763,3 +763,186 @@ Route::get('/health', function () {
         ],
     ]);
 });
+
+// ── Scan Alert Email — called by GitHub Actions after platform scrape ──────
+// Sends a Resend email summary if any stores have issues.
+// Rate-limited to once per 55 minutes to avoid spam.
+Route::post('/alert/email', function () {
+    try {
+        $apiKey    = env('RESEND_API_KEY');
+        $fromEmail = env('ALERT_FROM_EMAIL', 'HawkerOps <onboarding@resend.dev>');
+        $toRaw     = env('ALERT_TO_EMAILS', '');
+        $toEmails  = array_values(array_filter(array_map('trim', explode(',', $toRaw))));
+
+        if (!$apiKey || empty($toEmails)) {
+            return response()->json(['success' => false, 'message' => 'Email alert not configured — set RESEND_API_KEY and ALERT_TO_EMAILS'], 400);
+        }
+
+        // Rate limit: max one alert email per 55 minutes
+        $cacheKey = 'hawkerops_alert_last_sent';
+        $lastSent = \Illuminate\Support\Facades\Cache::get($cacheKey);
+        if ($lastSent && \Carbon\Carbon::parse($lastSent)->diffInMinutes(now()) < 55) {
+            return response()->json(['success' => false, 'message' => 'Rate limited — alert sent recently', 'next_in_minutes' => 55 - \Carbon\Carbon::parse($lastSent)->diffInMinutes(now())], 429);
+        }
+
+        $nowSgt = \Carbon\Carbon::now('Asia/Singapore');
+
+        // Count stores with issues
+        $storesWithIssues = DB::table('platform_status')
+            ->where('is_online', false)
+            ->distinct('shop_id')
+            ->count('shop_id');
+
+        $totalStores = DB::table('platform_status')
+            ->distinct('shop_id')
+            ->count('shop_id');
+
+        $healthyStores = $totalStores - $storesWithIssues;
+
+        // Platform breakdown
+        $grabOff = DB::table('platform_status')
+            ->where('platform', 'grab')->where('is_online', false)->count();
+        $fpOff = DB::table('platform_status')
+            ->where('platform', 'foodpanda')->where('is_online', false)->count();
+        $delOff = DB::table('platform_status')
+            ->where('platform', 'deliveroo')->where('is_online', false)->count();
+
+        // Menu items offline
+        $itemsOffline = DB::table('items')
+            ->where('is_available', false)
+            ->whereIn('platform', ['grab', 'foodpanda', 'deliveroo'])
+            ->count();
+
+        // Skip email if everything is fine
+        if ($storesWithIssues === 0) {
+            return response()->json(['success' => true, 'message' => 'All clear — no alert needed']);
+        }
+
+        // Top 8 stores with issues
+        $issueStores = DB::table('platform_status')
+            ->where('is_online', false)
+            ->select('store_name', DB::raw('COUNT(*) as platforms_offline'))
+            ->groupBy('store_name')
+            ->orderByDesc('platforms_offline')
+            ->limit(8)
+            ->get();
+
+        $dateStr   = $nowSgt->format('D, M j, Y');
+        $timeStr   = $nowSgt->format('g:i A') . ' SGT';
+        $reportUrl = 'https://resto-v3-5.onrender.com/history/' . $nowSgt->format('Y-m-d');
+        $subject   = "⚠️ HawkerOps — {$storesWithIssues} stores with issues · {$dateStr}";
+
+        // Build HTML email inline (no blade dependency)
+        $storeRows = '';
+        foreach ($issueStores as $s) {
+            $pl = $s->platforms_offline;
+            $storeRows .= "<tr>
+              <td style='padding:8px 16px;font-size:13px;color:#1e293b;border-bottom:1px solid #f1f5f9;'>{$s->store_name}</td>
+              <td style='padding:8px 16px;font-size:13px;color:#ef4444;font-weight:700;text-align:right;border-bottom:1px solid #f1f5f9;'>{$pl} platform" . ($pl > 1 ? 's' : '') . " offline</td>
+            </tr>";
+        }
+        $moreText = $storesWithIssues > 8 ? "<p style='margin:12px 16px 0;font-size:12px;color:#94a3b8;'>+ " . ($storesWithIssues - 8) . " more stores with issues</p>" : '';
+
+        $html = "<!DOCTYPE html>
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width,initial-scale=1'>
+<title>HawkerOps Alert</title></head>
+<body style='margin:0;padding:0;background:#f8fafc;font-family:-apple-system,BlinkMacSystemFont,\"Segoe UI\",sans-serif;'>
+  <div style='max-width:560px;margin:32px auto;background:#ffffff;border-radius:16px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,0.08);'>
+
+    {{-- Header --}}
+    <div style='background:#ef4444;padding:24px 28px;'>
+      <p style='margin:0 0 4px;font-size:11px;font-weight:700;letter-spacing:1.5px;color:rgba(255,255,255,0.75);text-transform:uppercase;'>HawkerOps Alert</p>
+      <h1 style='margin:0;font-size:22px;font-weight:800;color:#ffffff;'>{$storesWithIssues} Stores with Issues</h1>
+      <p style='margin:6px 0 0;font-size:13px;color:rgba(255,255,255,0.85);'>{$dateStr} &nbsp;·&nbsp; {$timeStr}</p>
+    </div>
+
+    {{-- Stats row --}}
+    <div style='display:flex;border-bottom:1px solid #f1f5f9;'>
+      <div style='flex:1;padding:20px 16px;text-align:center;border-right:1px solid #f1f5f9;'>
+        <p style='margin:0;font-size:11px;color:#94a3b8;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;'>Stores Scanned</p>
+        <p style='margin:6px 0 0;font-size:28px;font-weight:800;color:#0f172a;'>{$totalStores}</p>
+      </div>
+      <div style='flex:1;padding:20px 16px;text-align:center;border-right:1px solid #f1f5f9;'>
+        <p style='margin:0;font-size:11px;color:#94a3b8;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;'>w/ Issues</p>
+        <p style='margin:6px 0 0;font-size:28px;font-weight:800;color:#f59e0b;'>{$storesWithIssues}</p>
+      </div>
+      <div style='flex:1;padding:20px 16px;text-align:center;'>
+        <p style='margin:0;font-size:11px;color:#94a3b8;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;'>Items Offline</p>
+        <p style='margin:6px 0 0;font-size:28px;font-weight:800;color:#ef4444;'>{$itemsOffline}</p>
+      </div>
+    </div>
+
+    {{-- Platform breakdown --}}
+    <div style='padding:16px 16px 8px;display:flex;gap:8px;'>
+      <div style='flex:1;padding:12px;background:#f0fdf4;border-radius:10px;text-align:center;'>
+        <p style='margin:0;font-size:11px;color:#16a34a;font-weight:700;'>Grab</p>
+        <p style='margin:4px 0 0;font-size:18px;font-weight:800;color:#15803d;'>{$grabOff} off</p>
+      </div>
+      <div style='flex:1;padding:12px;background:#fdf2f8;border-radius:10px;text-align:center;'>
+        <p style='margin:0;font-size:11px;color:#be185d;font-weight:700;'>FoodPanda</p>
+        <p style='margin:4px 0 0;font-size:18px;font-weight:800;color:#9d174d;'>{$fpOff} off</p>
+      </div>
+      <div style='flex:1;padding:12px;background:#ecfeff;border-radius:10px;text-align:center;'>
+        <p style='margin:0;font-size:11px;color:#0e7490;font-weight:700;'>Deliveroo</p>
+        <p style='margin:4px 0 0;font-size:18px;font-weight:800;color:#155e75;'>{$delOff} off</p>
+      </div>
+    </div>
+
+    {{-- Issue stores table --}}
+    <div style='padding:16px 16px 8px;'>
+      <p style='margin:0 0 8px;font-size:11px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:1px;'>Affected Stores</p>
+      <table width='100%' cellpadding='0' cellspacing='0' style='border-radius:10px;overflow:hidden;border:1px solid #f1f5f9;'>
+        {$storeRows}
+      </table>
+      {$moreText}
+    </div>
+
+    {{-- CTA button --}}
+    <div style='padding:20px 16px 28px;text-align:center;'>
+      <a href='{$reportUrl}'
+         style='display:inline-block;padding:12px 32px;background:#0f172a;color:#ffffff;font-size:14px;font-weight:700;text-decoration:none;border-radius:10px;letter-spacing:0.3px;'>
+        View Full Report →
+      </a>
+    </div>
+
+    {{-- Footer --}}
+    <div style='padding:16px;background:#f8fafc;border-top:1px solid #f1f5f9;text-align:center;'>
+      <p style='margin:0;font-size:11px;color:#cbd5e1;'>HawkerOps · Automated scan alert · {$timeStr}</p>
+    </div>
+
+  </div>
+</body></html>";
+
+        // Send via Resend API
+        $response = \Illuminate\Support\Facades\Http::withHeaders([
+            'Authorization' => 'Bearer ' . $apiKey,
+            'Content-Type'  => 'application/json',
+        ])->post('https://api.resend.com/emails', [
+            'from'    => $fromEmail,
+            'to'      => $toEmails,
+            'subject' => $subject,
+            'html'    => $html,
+        ]);
+
+        if ($response->successful()) {
+            \Illuminate\Support\Facades\Cache::put($cacheKey, now()->toIso8601String(), 3600);
+            return response()->json([
+                'success'  => true,
+                'message'  => 'Alert email sent',
+                'to'       => $toEmails,
+                'subject'  => $subject,
+                'resend_id' => $response->json('id'),
+            ]);
+        }
+
+        return response()->json([
+            'success' => false,
+            'message' => 'Resend API error',
+            'details' => $response->json(),
+        ], 500);
+
+    } catch (\Exception $e) {
+        \Illuminate\Support\Facades\Log::error('Alert email failed: ' . $e->getMessage());
+        return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
+    }
+});
