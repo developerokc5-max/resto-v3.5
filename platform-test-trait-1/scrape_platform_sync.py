@@ -334,15 +334,23 @@ def scan_all_platforms(page, stores_data):
         "deliveroo": {}
     }
 
+    # Per-platform wait times — foodPanda (3rd tab) needs 7s to fully render,
+    # Grab and deliveroo are faster and don't need the extra wait
+    platform_waits = {
+        "Grab":       3000,
+        "deliveroo":  3000,
+        "foodPanda":  7000,
+    }
+
     for platform in platforms:
         log(f"\n  Scanning {platform}...")
 
         try:
             # Click platform tab
             page.click(f"text={platform}", timeout=5000)
-            # Wait longer for tab content to fully render before reading toggles
-            # FoodPanda (3rd tab) was returning empty data due to insufficient wait
-            page.wait_for_timeout(7000)
+            # Wait for tab content to fully render before reading toggles
+            wait_ms = platform_waits.get(platform, 5000)
+            page.wait_for_timeout(wait_ms)
 
             # Scan stores for this platform
             platform_stores = scan_store_toggles(page)
