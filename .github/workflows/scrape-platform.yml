@@ -46,5 +46,7 @@ jobs:
         run: |
           curl -s -X POST "https://resto-v3-5.onrender.com/api/history/snapshot" \
                -H "Content-Type: application/json" \
-               --max-time 30 \
-               --retry 2 || echo "History snapshot ping failed (non-fatal)"
+               --max-time 60 \
+               --retry 3 \
+               --retry-delay 10 \
+               --retry-all-errors || echo "History snapshot ping failed (non-fatal)"
