@@ -46,7 +46,20 @@
   $storesWithIssues = $issueStores->count();
   $totalOffline     = (int) $stores->sum('total_offline_items');
 
-  $platformLabels     = ['grab' => 'Grab', 'foodpanda' => 'FoodPanda', 'deliveroo' => 'Deliveroo'];
+  $platformLabels = ['grab' => 'Grab', 'foodpanda' => 'FoodPanda', 'deliveroo' => 'Deliveroo'];
+
+  // Online = platform colour, Offline = red — used in header badges
+  $platformOnlineClass = [
+    'grab'      => 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 ring-1 ring-green-200 dark:ring-green-700',
+    'foodpanda' => 'bg-pink-100 dark:bg-pink-900/30 text-pink-700 dark:text-pink-400 ring-1 ring-pink-200 dark:ring-pink-700',
+    'deliveroo' => 'bg-cyan-100 dark:bg-cyan-900/30 text-cyan-700 dark:text-cyan-400 ring-1 ring-cyan-200 dark:ring-cyan-700',
+  ];
+  $platformDotClass = [
+    'grab'      => 'bg-green-500',
+    'foodpanda' => 'bg-pink-500',
+    'deliveroo' => 'bg-cyan-500',
+  ];
+  // Used on item rows (which platform the item is offline on)
   $platformBadgeClass = [
     'grab'      => 'bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-400 ring-1 ring-green-200 dark:ring-green-800',
     'foodpanda' => 'bg-pink-100 dark:bg-pink-900/40 text-pink-700 dark:text-pink-400 ring-1 ring-pink-200 dark:ring-pink-800',
@@ -137,16 +150,25 @@
           <div class="px-4 py-3.5 flex items-start justify-between gap-3">
             <div class="min-w-0 flex-1">
               <p class="font-bold text-slate-900 dark:text-slate-100 text-sm leading-snug">{{ $store->shop_name }}</p>
-              <div class="flex items-center gap-1 flex-wrap mt-2">
+              <div class="flex items-center gap-2 flex-wrap mt-2.5">
                 @foreach(['grab', 'foodpanda', 'deliveroo'] as $platform)
                   @if(isset($pd[$platform]))
                     @php $online = ($pd[$platform]['status'] ?? '') === 'Online'; @endphp
-                    <span class="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-md text-[11px] font-semibold
-                      {{ $online
-                        ? 'bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400'
-                        : 'bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400' }}">
+                    <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold
+                      {{ $online ? $platformOnlineClass[$platform] : 'bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 ring-1 ring-red-200 dark:ring-red-700' }}">
+                      {{-- Status dot --}}
+                      <span class="w-2 h-2 rounded-full shrink-0 {{ $online ? $platformDotClass[$platform] : 'bg-red-500' }}"></span>
                       {{ $platformLabels[$platform] }}
-                      <span class="ml-0.5">{{ $online ? '✓' : '✗' }}</span>
+                      {{-- SVG icon --}}
+                      @if($online)
+                        <svg class="w-3 h-3 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/>
+                        </svg>
+                      @else
+                        <svg class="w-3 h-3 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M6 18L18 6M6 6l12 12"/>
+                        </svg>
+                      @endif
                     </span>
                   @endif
                 @endforeach
@@ -234,15 +256,23 @@
           <span class="font-semibold text-sm text-slate-800 dark:text-slate-200 flex-1 min-w-0 truncate">
             {{ $store->shop_name }}
           </span>
-          <div class="flex items-center gap-1 shrink-0">
+          <div class="flex items-center gap-1.5 shrink-0 flex-wrap">
             @foreach(['grab', 'foodpanda', 'deliveroo'] as $platform)
               @if(isset($pd[$platform]))
                 @php $online = ($pd[$platform]['status'] ?? '') === 'Online'; @endphp
-                <span class="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-md text-[11px] font-semibold
-                  {{ $online
-                    ? 'bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400'
-                    : 'bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400' }}">
-                  {{ $platformLabels[$platform] }} {{ $online ? '✓' : '✗' }}
+                <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold
+                  {{ $online ? $platformOnlineClass[$platform] : 'bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 ring-1 ring-red-200 dark:ring-red-700' }}">
+                  <span class="w-1.5 h-1.5 rounded-full shrink-0 {{ $online ? $platformDotClass[$platform] : 'bg-red-500' }}"></span>
+                  {{ $platformLabels[$platform] }}
+                  @if($online)
+                    <svg class="w-3 h-3 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/>
+                    </svg>
+                  @else
+                    <svg class="w-3 h-3 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                  @endif
                 </span>
               @endif
             @endforeach
