@@ -105,14 +105,7 @@
   <section class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-2 2xl:grid-cols-3 gap-6">
     @foreach(($stores ?? []) as $s)
       @php
-        $offlineCount = 0;
-        if (isset($s['platforms'])) {
-          foreach($s['platforms'] as $platform => $status) {
-            if (!$status['online'] || $status['online'] === false || $status['online'] === 0) {
-              $offlineCount++;
-            }
-          }
-        }
+        $offlineCount = $s['platform_offline_count'] ?? 0;
         $platformConfig = [
           'grab'      => ['name' => 'Grab',      'gradient' => 'from-green-500 to-emerald-600'],
           'foodpanda' => ['name' => 'foodpanda',  'gradient' => 'from-pink-500 to-rose-600'],
