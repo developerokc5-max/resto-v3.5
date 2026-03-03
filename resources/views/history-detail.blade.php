@@ -246,6 +246,7 @@
                       src="{{ $item['image_url'] }}"
                       alt="{{ $item['name'] }}"
                       title="{{ $item['name'] }}"
+                      loading="lazy"
                       class="item-thumb w-full h-full object-cover"
                       onerror="this.replaceWith(Object.assign(document.createElement('div'),{className:'w-full h-full flex items-center justify-center text-slate-400 font-bold text-lg',textContent:'{{ strtoupper(substr($item["name"], 0, 1)) }}'}))"
                     >
