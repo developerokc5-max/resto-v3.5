@@ -209,6 +209,7 @@
 
       <div class="border-t border-slate-200 dark:border-slate-700 my-2"></div>
 
+      <div class="px-3 pt-1 pb-1 text-[10px] font-semibold uppercase tracking-widest text-slate-400 dark:text-slate-500">Reports</div>
       <a href="/reports/daily-trends" onclick="toggleMobileDrawer()"
          class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition
                 @if(Request::is('reports/daily-trends')) bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-white @else text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 @endif">
@@ -219,6 +220,11 @@
                 @if(Request::is('reports/platform-reliability')) bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-white @else text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 @endif">
         📉 Platform Reliability
       </a>
+      <a href="/reports/item-performance" onclick="toggleMobileDrawer()"
+         class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition
+                @if(Request::is('reports/item-performance')) bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-white @else text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 @endif">
+        🏅 Item Performance
+      </a>
       <a href="/reports/store-comparison" onclick="toggleMobileDrawer()"
          class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition
                 @if(Request::is('reports/store-comparison')) bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-white @else text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 @endif">
@@ -227,6 +233,7 @@
 
       <div class="border-t border-slate-200 dark:border-slate-700 my-2"></div>
 
+      <div class="px-3 pt-1 pb-1 text-[10px] font-semibold uppercase tracking-widest text-slate-400 dark:text-slate-500">Settings</div>
       <a href="/settings/scraper-status" onclick="toggleMobileDrawer()"
          class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition
                 @if(Request::is('settings/scraper-status')) bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-white @else text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 @endif">
@@ -235,7 +242,12 @@
       <a href="/settings/configuration" onclick="toggleMobileDrawer()"
          class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition
                 @if(Request::is('settings/configuration')) bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-white @else text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 @endif">
-        ⚙️ Settings
+        ⚙️ Configuration
+      </a>
+      <a href="/settings/export" onclick="toggleMobileDrawer()"
+         class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition
+                @if(Request::is('settings/export')) bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-white @else text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 @endif">
+        📤 Export Data
       </a>
     </nav>
 
