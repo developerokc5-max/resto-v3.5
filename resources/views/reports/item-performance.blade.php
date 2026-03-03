@@ -66,7 +66,16 @@
                 {{ strtoupper(substr($item->platform, 0, 1)) }}
               </span>
             </td>
-            <td class="py-3 px-4 text-right text-sm text-slate-700 dark:text-slate-300">-</td>
+            <td class="py-3 px-4 text-right text-sm text-slate-700 dark:text-slate-300">
+              @php $hrs = (float)($item->avg_hours_offline ?? 0); @endphp
+              @if($hrs >= 1)
+                {{ number_format($hrs, 1) }}h
+              @elseif($hrs > 0)
+                {{ max(1, (int)round($hrs * 60)) }}m
+              @else
+                —
+              @endif
+            </td>
           </tr>
           @empty
           <tr>

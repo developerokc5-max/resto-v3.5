@@ -5,21 +5,29 @@
 {{-- @section('page-description')Manage and monitor all {{ count($stores ?? []) }} store locations@endsection --}}
 
 @section('top-actions')
-<div class="hidden sm:flex items-center bg-slate-100 dark:bg-slate-800 rounded-xl px-3 py-2">
-  <input id="storeSearch" class="bg-transparent outline-none text-sm w-64 dark:text-slate-100 dark:placeholder-slate-400" placeholder="Search store..." onkeyup="searchTable()" />
+<div class="hidden sm:flex items-center gap-2">
+  <button class="hide-test-btn px-3 py-2 text-xs font-medium rounded-xl border border-slate-300 dark:border-slate-600 text-slate-600 dark:text-slate-300 hover:opacity-80 transition whitespace-nowrap" onclick="toggleTestFilter()">
+    Hide Test
+  </button>
+  <div class="flex items-center bg-slate-100 dark:bg-slate-800 rounded-xl px-3 py-2">
+    <input id="storeSearch" class="bg-transparent outline-none text-sm w-64 dark:text-slate-100 dark:placeholder-slate-400" placeholder="Search store..." onkeyup="applyFilters()" />
+  </div>
 </div>
 @endsection
 
 @section('content')
 
-  <!-- Mobile Search (visible on small screens only) -->
-  <div class="sm:hidden">
-    <div class="flex items-center bg-white dark:bg-slate-800 border dark:border-slate-700 rounded-xl px-3 py-2 shadow-sm">
+  <!-- Mobile Search + Hide Test (visible on small screens only) -->
+  <div class="sm:hidden flex gap-2">
+    <div class="flex-1 flex items-center bg-white dark:bg-slate-800 border dark:border-slate-700 rounded-xl px-3 py-2 shadow-sm">
       <svg class="w-4 h-4 text-slate-400 mr-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
       </svg>
-      <input id="storeSearchMobile" class="bg-transparent outline-none text-sm w-full dark:text-slate-100 dark:placeholder-slate-400" placeholder="Search store..." onkeyup="searchTable()" />
+      <input id="storeSearchMobile" class="bg-transparent outline-none text-sm w-full dark:text-slate-100 dark:placeholder-slate-400" placeholder="Search store..." onkeyup="applyFilters()" />
     </div>
+    <button class="hide-test-btn flex-shrink-0 px-3 py-2 text-xs font-medium rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:opacity-80 transition shadow-sm whitespace-nowrap" onclick="toggleTestFilter()">
+      Hide Test
+    </button>
   </div>
 
   <!-- Mobile Card List (hidden on sm+) -->
@@ -151,15 +159,34 @@
 
 @section('extra-scripts')
 <script>
-  function searchTable() {
-    // Grab value from whichever search input is active
+  let hideTestActive = false;
+
+  function toggleTestFilter() {
+    hideTestActive = !hideTestActive;
+    document.querySelectorAll('.hide-test-btn').forEach(btn => {
+      if (hideTestActive) {
+        btn.style.background   = '#0f172a';
+        btn.style.color        = '#fff';
+        btn.style.borderColor  = '#0f172a';
+      } else {
+        btn.style.background   = '';
+        btn.style.color        = '';
+        btn.style.borderColor  = '';
+      }
+    });
+    applyFilters();
+  }
+
+  function applyFilters() {
     const desktopVal = document.getElementById('storeSearch')?.value.toLowerCase() || '';
     const mobileVal  = document.getElementById('storeSearchMobile')?.value.toLowerCase() || '';
     const filter = desktopVal || mobileVal;
 
     document.querySelectorAll('.store-row').forEach(row => {
-      const name = row.getAttribute('data-name') || '';
-      row.style.display = name.includes(filter) ? '' : 'none';
+      const name   = row.getAttribute('data-name') || '';
+      const isTest = name.includes('testing');
+      const show   = name.includes(filter) && !(hideTestActive && isTest);
+      row.style.display = show ? '' : 'none';
     });
   }
 </script>

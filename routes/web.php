@@ -270,7 +270,7 @@ Route::get('/stores', function () {
             $statusText = "{$offlineCount}/3 Offline";
         }
 
-        $shopInfo = $shopMap[$shop->shop_id] ?? ['name' => $shop->shop_name, 'brand' => $shop->organization_name ?? 'Unknown'];
+        $shopInfo = $shopMap[$shop->shop_id] ?? ['name' => $shop->shop_name, 'brand' => $shop->organization_name ?? $shop->shop_name ?? 'Unknown'];
 
         $stores[] = [
             'brand' => $shopInfo['brand'],
@@ -1878,14 +1878,43 @@ Route::get('/reports/item-performance', function () {
             'sometimes_off' => $sometimesOffline,
         ];
 
-        // Get top offline items
-        $topOfflineItems = DB::table('items')
-            ->where('is_available', false)
-            ->selectRaw('name, shop_name, platform, COUNT(*) as offline_count')
-            ->groupBy('name', 'shop_name', 'platform')
-            ->orderBy('offline_count', 'desc')
-            ->limit(10)
-            ->get();
+        // Get top offline items — use item_status_history for real counts + avg duration
+        $sevenDaysAgo = \Carbon\Carbon::now('Asia/Singapore')->subDays(7)->toDateTimeString();
+        $hasHistory = DB::table('item_status_history')
+            ->where('changed_at', '>=', $sevenDaysAgo)
+            ->exists();
+
+        if ($hasHistory) {
+            $topOfflineItems = DB::select("
+                WITH ranked AS (
+                    SELECT item_name, shop_name, platform, is_available, changed_at,
+                        LEAD(changed_at) OVER (
+                            PARTITION BY item_name, shop_name, platform ORDER BY changed_at
+                        ) as next_change
+                    FROM item_status_history
+                    WHERE changed_at >= :since
+                ),
+                offline_durations AS (
+                    SELECT item_name, shop_name, platform,
+                        EXTRACT(EPOCH FROM (COALESCE(next_change, NOW()) - changed_at)) / 3600.0 as hours
+                    FROM ranked WHERE is_available = false
+                )
+                SELECT item_name as name, shop_name, platform,
+                    COUNT(*) as offline_count,
+                    ROUND(AVG(hours)::numeric, 1) as avg_hours_offline
+                FROM offline_durations
+                GROUP BY item_name, shop_name, platform
+                ORDER BY offline_count DESC LIMIT 10
+            ", ['since' => $sevenDaysAgo]);
+        } else {
+            $topOfflineItems = DB::table('items')
+                ->where('is_available', false)
+                ->selectRaw('name, shop_name, platform, COUNT(*) as offline_count, 0 as avg_hours_offline')
+                ->groupBy('name', 'shop_name', 'platform')
+                ->orderBy('offline_count', 'desc')
+                ->limit(10)
+                ->get();
+        }
 
         // Get REAL category performance data from database
         $categoryData = DB::table('items')
