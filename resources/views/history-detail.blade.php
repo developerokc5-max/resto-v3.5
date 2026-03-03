@@ -241,13 +241,19 @@
 {{-- ── Platform-Offline Stores ── --}}
 @if($platformOfflineStores->count() > 0)
   <section class="mb-6">
-    <div class="flex items-center gap-2 mb-3">
+    <button onclick="this.nextElementSibling.classList.toggle('hidden'); this.querySelector('.chev').classList.toggle('rotate-90')"
+            class="flex items-center gap-2 text-left mb-2 py-1 w-full group">
+      <svg class="chev w-3.5 h-3.5 text-amber-500 transition-transform duration-200 shrink-0 rotate-90"
+           fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+      </svg>
       <span class="w-2 h-2 rounded-full bg-amber-400 shrink-0"></span>
       <p class="text-xs font-bold text-amber-500 uppercase tracking-widest">
         {{ $platformOfflineStores->count() }} {{ $platformOfflineStores->count() === 1 ? 'Store' : 'Stores' }} — Platform Offline
       </p>
-    </div>
+    </button>
 
+    <div class="">
     <div class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 overflow-hidden shadow-sm divide-y divide-slate-100 dark:divide-slate-700">
       @foreach($platformOfflineStores as $store)
         @php $pd = $store->platform_data ?? []; @endphp
@@ -279,6 +285,7 @@
           </div>
         </div>
       @endforeach
+    </div>
     </div>
   </section>
 @endif
