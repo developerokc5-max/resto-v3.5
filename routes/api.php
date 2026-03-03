@@ -819,14 +819,44 @@ Route::post('/alert/email', function () {
             return response()->json(['success' => false, 'message' => 'Email alert not configured — set RESEND_API_KEY and ALERT_TO_EMAILS'], 400);
         }
 
-        // Rate limit: max one alert email per 55 minutes
-        $cacheKey = 'hawkerops_alert_last_sent';
-        $lastSent = \Illuminate\Support\Facades\Cache::get($cacheKey);
-        if ($lastSent && \Carbon\Carbon::parse($lastSent)->diffInMinutes(now()) < 55) {
-            return response()->json(['success' => false, 'message' => 'Rate limited — alert sent recently', 'next_in_minutes' => 55 - \Carbon\Carbon::parse($lastSent)->diffInMinutes(now())], 429);
+        $nowSgt = \Carbon\Carbon::now('Asia/Singapore');
+
+        // ── Change detection: only alert when NEW stores go offline ──────────
+        // Get current set of offline shop_ids
+        $currentOfflineIds = DB::table('platform_status')
+            ->where('is_online', false)
+            ->distinct()
+            ->pluck('shop_id')
+            ->sort()
+            ->values()
+            ->toArray();
+
+        // All clear — reset cached state
+        if (empty($currentOfflineIds)) {
+            \Illuminate\Support\Facades\Cache::forget('hawkerops_alert_offline_ids');
+            return response()->json(['success' => true, 'message' => 'All clear — no alert needed']);
         }
 
-        $nowSgt = \Carbon\Carbon::now('Asia/Singapore');
+        // Compare to last alerted offline set
+        $lastOfflineIds    = \Illuminate\Support\Facades\Cache::get('hawkerops_alert_offline_ids', []);
+        $lastSentAt        = \Illuminate\Support\Facades\Cache::get('hawkerops_alert_last_sent');
+        $minutesSinceLast  = $lastSentAt ? \Carbon\Carbon::parse($lastSentAt)->diffInMinutes(now()) : 9999;
+
+        $newOfflineIds = array_values(array_diff($currentOfflineIds, $lastOfflineIds));
+        $hasNewIssues  = !empty($newOfflineIds);
+
+        // Send if new issues (15-min cooldown) OR 2-hour reminder for ongoing issues
+        $isReminder = !$hasNewIssues && $minutesSinceLast >= 120;
+
+        if (!$hasNewIssues && !$isReminder) {
+            return response()->json(['success' => true, 'message' => 'No new issues — same stores still offline, skipping']);
+        }
+
+        // 15-min rate limit guard for rapid-fire new issues
+        if ($hasNewIssues && $minutesSinceLast < 15) {
+            return response()->json(['success' => false, 'message' => 'Rate limited', 'next_in_minutes' => 15 - $minutesSinceLast], 429);
+        }
+        // ─────────────────────────────────────────────────────────────────────
 
         // Count stores with issues
         $storesWithIssues = DB::table('platform_status')
@@ -854,11 +884,6 @@ Route::post('/alert/email', function () {
             ->whereIn('platform', ['grab', 'foodpanda', 'deliveroo'])
             ->count();
 
-        // Skip email if everything is fine
-        if ($storesWithIssues === 0) {
-            return response()->json(['success' => true, 'message' => 'All clear — no alert needed']);
-        }
-
         // Top 8 stores with issues
         $issueStores = DB::table('platform_status')
             ->where('is_online', false)
@@ -871,7 +896,10 @@ Route::post('/alert/email', function () {
         $dateStr   = $nowSgt->format('D, M j, Y');
         $timeStr   = $nowSgt->format('g:i A') . ' SGT';
         $reportUrl = 'https://resto-v3-5.onrender.com/history/' . $nowSgt->format('Y-m-d');
-        $subject   = "⚠️ HawkerOps — {$storesWithIssues} stores with issues · {$dateStr}";
+        $newCount  = count($newOfflineIds);
+        $subject   = $hasNewIssues
+            ? "⚠️ HawkerOps — {$newCount} new store" . ($newCount !== 1 ? 's' : '') . " went offline · {$dateStr}"
+            : "🔔 HawkerOps — {$storesWithIssues} stores still offline (2h reminder) · {$dateStr}";
 
         // Build HTML email inline (no blade dependency)
         $storeRows = '';
@@ -966,12 +994,15 @@ Route::post('/alert/email', function () {
         ]);
 
         if ($response->successful()) {
-            \Illuminate\Support\Facades\Cache::put($cacheKey, now()->toIso8601String(), 3600);
+            \Illuminate\Support\Facades\Cache::put('hawkerops_alert_last_sent', now()->toIso8601String(), 7200);
+            \Illuminate\Support\Facades\Cache::put('hawkerops_alert_offline_ids', $currentOfflineIds, 86400);
             return response()->json([
-                'success'  => true,
-                'message'  => 'Alert email sent',
-                'to'       => $toEmails,
-                'subject'  => $subject,
+                'success'   => true,
+                'message'   => 'Alert email sent',
+                'type'      => $hasNewIssues ? 'new_issues' : 'reminder',
+                'new_stores' => $newCount,
+                'to'        => $toEmails,
+                'subject'   => $subject,
                 'resend_id' => $response->json('id'),
             ]);
         }
