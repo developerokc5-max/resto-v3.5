@@ -572,6 +572,20 @@ Route::post('/history/snapshot', function () {
             });
         }
 
+        // Auto-create daily_scrape_log table if migration didn't run
+        if (!\Illuminate\Support\Facades\Schema::hasTable('daily_scrape_log')) {
+            \Illuminate\Support\Facades\Schema::create('daily_scrape_log', function (\Illuminate\Database\Schema\Blueprint $table) {
+                $table->id();
+                $table->date('snapshot_date')->index();
+                $table->timestamp('scanned_at');
+                $table->integer('stores_total')->default(0);
+                $table->integer('stores_offline')->default(0);
+                $table->integer('items_offline')->default(0);
+                $table->text('recoveries')->nullable();
+                $table->timestamps();
+            });
+        }
+
         $nowSgt   = \Carbon\Carbon::now('Asia/Singapore');
         $todaySgt = $nowSgt->format('Y-m-d');
         $nowUtc   = $nowSgt->copy()->setTimezone('UTC');
@@ -630,11 +644,38 @@ Route::post('/history/snapshot', function () {
         }
 
         if (!empty($insertRows)) {
+            // Read previous state for today BEFORE overwriting — used for recovery detection
+            $previousState = DB::table('daily_history')
+                ->where('snapshot_date', $todaySgt)
+                ->get()
+                ->keyBy('shop_id');
+
             DB::table('daily_history')
                 ->where('snapshot_date', $todaySgt)
                 ->whereIn('shop_id', array_column($insertRows, 'shop_id'))
                 ->delete();
             DB::table('daily_history')->insert($insertRows);
+
+            // Detect recoveries: stores that were offline last scrape but are online now
+            $recoveries = [];
+            foreach ($insertRows as $row) {
+                $prev = $previousState->get($row['shop_id']);
+                if ($prev && $prev->platforms_online < $prev->total_platforms && $row['platforms_online'] >= $row['total_platforms']) {
+                    $recoveries[] = ['shop_id' => $row['shop_id'], 'shop_name' => $row['shop_name']];
+                }
+            }
+
+            // Log this scrape event
+            DB::table('daily_scrape_log')->insert([
+                'snapshot_date'  => $todaySgt,
+                'scanned_at'     => $nowUtc,
+                'stores_total'   => count($insertRows),
+                'stores_offline' => count(array_filter($insertRows, fn($r) => $r['platforms_online'] < $r['total_platforms'])),
+                'items_offline'  => array_sum(array_column($insertRows, 'total_offline_items')),
+                'recoveries'     => json_encode($recoveries),
+                'created_at'     => $nowUtc,
+                'updated_at'     => $nowUtc,
+            ]);
         }
 
         return response()->json([

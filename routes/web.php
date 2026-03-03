@@ -1515,6 +1515,15 @@ Route::get('/history', function () {
         ->orderByDesc('snapshot_date')
         ->get();
 
+    // Scrape counts per day from daily_scrape_log
+    $scrapeCounts = \Illuminate\Support\Facades\Schema::hasTable('daily_scrape_log')
+        ? DB::table('daily_scrape_log')
+            ->selectRaw('snapshot_date, COUNT(*) as scrape_count')
+            ->groupBy('snapshot_date')
+            ->get()
+            ->keyBy('snapshot_date')
+        : collect();
+
     $history = [];
     foreach ($dateSummaries as $day) {
         $stores = DB::table('daily_history')
@@ -1535,6 +1544,7 @@ Route::get('/history', function () {
             'last_updated_at'     => $day->last_updated_at,
             'stores'              => $stores,
             'is_today'            => $day->snapshot_date === $todaySgt,
+            'scrape_count'        => (int) ($scrapeCounts->get($day->snapshot_date)?->scrape_count ?? 0),
         ];
     }
 
@@ -1689,12 +1699,26 @@ Route::get('/history/{date}', function ($date) {
         ? \Carbon\Carbon::parse($lastUpdatedRaw)->setTimezone('Asia/Singapore')->format('g:i A') . ' SGT'
         : null;
 
+    // Load scrape log for this date (timeline + recoveries)
+    $scrapeLog = \Illuminate\Support\Facades\Schema::hasTable('daily_scrape_log')
+        ? DB::table('daily_scrape_log')
+            ->where('snapshot_date', $date)
+            ->orderBy('scanned_at')
+            ->get()
+            ->map(function ($log) {
+                $log->recoveries  = json_decode($log->recoveries ?? '[]', true) ?: [];
+                $log->scanned_sgt = \Carbon\Carbon::parse($log->scanned_at)->setTimezone('Asia/Singapore');
+                return $log;
+            })
+        : collect();
+
     return view('history-detail', [
         'date'         => $date,
         'parsedDate'   => \Carbon\Carbon::parse($date)->setTimezone('Asia/Singapore'),
         'isToday'      => $date === $todaySgt,
         'stores'       => $stores,
         'lastUpdated'  => $lastUpdated,
+        'scrapeLog'    => $scrapeLog,
         'lastSync'     => getLastSyncTimestamp(),
     ]);
 });

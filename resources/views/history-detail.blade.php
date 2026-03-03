@@ -341,4 +341,76 @@
   </div>
 @endif
 
+{{-- Scan Log --}}
+@if($scrapeLog->isNotEmpty())
+  <section class="mt-6">
+    <div class="flex items-center gap-2 mb-3">
+      <div class="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
+        Scan Log
+      </div>
+      <span class="px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400 text-[11px] font-semibold">
+        {{ $scrapeLog->count() }}× today
+      </span>
+    </div>
+
+    <div class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 overflow-hidden shadow-sm">
+      @foreach($scrapeLog as $i => $scan)
+        @php $isLast = $loop->last; @endphp
+        <div class="flex gap-3 px-4 py-3 {{ !$isLast ? 'border-b border-slate-100 dark:border-slate-700' : '' }}">
+
+          {{-- Timeline dot + line --}}
+          <div class="flex flex-col items-center shrink-0 pt-0.5">
+            <div class="w-2 h-2 rounded-full {{ count($scan->recoveries) > 0 ? 'bg-emerald-500' : ($scan->stores_offline > 0 ? 'bg-amber-400' : 'bg-slate-300 dark:bg-slate-600') }} mt-1"></div>
+            @if(!$isLast)
+              <div class="w-px flex-1 bg-slate-200 dark:bg-slate-700 mt-1"></div>
+            @endif
+          </div>
+
+          {{-- Content --}}
+          <div class="flex-1 min-w-0 pb-1">
+            <div class="flex items-center gap-2 flex-wrap">
+              <span class="text-sm font-semibold text-slate-900 dark:text-slate-100">
+                {{ $scan->scanned_sgt->format('g:i A') }}
+              </span>
+              <span class="text-[11px] text-slate-400 dark:text-slate-500">SGT</span>
+
+              {{-- Stats --}}
+              @if($scan->stores_offline > 0)
+                <span class="px-2 py-0.5 rounded-md bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 text-[11px] font-semibold">
+                  {{ $scan->stores_offline }} stores w/ issues
+                </span>
+              @else
+                <span class="px-2 py-0.5 rounded-md bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 text-[11px] font-semibold">
+                  All clear
+                </span>
+              @endif
+
+              @if($scan->items_offline > 0)
+                <span class="px-2 py-0.5 rounded-md bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 text-[11px] font-semibold">
+                  {{ $scan->items_offline }} items off
+                </span>
+              @endif
+            </div>
+
+            {{-- Recoveries --}}
+            @if(count($scan->recoveries) > 0)
+              <div class="mt-1.5 flex flex-wrap gap-1.5">
+                @foreach($scan->recoveries as $rec)
+                  <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400 text-[11px] font-semibold ring-1 ring-emerald-200 dark:ring-emerald-700">
+                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/>
+                    </svg>
+                    {{ $rec['shop_name'] }} recovered
+                  </span>
+                @endforeach
+              </div>
+            @endif
+          </div>
+
+        </div>
+      @endforeach
+    </div>
+  </section>
+@endif
+
 @endsection

@@ -76,11 +76,18 @@
             {{ $date->format('l, M j, Y') }}
           </span>
         </div>
-        @if($lastUpdated)
-          <span class="text-[11px] text-slate-500 dark:text-slate-400 shrink-0">
-            🔴 Live · {{ $lastUpdated }} SGT · {{ $day['total_stores'] }} stores
-          </span>
-        @endif
+        <div class="flex items-center gap-2 shrink-0 flex-wrap justify-end">
+          @if(($day['scrape_count'] ?? 0) > 0)
+            <span class="text-[11px] px-2 py-0.5 rounded-md bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 font-semibold">
+              {{ $day['scrape_count'] }}× scanned
+            </span>
+          @endif
+          @if($lastUpdated)
+            <span class="text-[11px] text-slate-500 dark:text-slate-400">
+              🔴 Live · {{ $lastUpdated }} SGT · {{ $day['total_stores'] }} stores
+            </span>
+          @endif
+        </div>
       </div>
 
       {{-- Body --}}
@@ -197,6 +204,9 @@
             @endif
           </div>
           <div class="flex items-center gap-2 shrink-0">
+            @if(($day['scrape_count'] ?? 0) > 0)
+              <span class="text-[11px] text-slate-400 dark:text-slate-500 font-medium">{{ $day['scrape_count'] }}×</span>
+            @endif
             @if($hasIssues)
               <span class="px-2 py-0.5 rounded-md bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 text-xs font-bold">
                 {{ $day['stores_with_issues'] }} issues
