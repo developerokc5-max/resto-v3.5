@@ -13,7 +13,7 @@
 /.zed
 /auth.json
 /node_modules
-# /public/build — committed to repo so Render Docker can serve compiled CSS without npm build step
+/public/build
 /public/hot
 /public/storage
 /storage/*.key
