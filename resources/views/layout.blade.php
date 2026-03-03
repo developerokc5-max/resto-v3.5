@@ -36,8 +36,8 @@
     <!-- Sidebar -->
     <aside class="w-72 hidden md:flex flex-col border-r border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 relative z-20">
       <div class="px-6 py-5 flex items-center gap-3">
-        <img src="/images/logo-light.png" class="h-10 w-10 rounded-xl object-cover dark:hidden" alt="HO">
-        <img src="/images/logo-dark.png"  class="h-10 w-10 rounded-xl object-cover hidden dark:block" alt="HO">
+        <img src="/public/images/logo-light.png" class="h-10 w-10 rounded-xl object-cover dark:hidden" alt="HO">
+        <img src="/public/images/logo-dark.png"  class="h-10 w-10 rounded-xl object-cover hidden dark:block" alt="HO">
         <div class="flex-1">
           <div class="font-semibold leading-tight dark:text-slate-100">HawkerOps</div>
           <div class="text-xs text-slate-500 dark:text-slate-400">Store Management</div>
