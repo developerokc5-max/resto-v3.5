@@ -115,6 +115,7 @@
       <span class="px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400 text-[11px] font-semibold">
         {{ $scrapeLog->count() }}× scanned
       </span>
+      <span class="ml-auto text-[10px] text-slate-400 dark:text-slate-500 italic">Logs kept for 30 days</span>
     </div>
     @foreach($scrapeLog as $scan)
       @php $isLast = $loop->last; @endphp

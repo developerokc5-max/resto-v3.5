@@ -166,6 +166,12 @@ Route::prefix('sync')->group(function () {
 
     // Trigger manual items scraping - BULLETPROOF VERSION
     Route::post('/scrape-items', function (Request $request) {
+        // Secret token guard — rejects requests without the correct header
+        $secret = env('SCRAPER_SECRET');
+        if (!$secret || $request->header('X-Scraper-Secret') !== $secret) {
+            return response()->json(['error' => 'Unauthorized'], 401);
+        }
+
         // Increase timeout to 30 minutes (scraping all stores takes time)
         set_time_limit(1800);
 
@@ -676,6 +682,11 @@ Route::post('/history/snapshot', function () {
                 'created_at'     => $nowUtc,
                 'updated_at'     => $nowUtc,
             ]);
+
+            // Prune scrape log rows older than 30 days
+            DB::table('daily_scrape_log')
+                ->where('snapshot_date', '<', $nowSgt->copy()->subDays(30)->format('Y-m-d'))
+                ->delete();
         }
 
         return response()->json([
