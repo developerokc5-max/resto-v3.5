@@ -221,7 +221,7 @@
                                             @if(isset($data['last_checked']) && $data['last_checked'])
                                                 <p class="text-[10px] md:text-xs text-slate-600 dark:text-slate-300 truncate">{{ \Carbon\Carbon::parse($data['last_checked'])->setTimezone('Asia/Singapore')->format('M d, g:i A') }} SGT</p>
                                             @else
-                                                <p class="text-[10px] md:text-xs text-slate-500 dark:text-slate-400">Not checked yet</p>
+                                                <p class="text-[10px] md:text-xs text-slate-500 dark:text-slate-400">Logged {{ \Carbon\Carbon::parse($card['timestamp'])->setTimezone('Asia/Singapore')->format('M d, g:i A') }} SGT</p>
                                             @endif
                                         </div>
                                     </div>
