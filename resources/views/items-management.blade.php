@@ -6,13 +6,13 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>Items Management - Restaurant Dashboard</title>
     <link rel="icon" type="image/png" href="/favicon.png" />
-
+    <script src="https://cdn.tailwindcss.com"></script>
     <script>
+        tailwind.config = { darkMode: 'class' }
         if (localStorage.getItem('darkMode') === 'true') {
             document.documentElement.classList.add('dark');
         }
     </script>
-    @vite(['resources/css/app.css'])
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         .toggle-switch {
@@ -359,6 +359,5 @@
         categoryFilter.addEventListener('change', filterTable);
         statusFilter.addEventListener('change', filterTable);
     </script>
-    @vite(['resources/css/app.css'])
 </body>
 </html>
