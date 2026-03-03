@@ -21,10 +21,19 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 async function triggerSync() {
+  const path = window.location.pathname;
+  const isSyncPage = path === '/platforms' || path.includes('/items');
+
+  // On non-sync pages, just reload the page data
+  if (!isSyncPage) {
+    smartReload(document.getElementById('syncBtn'));
+    return;
+  }
+
   const btn = document.getElementById('syncBtn');
   const btnTextEl = document.getElementById('syncBtnText');
   const originalText = btnTextEl ? btnTextEl.textContent : 'Sync';
-  const isItemsPage = window.location.pathname.includes('/items');
+  const isItemsPage = path.includes('/items');
   const endpoint = isItemsPage ? '/api/v1/items/sync' : '/api/sync/scrape';
   const syncType = isItemsPage ? 'Items' : 'Platform';
 
