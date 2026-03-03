@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{ $brandName }} - {{ $shopName }} - Status Log</title>
+    <title>{{ $shopName }} - Status Log</title>
     <link rel="icon" type="image/png" href="/favicon.png" />
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
@@ -114,9 +114,9 @@
                           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
                         </svg>
                       </a>
-                      <h1 class="text-base md:text-2xl font-bold text-slate-900 dark:text-slate-100 truncate">{{ $brandName }}</h1>
+                      <h1 class="text-base md:text-2xl font-bold text-slate-900 dark:text-slate-100 truncate">{{ $shopName }}</h1>
                     </div>
-                    <p class="text-xs md:text-sm text-slate-600 dark:text-slate-300 truncate">{{ $shopName }} — Status Log</p>
+                    <p class="text-xs md:text-sm text-slate-600 dark:text-slate-300 truncate">{{ $brandName }} — Status Log</p>
                 </div>
                 <div class="flex items-center gap-2 flex-shrink-0">
                     <button onclick="toggleDarkMode()" id="darkToggle" class="h-8 w-8 rounded-full bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 text-slate-600 dark:text-slate-300 text-xs flex items-center justify-center transition" title="Toggle dark mode">
