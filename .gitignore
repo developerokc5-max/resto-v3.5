@@ -25,6 +25,7 @@ Thumbs.db
 /.claude
 /composer.phar
 README.md
+/icon-image
 
 # Database (temporarily included for Render seed data)
 # /database/database.sqlite
