@@ -1724,28 +1724,28 @@ Route::get('/history/{date}', function ($date) {
 });
 
 // Reports: Daily Trends
-Route::get('/reports/daily-trends', function () {
-    $today = \Carbon\Carbon::now('Asia/Singapore')->startOfDay();
+Route::get('/reports/daily-trends', function (\Illuminate\Http\Request $request) {
+    $now = \Carbon\Carbon::now('Asia/Singapore');
+    $today = $now->copy()->startOfDay();
 
-    // OPTIMIZED: Cache daily trends for 5 minutes to reduce database hits
+    // Date range from query params, default: last 30 days
+    $startDate = $request->get('start', $now->copy()->subDays(29)->toDateString());
+    $endDate   = $request->get('end', $now->toDateString());
+
+    // Summary stats (cached 5 min)
     $trends = Cache::remember('reports_daily_trends', 300, function () use ($today) {
-        // Calculate average uptime from platform_status
         $platformStats = DB::table('platform_status')
             ->selectRaw('platform, AVG(CASE WHEN is_online = true THEN 100 ELSE 0 END) as uptime')
             ->groupBy('platform')
             ->get();
 
         $avgUptime = $platformStats->avg('uptime');
-
-        // Count offline items
         $offlineItemsCount = DB::table('items')->where('is_available', false)->count();
 
-        // Get incidents (status changes) from store_status_logs
         $incidents = DB::table('store_status_logs')
             ->whereDate('logged_at', $today)
             ->count();
 
-        // Calculate peak offline time (hour with most offline items based on logs)
         $peakHourData = DB::table('store_status_logs')
             ->selectRaw("EXTRACT(HOUR FROM logged_at + INTERVAL '8 hours')::int as hour, COUNT(*) as count")
             ->whereDate('logged_at', $today)
@@ -1753,7 +1753,6 @@ Route::get('/reports/daily-trends', function () {
             ->orderBy('count', 'desc')
             ->first();
 
-        // Format hour for display (convert 24-hour to 12-hour format with AM/PM)
         if ($peakHourData) {
             $hour24 = (int)$peakHourData->hour;
             $period = $hour24 >= 12 ? 'PM' : 'AM';
@@ -1764,16 +1763,43 @@ Route::get('/reports/daily-trends', function () {
         }
 
         return [
-            'avg_uptime' => round($avgUptime ?? 98.5, 1),
+            'avg_uptime'  => round($avgUptime ?? 0, 1),
             'avg_offline' => $offlineItemsCount,
-            'peak_hour' => $peakHour,
-            'incidents' => $incidents,
+            'peak_hour'   => $peakHour,
+            'incidents'   => $incidents,
         ];
     });
 
+    // Chart data: daily total offline items per day
+    $dailyData = DB::table('daily_history')
+        ->selectRaw('snapshot_date, SUM(total_offline_items) as total_offline')
+        ->whereBetween('snapshot_date', [$startDate, $endDate])
+        ->groupBy('snapshot_date')
+        ->orderBy('snapshot_date')
+        ->get();
+
+    // Chart data: per-platform uptime % per day (from platform_data JSON)
+    $platformUptimeData = DB::table('daily_history')
+        ->selectRaw("
+            snapshot_date,
+            ROUND(AVG(CASE WHEN (platform_data::jsonb)->'grab'->>'status' = 'Online' THEN 100.0 ELSE 0 END), 1) as grab_uptime,
+            ROUND(AVG(CASE WHEN (platform_data::jsonb)->'foodpanda'->>'status' = 'Online' THEN 100.0 ELSE 0 END), 1) as foodpanda_uptime,
+            ROUND(AVG(CASE WHEN (platform_data::jsonb)->'deliveroo'->>'status' = 'Online' THEN 100.0 ELSE 0 END), 1) as deliveroo_uptime
+        ")
+        ->whereBetween('snapshot_date', [$startDate, $endDate])
+        ->whereNotNull('platform_data')
+        ->where('platform_data', '!=', '')
+        ->groupBy('snapshot_date')
+        ->orderBy('snapshot_date')
+        ->get();
+
     return view('reports.daily-trends', [
-        'trends' => $trends,
-        'lastSync' => getLastSyncTimestamp(),
+        'trends'             => $trends,
+        'dailyData'          => $dailyData,
+        'platformUptimeData' => $platformUptimeData,
+        'startDate'          => $startDate,
+        'endDate'            => $endDate,
+        'lastSync'           => getLastSyncTimestamp(),
     ]);
 });
 
