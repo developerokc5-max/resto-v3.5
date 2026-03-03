@@ -1728,8 +1728,8 @@ Route::get('/reports/daily-trends', function (\Illuminate\Http\Request $request)
     $now = \Carbon\Carbon::now('Asia/Singapore');
     $today = $now->copy()->startOfDay();
 
-    // Date range from query params, default: last 30 days
-    $startDate = $request->get('start', $now->copy()->subDays(29)->toDateString());
+    // Date range from query params, default: last 7 days
+    $startDate = $request->get('start', $now->copy()->subDays(6)->toDateString());
     $endDate   = $request->get('end', $now->toDateString());
 
     // Summary stats (cached 5 min)
@@ -1742,13 +1742,15 @@ Route::get('/reports/daily-trends', function (\Illuminate\Http\Request $request)
         $avgUptime = $platformStats->avg('uptime');
         $offlineItemsCount = DB::table('items')->where('is_available', false)->count();
 
+        // Use SGT-aware date comparison (logged_at stored as UTC, +8h = SGT)
+        $todaySgt = $today->toDateString();
         $incidents = DB::table('store_status_logs')
-            ->whereDate('logged_at', $today)
+            ->whereRaw("DATE(logged_at + INTERVAL '8 hours') = ?", [$todaySgt])
             ->count();
 
         $peakHourData = DB::table('store_status_logs')
             ->selectRaw("EXTRACT(HOUR FROM logged_at + INTERVAL '8 hours')::int as hour, COUNT(*) as count")
-            ->whereDate('logged_at', $today)
+            ->whereRaw("DATE(logged_at + INTERVAL '8 hours') = ?", [$todaySgt])
             ->groupBy('hour')
             ->orderBy('count', 'desc')
             ->first();
