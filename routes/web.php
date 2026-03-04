@@ -739,18 +739,18 @@ Route::get('/store/{shopId}/items', function ($shopId) {
 Route::get('/offline-items', function () {
     $shopMap = ShopHelper::getShopMap();
 
-    // Get ALL stores (including testing outlets) - no filtering
-    $allShopIds = array_keys($shopMap);
+    $cached = Cache::remember('offline_items_page', 60, function () use ($shopMap) {
+        // Get all platform statuses for ALL shops
+        $platformStatuses = DB::table('platform_status')
+            ->orderBy('shop_id')
+            ->orderBy('platform')
+            ->get();
 
-    // Get all platform statuses for ALL shops
-    $platformStatuses = DB::table('platform_status')
-        ->orderBy('shop_id')
-        ->orderBy('platform')
-        ->get();
+        $lastScrapeTime = $platformStatuses->max('last_checked_at');
 
-    // Group by shop
-    $allStores = [];
-    foreach ($platformStatuses as $status) {
+        // Group by shop
+        $allStores = [];
+        foreach ($platformStatuses as $status) {
         if (!isset($allStores[$status->shop_id])) {
             $shopInfo = $shopMap[$status->shop_id] ?? ['name' => 'Unknown', 'brand' => 'Unknown'];
             $allStores[$status->shop_id] = [
@@ -803,32 +803,33 @@ Route::get('/offline-items', function () {
         }
     }
 
-    // Calculate global statistics
-    $totalStores = count($allStores);
-    $storesAllOnline = collect($allStores)->where('overall_status', 'all_online')->count();
-    $storesAllOffline = collect($allStores)->where('overall_status', 'all_offline')->count();
-    $storesMixed = collect($allStores)->where('overall_status', 'mixed')->count();
+        // Calculate global statistics
+        $totalStores = count($allStores);
+        $storesAllOnline = collect($allStores)->where('overall_status', 'all_online')->count();
+        $storesAllOffline = collect($allStores)->where('overall_status', 'all_offline')->count();
+        $storesMixed = collect($allStores)->where('overall_status', 'mixed')->count();
 
-    $totalPlatforms = $platformStatuses->count();
-    $onlinePlatforms = $platformStatuses->where('is_online', true)->count();
-    $offlinePlatforms = $totalPlatforms - $onlinePlatforms;
+        $totalPlatforms = $platformStatuses->count();
+        $onlinePlatforms = $platformStatuses->where('is_online', true)->count();
+        $offlinePlatforms = $totalPlatforms - $onlinePlatforms;
 
-    $lastScrapeTime = DB::table('platform_status')->max('last_checked_at');
+        return [
+            'stores' => array_values($allStores),
+            'stats' => [
+                'total_stores' => $totalStores,
+                'all_online' => $storesAllOnline,
+                'all_offline' => $storesAllOffline,
+                'mixed' => $storesMixed,
+                'total_platforms' => $totalPlatforms,
+                'online_platforms' => $onlinePlatforms,
+                'offline_platforms' => $offlinePlatforms,
+            ],
+            'lastScrape' => $lastScrapeTime ? \Carbon\Carbon::parse($lastScrapeTime)->setTimezone('Asia/Singapore')->format('M j, Y g:i A') . ' SGT' : 'Never',
+            'lastScrapeAgo' => $lastScrapeTime ? \Carbon\Carbon::parse($lastScrapeTime)->diffForHumans() : 'Never',
+        ];
+    });
 
-    return view('offline-items', [
-        'stores' => array_values($allStores),
-        'stats' => [
-            'total_stores' => $totalStores,
-            'all_online' => $storesAllOnline,
-            'all_offline' => $storesAllOffline,
-            'mixed' => $storesMixed,
-            'total_platforms' => $totalPlatforms,
-            'online_platforms' => $onlinePlatforms,
-            'offline_platforms' => $offlinePlatforms,
-        ],
-        'lastScrape' => $lastScrapeTime ? \Carbon\Carbon::parse($lastScrapeTime)->setTimezone('Asia/Singapore')->format('M j, Y g:i A') . ' SGT' : 'Never',
-        'lastScrapeAgo' => $lastScrapeTime ? \Carbon\Carbon::parse($lastScrapeTime)->diffForHumans() : 'Never',
-    ]);
+    return view('offline-items', $cached);
 });
 
 // View Logs: Status History Timeline with Cards
