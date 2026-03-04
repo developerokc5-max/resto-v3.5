@@ -101,9 +101,9 @@
           </div>
 
           <div>
-            <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Email for Alerts</label>
-            <input type="email" name="alert_email" value="{{ $alertEmail }}" placeholder="alerts@example.com" class="w-full px-4 py-3 border-2 border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-100 rounded-xl focus:ring-2 focus:ring-slate-900 focus:border-transparent">
-            <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">Where to send critical alerts</p>
+            <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Alert Recipients</label>
+            <input type="text" name="alert_email" value="{{ $alertEmail }}" placeholder="you@email.com, team@email.com" class="w-full px-4 py-3 border-2 border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-100 rounded-xl focus:ring-2 focus:ring-slate-900 focus:border-transparent">
+            <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">Separate multiple emails with a comma</p>
           </div>
         </div>
       </div>

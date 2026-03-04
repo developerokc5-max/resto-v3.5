@@ -71,10 +71,19 @@ class AlertService
         }
     }
 
+    private function getRecipients(): array
+    {
+        $configEmail = DB::table('configurations')->where('key', 'alert_email')->value('value');
+        if ($configEmail) {
+            return array_values(array_filter(array_map('trim', explode(',', $configEmail))));
+        }
+        return [env('MAIL_TO_ADDRESS', 'developerokc5@gmail.com')];
+    }
+
     private function sendOfflineEmail(string $shopName, array $platforms): bool
     {
         $apiKey  = env('RESEND_API_KEY');
-        $toEmail = env('MAIL_TO_ADDRESS', 'developerokc5@gmail.com');
+        $to      = $this->getRecipients();
         $from    = env('MAIL_FROM_ADDRESS', 'onboarding@resend.dev');
 
         if (!$apiKey) {
@@ -116,7 +125,7 @@ class AlertService
                 'Content-Type'  => 'application/json',
             ])->post('https://api.resend.com/emails', [
                 'from'    => 'HawkerOps Alert <' . $from . '>',
-                'to'      => [$toEmail],
+                'to'      => $to,
                 'subject' => "🚨 {$shopName} — All Platforms Offline",
                 'html'    => $html,
             ]);
@@ -138,7 +147,7 @@ class AlertService
     private function sendRecoveryEmail(string $shopName, int $downtimeMinutes): bool
     {
         $apiKey  = env('RESEND_API_KEY');
-        $toEmail = env('MAIL_TO_ADDRESS', 'developerokc5@gmail.com');
+        $to      = $this->getRecipients();
         $from    = env('MAIL_FROM_ADDRESS', 'onboarding@resend.dev');
 
         if (!$apiKey) return false;
@@ -179,7 +188,7 @@ class AlertService
                 'Content-Type'  => 'application/json',
             ])->post('https://api.resend.com/emails', [
                 'from'    => 'HawkerOps Alert <' . $from . '>',
-                'to'      => [$toEmail],
+                'to'      => $to,
                 'subject' => "✅ {$shopName} — Back Online (was down {$duration})",
                 'html'    => $html,
             ]);
