@@ -1850,7 +1850,7 @@ Route::get('/reports/platform-reliability', function () {
 // Reports: Item Performance
 Route::get('/reports/item-performance', function () {
     // OPTIMIZED: Cache item performance for 5 minutes
-    $reportData = Cache::remember('reports_item_performance', 300, function () {
+    $reportData = Cache::remember('reports_item_performance_v2', 300, function () {
         // Get real item statistics from database
         $totalItems = DB::table('items')
             ->selectRaw('COUNT(DISTINCT name || \'|\' || shop_name || \'|\' || platform) as total')
@@ -1922,7 +1922,7 @@ Route::get('/reports/item-performance', function () {
                 category,
                 COUNT(DISTINCT name || \'|\' || shop_name || \'|\' || platform) as total_items,
                 ROUND(100.0 * SUM(CASE WHEN is_available = true THEN 1 ELSE 0 END) / COUNT(*), 1) as availability_percentage,
-                COUNT(CASE WHEN is_available = false THEN 1 ELSE 0 END) as offline_count
+                SUM(CASE WHEN is_available = false THEN 1 ELSE 0 END) as offline_count
             ')
             ->groupBy('category')
             ->orderByRaw('CAST(category AS TEXT)')
@@ -1936,10 +1936,13 @@ Route::get('/reports/item-performance', function () {
         ];
     });
 
+    $totalStores = DB::table('platform_status')->distinct()->count('shop_id');
+
     return view('reports.item-performance', [
         'itemStats' => $reportData['itemStats'],
         'topOfflineItems' => $reportData['topOfflineItems'],
         'categoryData' => $reportData['categoryData'],
+        'totalStores' => $totalStores,
         'lastSync' => getLastSyncTimestamp(),
     ]);
 });
