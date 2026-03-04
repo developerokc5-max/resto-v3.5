@@ -11,7 +11,7 @@
     <div class="bg-white dark:bg-slate-800 border dark:border-slate-700 rounded-2xl p-5 shadow-sm">
       <div class="text-sm text-slate-500 dark:text-slate-400 mb-1">Total Items Tracked</div>
       <div class="text-3xl font-bold text-slate-900 dark:text-slate-100">{{ $itemStats['total'] ?? '2,450' }}</div>
-      <div class="text-xs text-slate-600 dark:text-slate-400 mt-1">Across 46 stores</div>
+      <div class="text-xs text-slate-600 dark:text-slate-400 mt-1">Across {{ $totalStores ?? '—' }} stores</div>
     </div>
     <div class="bg-red-50 dark:bg-red-900/30 border-2 border-red-200 dark:border-red-700 rounded-2xl p-5 shadow-sm">
       <div class="text-sm text-red-700 dark:text-red-400 font-medium mb-1">Frequently Offline</div>
