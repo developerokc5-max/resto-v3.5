@@ -11,3 +11,5 @@ php artisan migrate --force
 
 npm ci
 npm run build
+
+echo "event:cache"
