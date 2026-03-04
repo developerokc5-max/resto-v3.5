@@ -22,28 +22,34 @@ Route::get('/offline', function () {
  */
 if (!function_exists('getLastSyncTimestamp')) {
 function getLastSyncTimestamp($shopId = null) {
-    // Static cache: avoids 2 DB queries × 10+ calls per request (saves ~20 round-trips)
+    // Static cache: avoids repeated DB calls within the same request
     static $cache = [];
     $key = $shopId ?? '__global__';
     if (isset($cache[$key])) {
         return $cache[$key];
     }
 
-    $query = DB::table('restosuite_item_snapshots');
-    if ($shopId) {
-        $query->where('shop_id', $shopId);
-    }
-    $lastSync = $query->max('updated_at');
-
-    if (!$lastSync) {
-        $platformQuery = DB::table('platform_status');
+    // Cross-request cache: 60s TTL saves 1 Neon query per page load
+    $result = Cache::remember('last_sync_ts_' . $key, 60, function () use ($shopId) {
+        $query = DB::table('restosuite_item_snapshots');
         if ($shopId) {
-            $platformQuery->where('shop_id', $shopId);
+            $query->where('shop_id', $shopId);
         }
-        $lastSync = $platformQuery->max('last_checked_at');
-    }
+        $lastSync = $query->max('updated_at');
 
-    $result = $lastSync ? \Carbon\Carbon::parse($lastSync)->setTimezone('Asia/Singapore')->format('M j, Y g:i A') . ' SGT' : 'Never';
+        if (!$lastSync) {
+            $platformQuery = DB::table('platform_status');
+            if ($shopId) {
+                $platformQuery->where('shop_id', $shopId);
+            }
+            $lastSync = $platformQuery->max('last_checked_at');
+        }
+
+        return $lastSync
+            ? \Carbon\Carbon::parse($lastSync)->setTimezone('Asia/Singapore')->format('M j, Y g:i A') . ' SGT'
+            : 'Never';
+    });
+
     $cache[$key] = $result;
     return $result;
 }
