@@ -906,7 +906,7 @@ Route::post('/alert/email', function () {
 
         $dateStr   = $nowSgt->format('D, M j, Y');
         $timeStr   = $nowSgt->format('g:i A') . ' SGT';
-        $reportUrl = 'https://resto-v3-5.onrender.com/history/' . $nowSgt->format('Y-m-d');
+        $reportUrl = env('APP_URL', 'https://resto-v3-5.onrender.com') . '/history/' . $nowSgt->format('Y-m-d');
         $newCount  = count($newOfflineIds);
         $subject   = $hasNewIssues
             ? "⚠️ HawkerOps — {$newCount} new store" . ($newCount !== 1 ? 's' : '') . " went offline · {$dateStr}"

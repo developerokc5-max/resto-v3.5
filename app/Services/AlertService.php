@@ -97,6 +97,7 @@ class AlertService
 
         $time         = Carbon::now('Asia/Singapore')->format('d M Y, h:i A');
         $platformList = implode(', ', array_map('ucfirst', $platforms));
+        $appUrl       = env('APP_URL', 'https://resto-v3-5.onrender.com');
 
         $html = "
         <div style='font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;'>
@@ -116,7 +117,7 @@ class AlertService
                         <td style='padding: 10px; border: 1px solid #e5e7eb;'>{$time} (SGT)</td>
                     </tr>
                 </table>
-                <a href='https://resto-v3-5.onrender.com/alerts'
+                <a href='{$appUrl}/alerts'
                    style='display: inline-block; background: #111; color: white; padding: 12px 24px; border-radius: 6px; text-decoration: none; font-weight: bold;'>
                    View Alerts Dashboard
                 </a>
@@ -160,6 +161,7 @@ class AlertService
         $duration = $downtimeMinutes >= 60
             ? round($downtimeMinutes / 60, 1) . ' hours'
             : $downtimeMinutes . ' minutes';
+        $appUrl   = env('APP_URL', 'https://resto-v3-5.onrender.com');
 
         $html = "
         <div style='font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;'>
@@ -179,7 +181,7 @@ class AlertService
                         <td style='padding: 10px; border: 1px solid #e5e7eb; color: #d97706;'>{$duration}</td>
                     </tr>
                 </table>
-                <a href='https://resto-v3-5.onrender.com/alerts'
+                <a href='{$appUrl}/alerts'
                    style='display: inline-block; background: #111; color: white; padding: 12px 24px; border-radius: 6px; text-decoration: none; font-weight: bold;'>
                    View Alerts Dashboard
                 </a>
