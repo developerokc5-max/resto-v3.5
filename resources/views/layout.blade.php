@@ -346,13 +346,34 @@
 
   @yield('extra-scripts')
 
-  {{-- PWA: Register service worker --}}
+  {{-- PWA: Register service worker + update banner --}}
   <script>
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
         navigator.serviceWorker.register('/sw.js')
           .then(reg => console.log('[PWA] Service worker registered:', reg.scope))
           .catch(err => console.log('[PWA] Service worker failed:', err));
+
+        // Show update banner when new SW version activates
+        navigator.serviceWorker.addEventListener('message', event => {
+          if (event.data?.type === 'SW_UPDATED') {
+            const banner = document.createElement('div');
+            banner.innerHTML = `
+              <div style="position:fixed;bottom:16px;left:50%;transform:translateX(-50%);z-index:9999;
+                background:#1e293b;color:#f1f5f9;padding:12px 20px;border-radius:12px;
+                box-shadow:0 4px 24px rgba(0,0,0,0.4);display:flex;align-items:center;gap:12px;
+                font-family:sans-serif;font-size:14px;border:1px solid #334155;">
+                <span>⚡ New version available</span>
+                <button onclick="window.location.reload()" style="background:#16a34a;color:#fff;
+                  border:none;padding:6px 14px;border-radius:8px;cursor:pointer;font-size:13px;font-weight:600;">
+                  Reload
+                </button>
+                <button onclick="this.parentElement.parentElement.remove()" style="background:none;
+                  color:#64748b;border:none;cursor:pointer;font-size:18px;line-height:1;">×</button>
+              </div>`;
+            document.body.appendChild(banner);
+          }
+        });
       });
     }
   </script>

@@ -1,7 +1,7 @@
-// HawkerOps Service Worker
+// HawkerOps Service Worker v2
 // Caches key pages for fast load + offline access
 
-const CACHE_NAME = 'hawkerops-v1';
+const CACHE_NAME = 'hawkerops-v2';
 
 // Pages to cache immediately on install
 const PRECACHE_URLS = [
@@ -10,6 +10,14 @@ const PRECACHE_URLS = [
   '/alerts',
   '/items',
   '/stores',
+  '/history',
+  '/reports/daily-trends',
+  '/reports/platform-reliability',
+  '/reports/item-performance',
+  '/reports/store-comparison',
+  '/settings/scraper-status',
+  '/settings/configuration',
+  '/settings/export',
   '/offline',
 ];
 
@@ -27,14 +35,20 @@ self.addEventListener('install', event => {
   );
 });
 
-// ── Activate: delete old caches ───────────────────────────────────────────────
+// ── Activate: delete old caches, notify clients of update ─────────────────────
 self.addEventListener('activate', event => {
   event.waitUntil(
     caches.keys().then(keys =>
       Promise.all(
         keys.filter(key => key !== CACHE_NAME).map(key => caches.delete(key))
       )
-    ).then(() => self.clients.claim())
+    ).then(() => {
+      self.clients.claim();
+      // Notify all open tabs that a new version is active
+      self.clients.matchAll({ type: 'window' }).then(clients => {
+        clients.forEach(client => client.postMessage({ type: 'SW_UPDATED' }));
+      });
+    })
   );
 });
 
