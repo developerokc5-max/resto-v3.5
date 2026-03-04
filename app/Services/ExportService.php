@@ -4,6 +4,7 @@ namespace App\Services;
 
 use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
+use App\Helpers\ShopHelper;
 
 class ExportService
 {
@@ -12,7 +13,7 @@ class ExportService
      */
     public static function exportOverviewReport()
     {
-        $shopMap = app('ShopHelper')->getShopMap();
+        $shopMap = ShopHelper::getShopMap();
         $shopIds = array_keys($shopMap);
 
         // Single query for all platform statuses
@@ -121,7 +122,7 @@ class ExportService
      */
     public static function exportPlatformStatus($platforms = [], $dateFrom = null, $dateTo = null)
     {
-        $shopMap = app('ShopHelper')->getShopMap();
+        $shopMap = ShopHelper::getShopMap();
 
         $query = DB::table('platform_status')->select(
             'shop_id',
@@ -155,7 +156,7 @@ class ExportService
      */
     public static function exportStoreLogs($dateFrom = null, $dateTo = null)
     {
-        $shopMap = app('ShopHelper')->getShopMap();
+        $shopMap = ShopHelper::getShopMap();
 
         $query = DB::table('store_status_logs')->select(
             'shop_id',
@@ -195,7 +196,7 @@ class ExportService
      */
     public static function exportAnalyticsReport($dateFrom = null, $dateTo = null)
     {
-        $shopMap = app('ShopHelper')->getShopMap();
+        $shopMap = ShopHelper::getShopMap();
         $shopIds = array_keys($shopMap);
         $shopNames = array_values(array_column($shopMap, 'name'));
 
@@ -214,7 +215,7 @@ class ExportService
             ->select(
                 'shop_id',
                 DB::raw('COUNT(*) as total_logs'),
-                DB::raw('SUM(CASE WHEN is_now_online = 1 THEN 1 ELSE 0 END) as online_logs')
+                DB::raw('SUM(CASE WHEN is_now_online = true THEN 1 ELSE 0 END) as online_logs')
             )
             ->groupBy('shop_id')
             ->get()
