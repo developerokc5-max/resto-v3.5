@@ -68,10 +68,10 @@ class ExportService
     {
         $query = DB::table('items')->select(
             'shop_name',
-            'item_name',
+            'name',
             'platform',
             'is_available',
-            'item_image',
+            'image_url',
             'price',
             'created_at'
         );
@@ -94,21 +94,21 @@ class ExportService
             $query->whereDate('created_at', '<=', $dateTo);
         }
 
-        $items = $query->orderBy('shop_name')->orderBy('item_name')->get();
+        $items = $query->orderBy('shop_name')->orderBy('name')->get();
 
         $data = [];
         foreach ($items as $item) {
             $row = [
                 'Store' => $item->shop_name,
-                'Item Name' => $item->item_name,
+                'Item Name' => $item->name,
                 'Platform' => $item->platform,
                 'Status' => $item->is_available ? 'Available' : 'Offline',
                 'Price' => $item->price ?? 'N/A',
                 'Updated' => Carbon::parse($item->created_at)->format('M d, Y H:i'),
             ];
 
-            if ($includeImages && $item->item_image) {
-                $row['Image URL'] = $item->item_image;
+            if ($includeImages && $item->image_url) {
+                $row['Image URL'] = $item->image_url;
             }
 
             $data[] = $row;
@@ -156,35 +156,32 @@ class ExportService
      */
     public static function exportStoreLogs($dateFrom = null, $dateTo = null)
     {
-        $shopMap = ShopHelper::getShopMap();
-
         $query = DB::table('store_status_logs')->select(
-            'shop_id',
-            'platform',
-            'was_online',
-            'is_now_online',
-            'created_at'
+            'shop_name',
+            'platforms_online',
+            'total_platforms',
+            'total_offline_items',
+            'logged_at'
         );
 
         if ($dateFrom) {
-            $query->whereDate('created_at', '>=', $dateFrom);
+            $query->whereDate('logged_at', '>=', $dateFrom);
         }
         if ($dateTo) {
-            $query->whereDate('created_at', '<=', $dateTo);
+            $query->whereDate('logged_at', '<=', $dateTo);
         }
 
-        $logs = $query->orderBy('created_at', 'desc')->get();
+        $logs = $query->orderBy('logged_at', 'desc')->get();
 
         $data = [];
         foreach ($logs as $log) {
-            $shop = $shopMap[$log->shop_id] ?? ['name' => 'Unknown'];
+            $allOnline = $log->platforms_online >= $log->total_platforms;
             $data[] = [
-                'Store' => $shop['name'],
-                'Platform' => $log->platform,
-                'Previous Status' => $log->was_online ? 'Online' : 'Offline',
-                'Current Status' => $log->is_now_online ? 'Online' : 'Offline',
-                'Event Time' => Carbon::parse($log->created_at)->format('M d, Y H:i'),
-                'Type' => $log->was_online && !$log->is_now_online ? 'Went Offline' : 'Came Online',
+                'Store' => $log->shop_name,
+                'Platforms Online' => $log->platforms_online . '/' . $log->total_platforms,
+                'Status' => $allOnline ? 'All Online' : ($log->platforms_online > 0 ? 'Partial' : 'All Offline'),
+                'Offline Items' => $log->total_offline_items,
+                'Logged At' => Carbon::parse($log->logged_at)->format('M d, Y H:i'),
             ];
         }
 
@@ -204,10 +201,10 @@ class ExportService
         $logsQuery = DB::table('store_status_logs');
 
         if ($dateFrom) {
-            $logsQuery->whereDate('created_at', '>=', $dateFrom);
+            $logsQuery->whereDate('logged_at', '>=', $dateFrom);
         }
         if ($dateTo) {
-            $logsQuery->whereDate('created_at', '<=', $dateTo);
+            $logsQuery->whereDate('logged_at', '<=', $dateTo);
         }
 
         $logsStats = $logsQuery
@@ -215,7 +212,7 @@ class ExportService
             ->select(
                 'shop_id',
                 DB::raw('COUNT(*) as total_logs'),
-                DB::raw('SUM(CASE WHEN is_now_online = true THEN 1 ELSE 0 END) as online_logs')
+                DB::raw('SUM(CASE WHEN platforms_online >= total_platforms THEN 1 ELSE 0 END) as online_logs')
             )
             ->groupBy('shop_id')
             ->get()
