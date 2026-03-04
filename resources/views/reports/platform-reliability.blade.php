@@ -24,23 +24,23 @@
       <div class="space-y-3">
         <div>
           <div class="flex items-center justify-between mb-1">
-            <span class="text-sm text-slate-600 dark:text-slate-400">Uptime (7 days)</span>
-            <span class="text-sm font-bold text-green-700 dark:text-green-400">{{ $grab['uptime'] ?? '99.2' }}%</span>
+            <span class="text-sm text-slate-600 dark:text-slate-400">Platforms Online</span>
+            <span class="text-sm font-bold text-green-700 dark:text-green-400">{{ $grab['uptime'] ?? '0' }}%</span>
           </div>
           <div class="h-2 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
-            <div class="h-full bg-green-600" style="width: {{ $grab['uptime'] ?? '99.2' }}%"></div>
+            <div class="h-full bg-green-600" style="width: {{ $grab['uptime'] ?? '0' }}%"></div>
           </div>
         </div>
 
         <div class="grid grid-cols-2 gap-3 pt-3 border-t dark:border-slate-700">
           <div>
             <div class="text-xs text-slate-500 dark:text-slate-400">Online Stores</div>
-            <div class="text-lg font-bold text-slate-900 dark:text-slate-100">{{ $grab['online_stores'] ?? '45' }}/{{ $grab['total_stores'] ?? '46' }}</div>
+            <div class="text-lg font-bold text-slate-900 dark:text-slate-100">{{ $grab['online_stores'] ?? '0' }}/{{ $grab['total_stores'] ?? '0' }}</div>
           </div>
           <div>
             <div class="text-xs text-slate-500 dark:text-slate-400">Status</div>
-            <div class="text-lg font-bold {{ $grab['uptime'] >= 98 ? 'text-green-700 dark:text-green-400' : 'text-red-700 dark:text-red-400' }}">
-              {{ $grab['uptime'] >= 98 ? '✓ Good' : '✗ Issue' }}
+            <div class="text-lg font-bold {{ ($grab['uptime'] ?? 0) >= 80 ? 'text-green-700 dark:text-green-400' : (($grab['uptime'] ?? 0) >= 50 ? 'text-amber-600 dark:text-amber-400' : 'text-red-700 dark:text-red-400') }}">
+              {{ ($grab['uptime'] ?? 0) >= 80 ? '✓ Good' : (($grab['uptime'] ?? 0) >= 50 ? '⚠ Caution' : '✗ Issue') }}
             </div>
           </div>
         </div>
@@ -63,23 +63,23 @@
       <div class="space-y-3">
         <div>
           <div class="flex items-center justify-between mb-1">
-            <span class="text-sm text-slate-600 dark:text-slate-400">Uptime (7 days)</span>
-            <span class="text-sm font-bold text-pink-700 dark:text-pink-400">{{ $foodpanda['uptime'] ?? '97.8' }}%</span>
+            <span class="text-sm text-slate-600 dark:text-slate-400">Platforms Online</span>
+            <span class="text-sm font-bold text-pink-700 dark:text-pink-400">{{ $foodpanda['uptime'] ?? '0' }}%</span>
           </div>
           <div class="h-2 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
-            <div class="h-full bg-pink-600" style="width: {{ $foodpanda['uptime'] ?? '97.8' }}%"></div>
+            <div class="h-full bg-pink-600" style="width: {{ $foodpanda['uptime'] ?? '0' }}%"></div>
           </div>
         </div>
 
         <div class="grid grid-cols-2 gap-3 pt-3 border-t dark:border-slate-700">
           <div>
             <div class="text-xs text-slate-500 dark:text-slate-400">Online Stores</div>
-            <div class="text-lg font-bold text-slate-900 dark:text-slate-100">{{ $foodpanda['online_stores'] ?? '43' }}/{{ $foodpanda['total_stores'] ?? '46' }}</div>
+            <div class="text-lg font-bold text-slate-900 dark:text-slate-100">{{ $foodpanda['online_stores'] ?? '0' }}/{{ $foodpanda['total_stores'] ?? '0' }}</div>
           </div>
           <div>
             <div class="text-xs text-slate-500 dark:text-slate-400">Status</div>
-            <div class="text-lg font-bold {{ $foodpanda['uptime'] >= 98 ? 'text-green-700 dark:text-green-400' : 'text-red-700 dark:text-red-400' }}">
-              {{ $foodpanda['uptime'] >= 98 ? '✓ Good' : '⚠ Caution' }}
+            <div class="text-lg font-bold {{ ($foodpanda['uptime'] ?? 0) >= 80 ? 'text-green-700 dark:text-green-400' : (($foodpanda['uptime'] ?? 0) >= 50 ? 'text-amber-600 dark:text-amber-400' : 'text-red-700 dark:text-red-400') }}">
+              {{ ($foodpanda['uptime'] ?? 0) >= 80 ? '✓ Good' : (($foodpanda['uptime'] ?? 0) >= 50 ? '⚠ Caution' : '✗ Issue') }}
             </div>
           </div>
         </div>
@@ -102,23 +102,23 @@
       <div class="space-y-3">
         <div>
           <div class="flex items-center justify-between mb-1">
-            <span class="text-sm text-slate-600 dark:text-slate-400">Uptime (7 days)</span>
-            <span class="text-sm font-bold text-cyan-700 dark:text-cyan-400">{{ $deliveroo['uptime'] ?? '98.5' }}%</span>
+            <span class="text-sm text-slate-600 dark:text-slate-400">Platforms Online</span>
+            <span class="text-sm font-bold text-cyan-700 dark:text-cyan-400">{{ $deliveroo['uptime'] ?? '0' }}%</span>
           </div>
           <div class="h-2 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
-            <div class="h-full bg-cyan-600" style="width: {{ $deliveroo['uptime'] ?? '98.5' }}%"></div>
+            <div class="h-full bg-cyan-600" style="width: {{ $deliveroo['uptime'] ?? '0' }}%"></div>
           </div>
         </div>
 
         <div class="grid grid-cols-2 gap-3 pt-3 border-t dark:border-slate-700">
           <div>
             <div class="text-xs text-slate-500 dark:text-slate-400">Online Stores</div>
-            <div class="text-lg font-bold text-slate-900 dark:text-slate-100">{{ $deliveroo['online_stores'] ?? '44' }}/{{ $deliveroo['total_stores'] ?? '46' }}</div>
+            <div class="text-lg font-bold text-slate-900 dark:text-slate-100">{{ $deliveroo['online_stores'] ?? '0' }}/{{ $deliveroo['total_stores'] ?? '0' }}</div>
           </div>
           <div>
             <div class="text-xs text-slate-500 dark:text-slate-400">Status</div>
-            <div class="text-lg font-bold {{ $deliveroo['uptime'] >= 98 ? 'text-green-700 dark:text-green-400' : 'text-red-700 dark:text-red-400' }}">
-              {{ $deliveroo['uptime'] >= 98 ? '✓ Good' : '⚠ Caution' }}
+            <div class="text-lg font-bold {{ ($deliveroo['uptime'] ?? 0) >= 80 ? 'text-green-700 dark:text-green-400' : (($deliveroo['uptime'] ?? 0) >= 50 ? 'text-amber-600 dark:text-amber-400' : 'text-red-700 dark:text-red-400') }}">
+              {{ ($deliveroo['uptime'] ?? 0) >= 80 ? '✓ Good' : (($deliveroo['uptime'] ?? 0) >= 50 ? '⚠ Caution' : '✗ Issue') }}
             </div>
           </div>
         </div>
@@ -142,34 +142,22 @@
         </thead>
         <tbody>
           <tr class="border-b border-slate-100 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700">
-            <td class="py-3 px-4 text-sm text-slate-700 dark:text-slate-300">24h Uptime</td>
-            <td class="py-3 px-4 text-sm text-center font-medium">100%</td>
-            <td class="py-3 px-4 text-sm text-center font-medium">98.5%</td>
-            <td class="py-3 px-4 text-sm text-center font-medium">99.8%</td>
+            <td class="py-3 px-4 text-sm text-slate-700 dark:text-slate-300">Stores Online Now</td>
+            <td class="py-3 px-4 text-sm text-center font-medium">{{ $platformData['grab']['online_stores'] ?? 0 }}/{{ $platformData['grab']['total_stores'] ?? 0 }}</td>
+            <td class="py-3 px-4 text-sm text-center font-medium">{{ $platformData['foodpanda']['online_stores'] ?? 0 }}/{{ $platformData['foodpanda']['total_stores'] ?? 0 }}</td>
+            <td class="py-3 px-4 text-sm text-center font-medium">{{ $platformData['deliveroo']['online_stores'] ?? 0 }}/{{ $platformData['deliveroo']['total_stores'] ?? 0 }}</td>
           </tr>
           <tr class="border-b border-slate-100 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700">
-            <td class="py-3 px-4 text-sm text-slate-700 dark:text-slate-300">7-day Uptime</td>
-            <td class="py-3 px-4 text-sm text-center font-medium">99.2%</td>
-            <td class="py-3 px-4 text-sm text-center font-medium">97.8%</td>
-            <td class="py-3 px-4 text-sm text-center font-medium">98.5%</td>
-          </tr>
-          <tr class="border-b border-slate-100 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700">
-            <td class="py-3 px-4 text-sm text-slate-700 dark:text-slate-300">30-day Uptime</td>
-            <td class="py-3 px-4 text-sm text-center font-medium">98.9%</td>
-            <td class="py-3 px-4 text-sm text-center font-medium">97.2%</td>
-            <td class="py-3 px-4 text-sm text-center font-medium">98.1%</td>
-          </tr>
-          <tr class="border-b border-slate-100 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700">
-            <td class="py-3 px-4 text-sm text-slate-700 dark:text-slate-300">Avg Downtime/Incident</td>
-            <td class="py-3 px-4 text-sm text-center font-medium">12 min</td>
-            <td class="py-3 px-4 text-sm text-center font-medium">28 min</td>
-            <td class="py-3 px-4 text-sm text-center font-medium">18 min</td>
+            <td class="py-3 px-4 text-sm text-slate-700 dark:text-slate-300">Stores Offline Now</td>
+            <td class="py-3 px-4 text-sm text-center font-medium">{{ ($platformData['grab']['total_stores'] ?? 0) - ($platformData['grab']['online_stores'] ?? 0) }}</td>
+            <td class="py-3 px-4 text-sm text-center font-medium">{{ ($platformData['foodpanda']['total_stores'] ?? 0) - ($platformData['foodpanda']['online_stores'] ?? 0) }}</td>
+            <td class="py-3 px-4 text-sm text-center font-medium">{{ ($platformData['deliveroo']['total_stores'] ?? 0) - ($platformData['deliveroo']['online_stores'] ?? 0) }}</td>
           </tr>
           <tr class="hover:bg-slate-50 dark:hover:bg-slate-700">
-            <td class="py-3 px-4 text-sm text-slate-700 dark:text-slate-300">Total Stores Online</td>
-            <td class="py-3 px-4 text-sm text-center font-medium">45/46</td>
-            <td class="py-3 px-4 text-sm text-center font-medium">44/46</td>
-            <td class="py-3 px-4 text-sm text-center font-medium">46/46</td>
+            <td class="py-3 px-4 text-sm text-slate-700 dark:text-slate-300">Online Rate</td>
+            <td class="py-3 px-4 text-sm text-center font-medium">{{ $platformData['grab']['uptime'] ?? 0 }}%</td>
+            <td class="py-3 px-4 text-sm text-center font-medium">{{ $platformData['foodpanda']['uptime'] ?? 0 }}%</td>
+            <td class="py-3 px-4 text-sm text-center font-medium">{{ $platformData['deliveroo']['uptime'] ?? 0 }}%</td>
           </tr>
         </tbody>
       </table>
