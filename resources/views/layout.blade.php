@@ -28,6 +28,13 @@
 </head>
 
 <body class="bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 transition-colors duration-200">
+
+  {{-- Offline indicator banner --}}
+  <div id="offline-banner" class="hidden fixed top-0 inset-x-0 z-[9999] bg-red-600 text-white text-sm font-medium text-center py-2 px-4 flex items-center justify-center gap-2">
+    <span>📵</span>
+    <span>You're offline — showing cached data</span>
+  </div>
+
   <div class="min-h-screen flex">
 
     <!-- Sidebar -->
@@ -133,6 +140,11 @@
           </div>
           <div class="flex items-center gap-2 flex-shrink-0">
             @yield('top-actions')
+            {{-- PWA install button: hidden until browser fires beforeinstallprompt --}}
+            <button id="pwa-install-btn" onclick="installPWA()" class="hidden items-center gap-1.5 rounded-xl bg-indigo-600 text-white px-3 py-2 text-sm font-medium hover:opacity-90 transition">
+              <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v12m0 0l-4-4m4 4l4-4M4 20h16"/></svg>
+              <span class="hidden sm:inline">Install</span>
+            </button>
             <button onclick="smartReload(this)" class="rounded-xl bg-slate-900 dark:bg-slate-700 text-white px-4 py-2 text-sm font-medium hover:opacity-90 transition">
               Reload
             </button>
@@ -345,6 +357,71 @@
   <script src="/js/hawkerops.js?v=2" defer></script>
 
   @yield('extra-scripts')
+
+  {{-- PWA: Offline indicator, App Badge, Install prompt --}}
+  <script>
+    // ── 1. Offline indicator ──────────────────────────────────────────────────
+    (function () {
+      const banner = document.getElementById('offline-banner');
+      function setOnlineState(online) {
+        if (online) {
+          banner.classList.add('hidden');
+        } else {
+          banner.classList.remove('hidden');
+          // Nudge the topbar down so banner doesn't overlap it
+          document.querySelector('header')?.style.setProperty('top', '36px');
+        }
+      }
+      setOnlineState(navigator.onLine);
+      window.addEventListener('online',  () => { setOnlineState(true);  document.querySelector('header')?.style.removeProperty('top'); });
+      window.addEventListener('offline', () => setOnlineState(false));
+    })();
+
+    // ── 2. App Badge (count of offline platforms) ─────────────────────────────
+    let deferredInstallPrompt = null;
+
+    if ('setAppBadge' in navigator) {
+      function updateAppBadge() {
+        fetch('/api/monitor/dashboard', { cache: 'no-store' })
+          .then(r => r.ok ? r.json() : null)
+          .then(data => {
+            const offline = data?.data?.kpis?.platforms_offline ?? 0;
+            if (offline > 0) {
+              navigator.setAppBadge(offline).catch(() => {});
+            } else {
+              navigator.clearAppBadge().catch(() => {});
+            }
+          })
+          .catch(() => {});
+      }
+      updateAppBadge();
+      setInterval(updateAppBadge, 5 * 60 * 1000); // refresh badge every 5 min
+    }
+
+    // ── 3. PWA install prompt ─────────────────────────────────────────────────
+    window.addEventListener('beforeinstallprompt', e => {
+      e.preventDefault();
+      deferredInstallPrompt = e;
+      const btn = document.getElementById('pwa-install-btn');
+      if (btn) { btn.classList.remove('hidden'); btn.classList.add('flex'); }
+    });
+
+    window.addEventListener('appinstalled', () => {
+      deferredInstallPrompt = null;
+      const btn = document.getElementById('pwa-install-btn');
+      if (btn) { btn.classList.add('hidden'); btn.classList.remove('flex'); }
+    });
+
+    function installPWA() {
+      if (!deferredInstallPrompt) return;
+      deferredInstallPrompt.prompt();
+      deferredInstallPrompt.userChoice.then(() => {
+        deferredInstallPrompt = null;
+        const btn = document.getElementById('pwa-install-btn');
+        if (btn) { btn.classList.add('hidden'); btn.classList.remove('flex'); }
+      });
+    }
+  </script>
 
   {{-- PWA: Register service worker + update banner --}}
   <script>
