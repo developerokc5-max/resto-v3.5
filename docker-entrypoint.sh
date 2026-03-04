@@ -47,7 +47,7 @@ mkdir -p /var/www/html/storage/framework/sessions
 mkdir -p /var/www/html/storage/logs
 chown -R www-data:www-data /var/www/html/storage
 php artisan config:cache
-php artisan route:clear
+php artisan route:cache
 php artisan view:cache
 php artisan event:cache
 
