@@ -575,87 +575,6 @@ Route::get('/items/management', function (Request $request) {
     ]);
 });
 
-// Store Detail Page
-Route::get('/store/{shopId}', function ($shopId) {
-    $shopMap = ShopHelper::getShopMap();
-    $shopInfo = $shopMap[$shopId] ?? ['name' => 'Unknown Store', 'brand' => 'Unknown Brand'];
-
-    // Get platform status
-    $platformStatus = DB::table('platform_status')
-        ->where('shop_id', $shopId)
-        ->get()
-        ->keyBy('platform');
-
-    $platforms = [
-        'grab' => [
-            'online' => $platformStatus->get('grab')?->is_online ?? null,
-            'items_synced' => $platformStatus->get('grab')?->items_synced ?? 0,
-            'last_checked' => $platformStatus->get('grab')?->last_checked_at ?? null,
-        ],
-        'foodpanda' => [
-            'online' => $platformStatus->get('foodpanda')?->is_online ?? null,
-            'items_synced' => $platformStatus->get('foodpanda')?->items_synced ?? 0,
-            'last_checked' => $platformStatus->get('foodpanda')?->last_checked_at ?? null,
-        ],
-        'deliveroo' => [
-            'online' => $platformStatus->get('deliveroo')?->is_online ?? null,
-            'items_synced' => $platformStatus->get('deliveroo')?->items_synced ?? 0,
-            'last_checked' => $platformStatus->get('deliveroo')?->last_checked_at ?? null,
-        ],
-    ];
-
-    // Count offline platforms
-    $offlineCount = 0;
-    foreach ($platforms as $platform) {
-        if ($platform['online'] === false) {
-            $offlineCount++;
-        }
-    }
-
-    $items = DB::table('restosuite_item_snapshots')
-        ->where('shop_id', $shopId)
-        ->orderBy('name')
-        ->get();
-
-    $itemsArray = [];
-    foreach ($items as $item) {
-        $itemsArray[] = [
-            'name' => $item->name,
-            'price' => $item->price,
-            'is_active' => (bool) $item->is_active,
-            'last_update' => $item->updated_at ? \Carbon\Carbon::parse($item->updated_at)->diffForHumans() : '—',
-        ];
-    }
-
-    $totalItems = count($itemsArray);
-    $activeItems = count(array_filter($itemsArray, fn($i) => $i['is_active']));
-    $itemsOff = $totalItems - $activeItems;
-    $changesToday = DB::table('restosuite_item_changes')
-        ->where('shop_id', $shopId)
-        ->whereDate('created_at', today())
-        ->count();
-
-    $store = [
-        'shop_id' => $shopId,
-        'name' => $shopInfo['name'],
-        'brand' => $shopInfo['brand'],
-        'status' => 'OPERATING',
-        'total_items' => $totalItems,
-        'active_items' => $activeItems,
-        'items_off' => $itemsOff,
-        'changes_today' => $changesToday,
-        'platforms' => $platforms,
-        'offline_count' => $offlineCount,
-    ];
-
-    return view('store-detail', [
-        'store' => $store,
-        'items' => $itemsArray,
-        'lastSync' => getLastSyncTimestamp($shopId),
-        'lastSyncAgo' => $lastSyncTime ? \Carbon\Carbon::parse($lastSyncTime)->diffForHumans() : 'Never',
-    ]);
-});
-
 // HYBRID: Platform Status Page
 Route::get('/platforms', function () {
     $shopMap = ShopHelper::getShopMap();
@@ -1196,23 +1115,6 @@ Route::get('/store/{shopId}/logs/export', function ($shopId) {
     };
 
     return response()->stream($callback, 200, $headers);
-});
-
-// MOCK: Items Page (for preview before implementing real scraper)
-Route::get('/items-mock', function () {
-    // Load mock data from JSON file
-    $mockDataPath = base_path('mock_items_data.json');
-
-    if (!file_exists($mockDataPath)) {
-        return response()->json(['error' => 'Mock data file not found'], 404);
-    }
-
-    $mockData = json_decode(file_get_contents($mockDataPath), true);
-    $items = $mockData['items'] ?? [];
-
-    return view('items-mock', [
-        'items' => $items,
-    ]);
 });
 
 // ========== NEW PAGES: ALERTS, REPORTS, SETTINGS ==========
