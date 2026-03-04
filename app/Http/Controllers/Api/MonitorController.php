@@ -28,9 +28,9 @@ class MonitorController extends Controller
             // Get last scraper run
             $lastScrape = ScraperLog::orderBy('executed_at', 'desc')->first();
 
-            // Get platform status summary
+            // Get platform status summary (CASE WHEN required for boolean SUM in PostgreSQL)
             $platformStatus = DB::table('platform_status')
-                ->select('platform', DB::raw('count(*) as total'), DB::raw('sum(is_online) as online'))
+                ->select('platform', DB::raw('COUNT(*) as total'), DB::raw('SUM(CASE WHEN is_online = true THEN 1 ELSE 0 END) as online'))
                 ->groupBy('platform')
                 ->get();
 
@@ -42,7 +42,7 @@ class MonitorController extends Controller
                         'scraper_name' => $lastScrape->scraper_name,
                         'executed_at' => $lastScrape->executed_at,
                         'status' => $lastScrape->status,
-                        'duration' => $lastScrape->duration_seconds,
+                        'duration' => null, // duration_seconds not in scraper_logs table
                     ] : null,
                     'platform_status' => $platformStatus,
                 ],
