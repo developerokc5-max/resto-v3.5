@@ -77,14 +77,18 @@ class AlertService
         if ($configEmail) {
             return array_values(array_filter(array_map('trim', explode(',', $configEmail))));
         }
-        return [env('MAIL_TO_ADDRESS', 'developerokc5@gmail.com')];
+        $envEmails = env('ALERT_TO_EMAILS');
+        if ($envEmails) {
+            return array_values(array_filter(array_map('trim', explode(',', $envEmails))));
+        }
+        return ['developerokc5@gmail.com'];
     }
 
     private function sendOfflineEmail(string $shopName, array $platforms): bool
     {
         $apiKey  = env('RESEND_API_KEY');
         $to      = $this->getRecipients();
-        $from    = env('MAIL_FROM_ADDRESS', 'onboarding@resend.dev');
+        $from    = env('ALERT_FROM_EMAIL', 'onboarding@resend.dev');
 
         if (!$apiKey) {
             Log::warning('AlertService: RESEND_API_KEY not set');
@@ -148,7 +152,7 @@ class AlertService
     {
         $apiKey  = env('RESEND_API_KEY');
         $to      = $this->getRecipients();
-        $from    = env('MAIL_FROM_ADDRESS', 'onboarding@resend.dev');
+        $from    = env('ALERT_FROM_EMAIL', 'onboarding@resend.dev');
 
         if (!$apiKey) return false;
 
