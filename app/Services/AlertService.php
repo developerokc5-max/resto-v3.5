@@ -128,7 +128,7 @@ class AlertService
                 'Authorization' => 'Bearer ' . $apiKey,
                 'Content-Type'  => 'application/json',
             ])->post('https://api.resend.com/emails', [
-                'from'    => 'HawkerOps Alert <' . $from . '>',
+                'from'    => $from,
                 'to'      => $to,
                 'subject' => "🚨 {$shopName} — All Platforms Offline",
                 'html'    => $html,
@@ -191,7 +191,7 @@ class AlertService
                 'Authorization' => 'Bearer ' . $apiKey,
                 'Content-Type'  => 'application/json',
             ])->post('https://api.resend.com/emails', [
-                'from'    => 'HawkerOps Alert <' . $from . '>',
+                'from'    => $from,
                 'to'      => $to,
                 'subject' => "✅ {$shopName} — Back Online (was down {$duration})",
                 'html'    => $html,
