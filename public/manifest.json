@@ -5,39 +5,56 @@
   "start_url": "/dashboard",
   "scope": "/",
   "display": "standalone",
-  "orientation": "portrait-primary",
+  "orientation": "any",
   "background_color": "#0f172a",
   "theme_color": "#0f172a",
   "lang": "en",
+  "prefer_related_applications": false,
+  "categories": ["productivity", "business"],
   "icons": [
     {
       "src": "/icon-192.png",
       "sizes": "192x192",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
     },
     {
       "src": "/icon-512.png",
       "sizes": "512x512",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
     }
   ],
   "shortcuts": [
     {
       "name": "Dashboard",
       "url": "/dashboard",
-      "description": "Overview of all stores"
+      "description": "Overview of all stores",
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
     },
     {
       "name": "Platforms",
       "url": "/platforms",
-      "description": "Grab, FoodPanda, Deliveroo status"
+      "description": "Grab, FoodPanda, Deliveroo status",
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
     },
     {
       "name": "Alerts",
       "url": "/alerts",
-      "description": "Active alerts and warnings"
+      "description": "Active alerts and warnings",
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
     }
   ]
 }
