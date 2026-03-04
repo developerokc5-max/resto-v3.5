@@ -41,10 +41,10 @@
 
       <div class="border-2 border-slate-200 dark:border-slate-700 rounded-xl p-5 hover:border-slate-300 dark:hover:border-slate-600 transition">
         <div class="flex items-center gap-3 mb-3">
-          <div class="text-4xl">❌</div>
+          <div class="text-4xl">📴</div>
           <div>
             <h3 class="font-bold text-slate-900 dark:text-slate-100">Offline Items</h3>
-            <p class="text-xs text-slate-500 dark:text-slate-400">Currently unavailable</p>
+            <p class="text-xs text-slate-500 dark:text-slate-400">Items currently unavailable</p>
           </div>
         </div>
         <p class="text-sm text-slate-600 dark:text-slate-400 mb-4">Export only items that are currently offline/unavailable</p>
