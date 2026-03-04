@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use App\Helpers\ShopHelper;
 use App\Helpers\CacheOptimizationHelper;
+use App\Helpers\SyncHelper;
 
 // Increase execution time for heavy operations
 set_time_limit(300);
@@ -15,45 +16,7 @@ Route::get('/offline', function () {
     return response()->view('pwa.offline')->header('Cache-Control', 'no-store');
 });
 
-/**
- * Get the last sync/update timestamp for consistent display across all pages
- * Uses priority order: restosuite_item_snapshots > platform_status
- * Optional: can filter by shop_id for specific store timestamps
- */
-if (!function_exists('getLastSyncTimestamp')) {
-function getLastSyncTimestamp($shopId = null) {
-    // Static cache: avoids repeated DB calls within the same request
-    static $cache = [];
-    $key = $shopId ?? '__global__';
-    if (isset($cache[$key])) {
-        return $cache[$key];
-    }
-
-    // Cross-request cache: 60s TTL saves 1 Neon query per page load
-    $result = Cache::remember('last_sync_ts_' . $key, 60, function () use ($shopId) {
-        $query = DB::table('restosuite_item_snapshots');
-        if ($shopId) {
-            $query->where('shop_id', $shopId);
-        }
-        $lastSync = $query->max('updated_at');
-
-        if (!$lastSync) {
-            $platformQuery = DB::table('platform_status');
-            if ($shopId) {
-                $platformQuery->where('shop_id', $shopId);
-            }
-            $lastSync = $platformQuery->max('last_checked_at');
-        }
-
-        return $lastSync
-            ? \Carbon\Carbon::parse($lastSync)->setTimezone('Asia/Singapore')->format('M j, Y g:i A') . ' SGT'
-            : 'Never';
-    });
-
-    $cache[$key] = $result;
-    return $result;
-}
-} // end if (!function_exists)
+// Timestamp helper lives in App\Helpers\SyncHelper::getLastSyncTimestamp()
 
 Route::get('/', function () {
     return redirect('/dashboard');
@@ -210,7 +173,7 @@ Route::get('/dashboard', function () {
     return view('dashboard', [
         'kpis' => $kpis,
         'stores' => $stores,
-        'lastSync' => getLastSyncTimestamp(),
+        'lastSync' => SyncHelper::getLastSyncTimestamp(),
     ]);
 });
 
@@ -295,7 +258,7 @@ Route::get('/stores', function () {
 
     return view('stores', [
         'stores' => $stores,
-        'lastSync' => getLastSyncTimestamp(),
+        'lastSync' => SyncHelper::getLastSyncTimestamp(),
     ]);
 });
 
@@ -484,7 +447,7 @@ Route::get('/items', function (Request $request) {
         'totalPages' => $totalPages,
         'perPage' => $perPage,
         'totalItems' => $totalItems,
-        'lastUpdate' => getLastSyncTimestamp(),
+        'lastUpdate' => SyncHelper::getLastSyncTimestamp(),
     ]);
 });
 
@@ -657,7 +620,7 @@ Route::get('/platforms', function () {
             'percentage' => $totalPlatforms > 0 ? round(($onlinePlatforms / $totalPlatforms) * 100, 2) : 0,
         ],
         'platformStats' => $platformStats,
-        'lastScrape' => getLastSyncTimestamp(),
+        'lastScrape' => SyncHelper::getLastSyncTimestamp(),
     ]);
 });
 
@@ -1322,7 +1285,7 @@ Route::get('/alerts', function () {
             'total'    => $totalStores,
         ],
         'platformSummary' => $platformSummary,
-        'lastSync'        => getLastSyncTimestamp(),
+        'lastSync'        => SyncHelper::getLastSyncTimestamp(),
         'latestScrape'    => $latestScrape ? \Carbon\Carbon::parse($latestScrape)->diffForHumans() : 'Never',
     ]);
 });
@@ -1459,7 +1422,7 @@ Route::get('/history', function () {
 
     return view('history', [
         'history'  => $history,
-        'lastSync' => getLastSyncTimestamp(),
+        'lastSync' => SyncHelper::getLastSyncTimestamp(),
     ]);
 });
 
@@ -1628,7 +1591,7 @@ Route::get('/history/{date}', function ($date) {
         'stores'       => $stores,
         'lastUpdated'  => $lastUpdated,
         'scrapeLog'    => $scrapeLog,
-        'lastSync'     => getLastSyncTimestamp(),
+        'lastSync'     => SyncHelper::getLastSyncTimestamp(),
     ]);
 });
 
@@ -1710,7 +1673,7 @@ Route::get('/reports/daily-trends', function (\Illuminate\Http\Request $request)
         'platformUptimeData' => $platformUptimeData,
         'startDate'          => $startDate,
         'endDate'            => $endDate,
-        'lastSync'           => getLastSyncTimestamp(),
+        'lastSync'           => SyncHelper::getLastSyncTimestamp(),
     ]);
 });
 
@@ -1752,7 +1715,7 @@ Route::get('/reports/platform-reliability', function () {
 
     return view('reports.platform-reliability', [
         'platformData' => $platformData,
-        'lastSync' => getLastSyncTimestamp(),
+        'lastSync' => SyncHelper::getLastSyncTimestamp(),
     ]);
 });
 
@@ -1852,7 +1815,7 @@ Route::get('/reports/item-performance', function () {
         'topOfflineItems' => $reportData['topOfflineItems'],
         'categoryData' => $reportData['categoryData'],
         'totalStores' => $totalStores,
-        'lastSync' => getLastSyncTimestamp(),
+        'lastSync' => SyncHelper::getLastSyncTimestamp(),
     ]);
 });
 
@@ -1964,7 +1927,7 @@ Route::get('/reports/store-comparison', function () {
     return view('reports.store-comparison', [
         'allStoresData' => $allStoresData,
         'summary'       => $summary,
-        'lastSync'      => getLastSyncTimestamp(),
+        'lastSync'      => SyncHelper::getLastSyncTimestamp(),
     ]);
 });
 
@@ -2059,7 +2022,7 @@ Route::get('/settings/scraper-status', function () {
     return view('settings.scraper-status', [
         'scraperStatus' => $scraperStatus,
         'logs' => $scraperLogs,
-        'lastSync' => getLastSyncTimestamp(),
+        'lastSync' => SyncHelper::getLastSyncTimestamp(),
     ]);
 });
 
@@ -2080,7 +2043,7 @@ Route::get('/settings/configuration', function () {
         'timezone' => $configs->get('timezone')?->value ?? 'Asia/Singapore',
         'dateFormat' => $configs->get('date_format')?->value ?? 'DD/MM/YYYY',
         'showItemImages' => (bool) ($configs->get('show_item_images')?->value ?? true),
-        'lastSync' => getLastSyncTimestamp(),
+        'lastSync' => SyncHelper::getLastSyncTimestamp(),
     ]);
 });
 
@@ -2104,7 +2067,7 @@ Route::post('/settings/configuration', function (\Illuminate\Http\Request $reque
 // Settings: Export Data
 Route::get('/settings/export', function () {
     return view('settings.export', [
-        'lastSync' => getLastSyncTimestamp(),
+        'lastSync' => SyncHelper::getLastSyncTimestamp(),
     ]);
 });
 
