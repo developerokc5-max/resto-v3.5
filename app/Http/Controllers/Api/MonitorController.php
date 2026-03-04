@@ -242,22 +242,33 @@ class MonitorController extends Controller
         $cacheKey = 'api_statistics';
 
         return Cache::remember($cacheKey, 300, function () {
-            // Get scraper stats
-            $totalRuns = ScraperLog::count();
-            $successfulRuns = ScraperLog::where('status', 'success')->count();
-            $successRate = $totalRuns > 0 ? round(($successfulRuns / $totalRuns) * 100, 2) : 0;
+            // Single query for all scraper counts (was 3 separate queries)
+            $scraperStats = DB::table('scraper_logs')->selectRaw(
+                "COUNT(*) as total, " .
+                "SUM(CASE WHEN status = 'success' THEN 1 ELSE 0 END) as successful, " .
+                "SUM(CASE WHEN executed_at >= ? THEN 1 ELSE 0 END) as last_24h",
+                [now()->subDay()]
+            )->first();
 
-            // Get basic counts from database tables
+            $totalRuns      = $scraperStats->total ?? 0;
+            $successfulRuns = $scraperStats->successful ?? 0;
+            $successRate    = $totalRuns > 0 ? round(($successfulRuns / $totalRuns) * 100, 2) : 0;
+
+            // Single query for all item counts (was 2 separate queries)
+            $itemStats     = DB::table('items')->selectRaw(
+                'COUNT(*) as total, SUM(CASE WHEN is_available = true THEN 1 ELSE 0 END) as available'
+            )->first();
+            $itemsTotal     = $itemStats->total ?? 0;
+            $itemsAvailable = $itemStats->available ?? 0;
+
             $shopsTotal = DB::table('shops')->count();
-            $itemsTotal = DB::table('items')->count();
-            $itemsAvailable = DB::table('items')->where('is_available', true)->count();
 
             return response()->json([
                 'success' => true,
                 'data' => [
                     'shops' => [
                         'total' => $shopsTotal,
-                        'active' => $shopsTotal, // Simplified
+                        'active' => $shopsTotal,
                     ],
                     'items' => [
                         'total' => $itemsTotal,
@@ -265,13 +276,13 @@ class MonitorController extends Controller
                         'unavailable' => $itemsTotal - $itemsAvailable,
                     ],
                     'changes' => [
-                        'today' => 0, // Simplified
+                        'today' => 0,
                         'this_week' => 0,
                         'this_month' => 0,
                     ],
                     'scraper' => [
                         'total_runs' => $totalRuns,
-                        'last_24h' => ScraperLog::where('executed_at', '>=', now()->subDay())->count(),
+                        'last_24h' => $scraperStats->last_24h ?? 0,
                         'success_rate' => $successRate,
                     ],
                 ],
@@ -296,6 +307,31 @@ class MonitorController extends Controller
         $cacheKey = 'webapp_health_status';
 
         return Cache::remember($cacheKey, 60, function () {
+            // Single DB round-trip for all counts (was 6 separate queries)
+            $counts = DB::selectOne("
+                SELECT
+                    (SELECT COUNT(*) FROM shops) as shops_count,
+                    (SELECT COUNT(*) FROM items) as items_total,
+                    (SELECT COUNT(*) FROM items WHERE is_available = false) as items_offline,
+                    (SELECT COUNT(*) FROM platform_status) as platforms_total,
+                    (SELECT COUNT(*) FROM platform_status WHERE is_online = true) as platforms_online,
+                    (SELECT COUNT(*) FROM scraper_logs) as scraper_logs_count
+            ");
+
+            $storesCount      = $counts->shops_count ?? 0;
+            $itemsCount       = $counts->items_total ?? 0;
+            $offlineItemsCount= $counts->items_offline ?? 0;
+            $platformsCount   = $counts->platforms_total ?? 0;
+            $onlinePlatforms  = $counts->platforms_online ?? 0;
+            $scraperLogsCount = $counts->scraper_logs_count ?? 0;
+
+            $criticalAlerts = DB::table('platform_status')
+                ->selectRaw('shop_id, COUNT(*) as offline_count')
+                ->where('is_online', false)
+                ->groupBy('shop_id')
+                ->having('offline_count', '=', 3)
+                ->count();
+
             $pages = [];
 
             // Dashboard Page
@@ -308,7 +344,6 @@ class MonitorController extends Controller
             ];
 
             // Stores Page
-            $storesCount = DB::table('shops')->count();
             $pages[] = [
                 'name' => 'Stores',
                 'route' => '/stores',
@@ -319,7 +354,6 @@ class MonitorController extends Controller
             ];
 
             // Items Page
-            $itemsCount = DB::table('items')->count();
             $pages[] = [
                 'name' => 'Items',
                 'route' => '/items',
@@ -339,10 +373,7 @@ class MonitorController extends Controller
             ];
 
             // Platforms Page
-            $platformsCount = DB::table('platform_status')->count();
-            $onlinePlatforms = DB::table('platform_status')->where('is_online', true)->count();
             $platformStatus = $platformsCount > 0 && $onlinePlatforms > 0 ? 'healthy' : 'error';
-
             $pages[] = [
                 'name' => 'Platforms',
                 'route' => '/platforms',
@@ -354,7 +385,6 @@ class MonitorController extends Controller
             ];
 
             // Offline Items
-            $offlineItemsCount = DB::table('items')->where('is_available', false)->count();
             $pages[] = [
                 'name' => 'Offline Items',
                 'route' => '/offline-items',
@@ -365,13 +395,6 @@ class MonitorController extends Controller
             ];
 
             // Alerts Page
-            $criticalAlerts = DB::table('platform_status')
-                ->selectRaw('shop_id, COUNT(*) as offline_count')
-                ->where('is_online', false)
-                ->groupBy('shop_id')
-                ->having('offline_count', '=', 3)
-                ->count();
-
             $pages[] = [
                 'name' => 'Alerts',
                 'route' => '/alerts',
@@ -415,7 +438,6 @@ class MonitorController extends Controller
             ];
 
             // Settings Pages
-            $scraperLogsCount = DB::table('scraper_logs')->count();
             $pages[] = [
                 'name' => 'Settings: Scraper Status',
                 'route' => '/settings/scraper-status',

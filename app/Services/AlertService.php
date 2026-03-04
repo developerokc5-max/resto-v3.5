@@ -20,19 +20,25 @@ class AlertService
             ->get()
             ->groupBy('shop_id');
 
+        // Pre-load ALL open alerts in ONE query instead of N queries in the loop
+        $openAlerts = DB::table('alert_logs')
+            ->where('type', 'offline')
+            ->whereNull('recovered_at')
+            ->orderByDesc('alerted_at')
+            ->get()
+            ->groupBy('shop_id')
+            ->map(fn($group) => $group->first());
+
+        // Resolve recipients once for the whole run
+        $recipients = $this->getRecipients();
+
         foreach ($currentStatuses as $shopId => $platforms) {
             $shopName     = $platforms->first()->shop_name ?? $shopId;
             $totalCount   = $platforms->count();
             $offlineCount = $platforms->where('is_online', false)->count();
             $allOffline   = $offlineCount === $totalCount && $totalCount > 0;
 
-            // Check if there's an open (unresolved) alert for this store
-            $openAlert = DB::table('alert_logs')
-                ->where('shop_id', $shopId)
-                ->where('type', 'offline')
-                ->whereNull('recovered_at')
-                ->orderBy('alerted_at', 'desc')
-                ->first();
+            $openAlert = $openAlerts->get($shopId);
 
             if ($allOffline && !$openAlert) {
                 // Store just went fully offline — create alert + send email
@@ -50,7 +56,7 @@ class AlertService
                     'updated_at'        => Carbon::now(),
                 ]);
 
-                $sent = $this->sendOfflineEmail($shopName, $offlinePlatforms);
+                $sent = $this->sendOfflineEmail($shopName, $offlinePlatforms, $recipients);
 
                 DB::table('alert_logs')->where('id', $alertId)
                     ->update(['email_sent' => $sent]);
@@ -66,7 +72,7 @@ class AlertService
                     'updated_at'      => Carbon::now(),
                 ]);
 
-                $this->sendRecoveryEmail($shopName, $downtimeMinutes);
+                $this->sendRecoveryEmail($shopName, $downtimeMinutes, $recipients);
             }
         }
     }
@@ -84,10 +90,9 @@ class AlertService
         return ['developerokc5@gmail.com'];
     }
 
-    private function sendOfflineEmail(string $shopName, array $platforms): bool
+    private function sendOfflineEmail(string $shopName, array $platforms, array $to): bool
     {
         $apiKey  = env('RESEND_API_KEY');
-        $to      = $this->getRecipients();
         $from    = env('ALERT_FROM_EMAIL', 'onboarding@resend.dev');
 
         if (!$apiKey) {
@@ -149,10 +154,9 @@ class AlertService
         }
     }
 
-    private function sendRecoveryEmail(string $shopName, int $downtimeMinutes): bool
+    private function sendRecoveryEmail(string $shopName, int $downtimeMinutes, array $to): bool
     {
         $apiKey  = env('RESEND_API_KEY');
-        $to      = $this->getRecipients();
         $from    = env('ALERT_FROM_EMAIL', 'onboarding@resend.dev');
 
         if (!$apiKey) return false;
