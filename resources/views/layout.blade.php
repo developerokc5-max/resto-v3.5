@@ -36,7 +36,8 @@
     <!-- Sidebar -->
     <aside class="w-72 hidden md:flex flex-col border-r border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 relative z-20">
       <div class="px-6 py-5 flex items-center gap-3">
-        <div class="h-10 w-10 rounded-xl bg-slate-900 dark:bg-slate-700 text-white grid place-items-center font-bold">HO</div>
+        <img src="/images/logo-light.png?v=3" class="h-10 w-10 rounded-xl object-cover dark:hidden" alt="HO">
+        <img src="/images/logo-dark.png?v=3"  class="h-10 w-10 rounded-xl object-cover hidden dark:block" alt="HO">
         <div class="flex-1">
           <div class="font-semibold leading-tight dark:text-slate-100">HawkerOps</div>
           <div class="text-xs text-slate-500 dark:text-slate-400">Store Management</div>
@@ -163,7 +164,8 @@
     {{-- Drawer header --}}
     <div class="flex items-center justify-between px-5 py-4 border-b border-slate-200 dark:border-slate-800">
       <div class="flex items-center gap-3">
-        <div class="h-9 w-9 rounded-xl bg-slate-900 dark:bg-slate-700 text-white grid place-items-center font-bold text-sm">HO</div>
+        <img src="/images/logo-light.png?v=3" class="h-9 w-9 rounded-xl object-cover dark:hidden" alt="HO">
+        <img src="/images/logo-dark.png?v=3"  class="h-9 w-9 rounded-xl object-cover hidden dark:block" alt="HO">
         <div>
           <div class="font-semibold text-sm dark:text-slate-100">HawkerOps</div>
           <div class="text-xs text-slate-500 dark:text-slate-400">Store Management</div>
