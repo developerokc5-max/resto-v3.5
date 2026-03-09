@@ -42,7 +42,7 @@ SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 LOG_FILE = os.path.join(SCRIPT_DIR, "scrape_items_sync_v2.log")
 
 # Number of parallel browsers (6 workers = ~20 min, uses ~6GB RAM)
-NUM_WORKERS = 6
+NUM_WORKERS = 7
 
 # Thread-safe logging
 log_lock = Lock()
@@ -393,15 +393,15 @@ def process_all_platforms_for_outlet(page, outlet_name, worker_id):
                 log(f"  [{platform_display}] Tab not found", worker_id)
                 continue
 
-            tab.click(timeout=2000)
+            tab.click(timeout=5000)
             page.wait_for_timeout(1000)
 
             # Set page size to 100
             page_size_selector = page.locator('.ant-select-selection-item').filter(has_text="/ page").first
             if page_size_selector.count() > 0:
-                page_size_selector.click(timeout=2000)
+                page_size_selector.click(timeout=5000)
                 page.wait_for_timeout(800)
-                page.locator('div[title="100 / page"]').click(timeout=2000)
+                page.locator('div[title="100 / page"]').click(timeout=5000)
                 page.wait_for_timeout(1000)
 
             # Check if bound
@@ -501,7 +501,7 @@ def worker_process_outlets(worker_id, outlets_to_process):
                         switcher = brand_node.locator('.ant-tree-switcher').first
                         switcher_class = switcher.get_attribute('class')
                         if 'ant-tree-switcher_open' in switcher_class:
-                            switcher.click(timeout=2000)
+                            switcher.click(timeout=5000)
                             page.wait_for_timeout(500)
                 except:
                     pass
@@ -539,7 +539,7 @@ def worker_process_outlets(worker_id, outlets_to_process):
                             for store_elem in store_elements:
                                 store_title = store_elem.get_attribute('title')
                                 if store_title == outlet_name and store_elem.is_visible():
-                                    store_elem.click(timeout=2000)
+                                    store_elem.click(timeout=5000)
                                     page.wait_for_timeout(2000)
 
                                     # Process all 3 platforms for this outlet
