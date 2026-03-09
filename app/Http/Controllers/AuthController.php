@@ -60,6 +60,29 @@ class AuthController extends Controller
         }
     }
 
+    /** Handle admin username/password login */
+    public function loginPost(Request $request)
+    {
+        $adminUser = config('services.admin.username');
+        $adminPass = config('services.admin.password');
+
+        if (!$adminUser || !$adminPass) {
+            return back()->with('error', 'Admin login is not configured.');
+        }
+
+        if ($request->username !== $adminUser || $request->password !== $adminPass) {
+            return back()->with('error', 'Invalid username or password.');
+        }
+
+        session([
+            'auth_user'   => $adminUser,
+            'auth_name'   => 'Admin',
+            'auth_avatar' => null,
+        ]);
+
+        return redirect('/dashboard');
+    }
+
     /** Logout */
     public function logout(Request $request)
     {

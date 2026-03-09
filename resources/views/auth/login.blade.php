@@ -54,6 +54,11 @@
       --tbtn-bg:      #ffffff;
       --tbtn-bdr:     rgba(0,0,0,0.09);
       --tbtn-shadow:  rgba(0,0,0,0.06);
+      --field-bg:     #f8fafc;
+      --field-bdr:    rgba(0,0,0,0.09);
+      --field-text:   #0f172a;
+      --field-ph:     #94a3b8;
+      --label-text:   #64748b;
       color-scheme: light;
     }
     [data-theme="dark"] {
@@ -93,6 +98,11 @@
       --tbtn-bg:      #1e293b;
       --tbtn-bdr:     rgba(255,255,255,0.1);
       --tbtn-shadow:  rgba(0,0,0,0.3);
+      --field-bg:     #1e293b;
+      --field-bdr:    rgba(255,255,255,0.1);
+      --field-text:   #f1f5f9;
+      --field-ph:     #334155;
+      --label-text:   #475569;
       color-scheme: dark;
     }
 
@@ -228,6 +238,34 @@
     }
     .btn-google svg { width: 20px; height: 20px; flex-shrink: 0; }
 
+    .field-label {
+      display: block; font-size: 12px; font-weight: 500;
+      color: var(--label-text); margin-bottom: 6px;
+    }
+    .field-input {
+      width: 100%; background: var(--field-bg);
+      border: 1px solid var(--field-bdr); border-radius: 12px;
+      color: var(--field-text); font-size: 14px;
+      padding: 12px 14px; outline: none;
+      transition: border-color 0.2s, box-shadow 0.2s;
+      margin-bottom: 12px;
+    }
+    .field-input:focus {
+      border-color: rgba(99,102,241,0.45);
+      box-shadow: 0 0 0 3px rgba(99,102,241,0.08);
+    }
+    .field-input::placeholder { color: var(--field-ph); }
+    .btn-admin {
+      display: flex; align-items: center; justify-content: center;
+      gap: 8px; width: 100%; background: #4f46e5; color: #fff;
+      font-size: 14px; font-weight: 600; border: none; border-radius: 12px;
+      padding: 13px 20px; cursor: pointer; transition: all 0.2s ease;
+      box-shadow: 0 4px 16px rgba(79,70,229,0.3);
+    }
+    .btn-admin:hover {
+      background: #4338ca; transform: translateY(-1px);
+      box-shadow: 0 8px 24px rgba(79,70,229,0.4);
+    }
     .footnote {
       text-align: center; color: var(--footnote);
       font-size: 12px; margin-top: 1.25rem;
@@ -278,7 +316,22 @@
         </span>
       </div>
 
-      <div class="divider"><span>sign in to continue</span></div>
+      {{-- Admin username/password login --}}
+      <form method="POST" action="/login">
+        @csrf
+        <label class="field-label">Username</label>
+        <input type="text" name="username" class="field-input"
+               placeholder="Enter username" autocomplete="username" required>
+        <label class="field-label">Password</label>
+        <input type="password" name="password" class="field-input"
+               placeholder="Enter password" autocomplete="current-password" required>
+        <button type="submit" class="btn-admin">
+          <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path d="M15 3h4a2 2 0 012 2v14a2 2 0 01-2 2h-4M10 17l5-5-5-5M15 12H3"/></svg>
+          Sign In
+        </button>
+      </form>
+
+      <div class="divider" style="margin-top:1.75rem;"><span>or sign in with Google</span></div>
 
       @if(session('error'))
         <div class="error-box">

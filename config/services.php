@@ -42,4 +42,9 @@ return [
         'auth_emails'   => env('AUTH_EMAILS', ''),
     ],
 
+    'admin' => [
+        'username' => env('ADMIN_USERNAME', ''),
+        'password' => env('ADMIN_PASSWORD', ''),
+    ],
+
 ];
