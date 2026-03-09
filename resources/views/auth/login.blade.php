@@ -166,10 +166,6 @@
       box-shadow: 0 0 30px var(--logo-glow);
     }
     .logo-box img { height: 40px; width: auto; display: block; }
-    .logo-light { display: block; }
-    .logo-dark  { display: none; }
-    [data-theme="dark"] .logo-light { display: none; }
-    [data-theme="dark"] .logo-dark  { display: block; }
 
     .title { text-align: center; margin-bottom: 1.5rem; }
     .title h1 { font-size: 22px; font-weight: 700; color: var(--text1); margin: 0 0 4px; }
@@ -261,8 +257,7 @@
 
       <div class="logo-wrap">
         <div class="logo-box">
-          <img src="/images/logo-light.png" alt="HawkerOps" class="logo-light">
-          <img src="/images/logo-dark.png"  alt="HawkerOps" class="logo-dark">
+          <img id="logoImg" src="/images/logo-light.png" alt="HawkerOps">
         </div>
       </div>
 
@@ -321,12 +316,20 @@
 </div>
 
 <script>
+  function setLogo(t) {
+    var logo = document.getElementById('logoImg');
+    if (logo) logo.src = t === 'dark' ? '/images/logo-dark.png' : '/images/logo-light.png';
+  }
   function toggleTheme() {
     var cur = document.documentElement.getAttribute('data-theme');
     var next = cur === 'dark' ? 'light' : 'dark';
     document.documentElement.setAttribute('data-theme', next);
     localStorage.setItem('hawkerops-theme', next);
+    setLogo(next);
   }
+  document.addEventListener('DOMContentLoaded', function() {
+    setLogo(document.documentElement.getAttribute('data-theme'));
+  });
 </script>
 </body>
 </html>
