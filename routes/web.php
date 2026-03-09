@@ -10,9 +10,6 @@ use App\Helpers\SyncHelper;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\TotpController;
 
-// Increase execution time for heavy operations
-set_time_limit(300);
-
 // ── Auth routes (no login required) ───────────────────────────────────────────
 Route::get('/login', [AuthController::class, 'login'])->name('login');
 Route::post('/login', [AuthController::class, 'loginPost']);

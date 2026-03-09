@@ -20,12 +20,6 @@ class OptimizePerformance
             \Illuminate\Support\Facades\DB::disableQueryLog();
         }
 
-        // Set proper execution time limits
-        set_time_limit(300);
-
-        // Set memory limit for heavy operations
-        ini_set('memory_limit', '256M');
-
         // Compress output (gzip)
         if (function_exists('gzencode') &&
             strpos($request->header('Accept-Encoding'), 'gzip') !== false) {
