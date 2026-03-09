@@ -39,9 +39,8 @@ class OptimizePerformance
             (preg_match('/\.(js|css|png|jpg|jpeg|gif|ico|svg)$/i', $request->getRequestUri()))) {
             $response->header('Cache-Control', 'public, max-age=31536000'); // 1 year for static files
         } else if ($response->isSuccessful() && !$request->isJson()) {
-            // Cache HTML pages for 5 minutes
-            $response->header('Cache-Control', 'public, max-age=300');
-            $response->header('ETag', md5($response->getContent()));
+            // HTML pages must not be publicly cached — they contain CSRF tokens and session data
+            $response->header('Cache-Control', 'private, no-cache');
         }
 
         return $response;
