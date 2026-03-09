@@ -473,7 +473,7 @@ def worker_process_outlets(worker_id, outlets_to_process):
                 try:
                     dropdown = page.locator(selector).first
                     if dropdown.count() > 0:
-                        dropdown.click(timeout=3000)
+                        dropdown.click(timeout=5000)
                         page.wait_for_timeout(1500)
                         break
                 except:
@@ -525,7 +525,7 @@ def worker_process_outlets(worker_id, outlets_to_process):
                     switcher_class = switcher.get_attribute('class')
 
                     if 'ant-tree-switcher_close' in switcher_class:
-                        switcher.click(timeout=3000)
+                        switcher.click(timeout=5000)
                         page.wait_for_timeout(1500)
 
                     # Process each outlet
@@ -575,7 +575,7 @@ def worker_process_outlets(worker_id, outlets_to_process):
                             continue
 
                     # Close brand
-                    switcher.click(timeout=2000)
+                    switcher.click(timeout=5000)
                     page.wait_for_timeout(500)
 
                 except Exception as e:
@@ -623,7 +623,7 @@ def get_all_outlets():
                 try:
                     dropdown = page.locator(selector).first
                     if dropdown.count() > 0:
-                        dropdown.click(timeout=3000)
+                        dropdown.click(timeout=5000)
                         page.wait_for_timeout(1500)
                         break
                 except:
@@ -644,7 +644,7 @@ def get_all_outlets():
                     # Expand
                     switcher_class = switcher.get_attribute('class')
                     if 'ant-tree-switcher_close' in switcher_class:
-                        switcher.click(timeout=3000)
+                        switcher.click(timeout=5000)
                         page.wait_for_timeout(1500)
 
                     # Find outlets
@@ -659,7 +659,7 @@ def get_all_outlets():
                             outlets.append((brand_name, store_title))
 
                     # Close brand
-                    switcher.click(timeout=2000)
+                    switcher.click(timeout=5000)
                     page.wait_for_timeout(500)
 
                 except Exception as e:
