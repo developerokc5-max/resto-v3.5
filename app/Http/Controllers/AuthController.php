@@ -56,7 +56,7 @@ class AuthController extends Controller
 
         } catch (\Exception $e) {
             \Illuminate\Support\Facades\Log::error('Google callback error: ' . $e->getMessage());
-            return redirect('/login')->with('error', 'Sign-in failed. Please try again.');
+            return redirect('/login')->with('error', 'Error: ' . $e->getMessage());
         }
     }
 
