@@ -444,7 +444,7 @@ def worker_process_outlets(worker_id, outlets_to_process):
     outlets_processed = 0
 
     with sync_playwright() as p:
-        browser = p.chromium.launch(headless=True, slow_mo=800)
+        browser = p.chromium.launch(headless=True)
         page = browser.new_page()
         page.set_viewport_size({"width": 1920, "height": 1080})
 
@@ -600,7 +600,7 @@ def get_all_outlets():
     log("Scanning for all outlets...")
 
     with sync_playwright() as p:
-        browser = p.chromium.launch(headless=True, slow_mo=500)
+        browser = p.chromium.launch(headless=True)
         page = browser.new_page()
         page.set_viewport_size({"width": 1920, "height": 1080})
 
@@ -649,8 +649,8 @@ def get_all_outlets():
                         switcher.click(timeout=5000)
                         page.wait_for_timeout(1500)
 
-                    # Find outlets
-                    store_elements = page.locator('.ant-tree-node-content-wrapper').all()
+                    # Find outlets - scope to current brand node only to avoid duplicates
+                    store_elements = brand_node.locator('.ant-tree-node-content-wrapper').all()
                     brand_names_list = [b[0] for b in BRANDS]
 
                     for store_elem in store_elements:
