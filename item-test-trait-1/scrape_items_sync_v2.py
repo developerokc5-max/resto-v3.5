@@ -239,7 +239,7 @@ def save_shop(shop_info, worker_id=None):
 
 # List of brands with expected outlet counts
 BRANDS = [
-    ("MADAS", 1)
+    ("Madas", 1)
     ("Le Le Mee Pok", 2),
     ("JKT Western", 2),
     ("Drinks Stall", 2),
