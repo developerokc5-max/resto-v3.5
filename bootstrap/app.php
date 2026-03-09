@@ -27,6 +27,7 @@ return Application::configure(basePath: dirname(__DIR__))
         // Register performance optimization middleware
         $middleware->web(append: [
             \App\Http\Middleware\OptimizePerformance::class,
+            \App\Http\Middleware\RequireAuth::class,
         ]);
 
         // Alias for easy reference

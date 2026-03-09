@@ -7,9 +7,16 @@ use Illuminate\Support\Facades\Cache;
 use App\Helpers\ShopHelper;
 use App\Helpers\CacheOptimizationHelper;
 use App\Helpers\SyncHelper;
+use App\Http\Controllers\AuthController;
 
 // Increase execution time for heavy operations
 set_time_limit(300);
+
+// ── Auth routes (no login required) ───────────────────────────────────────────
+Route::get('/login', [AuthController::class, 'login'])->name('login');
+Route::get('/auth/google', [AuthController::class, 'redirectToGoogle']);
+Route::get('/auth/google/callback', [AuthController::class, 'handleGoogleCallback']);
+Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 
 // PWA offline fallback page
 Route::get('/offline', function () {
