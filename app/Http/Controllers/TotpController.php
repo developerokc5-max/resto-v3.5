@@ -4,10 +4,15 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use PragmaRX\Google2FALaravel\Support\Authenticator;
+use PragmaRX\Google2FA\Google2FA;
 
 class TotpController extends Controller
 {
+    private function g2fa(): Google2FA
+    {
+        return new Google2FA();
+    }
+
     /** Show QR code setup page (first-time users) */
     public function setup()
     {
@@ -15,28 +20,21 @@ class TotpController extends Controller
         if (!$email) return redirect('/login');
 
         // Already set up → go to verify
-        $existing = DB::table('user_totp')->where('email', $email)->first();
-        if ($existing) return redirect('/auth/totp/verify');
+        if (DB::table('user_totp')->where('email', $email)->exists()) {
+            return redirect('/auth/totp/verify');
+        }
 
-        $google2fa = app('pragmarx.google2fa');
-        $secret = $google2fa->generateSecretKey();
-
-        // Store secret temporarily in session until confirmed
+        $g2fa   = $this->g2fa();
+        $secret = $g2fa->generateSecretKey();
         session(['totp_setup_secret' => $secret]);
 
-        $qrUrl = $google2fa->getQRCodeUrl(
-            config('app.name'),
-            $email,
-            $secret
-        );
+        $qrUrl = $g2fa->getQRCodeUrl(config('app.name'), $email, $secret);
 
-        // Generate QR code as SVG data URI
         $renderer = new \BaconQrCode\Renderer\ImageRenderer(
-            new \BaconQrCode\Renderer\RendererStyle\RendererStyle(300),
+            new \BaconQrCode\Renderer\RendererStyle\RendererStyle(280),
             new \BaconQrCode\Renderer\Image\SvgImageBackEnd()
         );
-        $writer = new \BaconQrCode\Writer($renderer);
-        $qrSvg = base64_encode($writer->writeString($qrUrl));
+        $qrSvg = base64_encode((new \BaconQrCode\Writer($renderer))->writeString($qrUrl));
 
         return view('auth.totp-setup', compact('secret', 'qrSvg', 'email'));
     }
@@ -44,21 +42,16 @@ class TotpController extends Controller
     /** Confirm setup — user scans QR and enters first code */
     public function confirmSetup(Request $request)
     {
-        $email = session('auth_pending');
+        $email  = session('auth_pending');
         $secret = session('totp_setup_secret');
-
         if (!$email || !$secret) return redirect('/login');
 
         $request->validate(['code' => 'required|digits:6']);
 
-        $google2fa = app('pragmarx.google2fa');
-        $valid = $google2fa->verifyKey($secret, $request->code);
-
-        if (!$valid) {
+        if (!$this->g2fa()->verifyKey($secret, $request->code)) {
             return back()->with('error', 'Invalid code. Try again.');
         }
 
-        // Save secret permanently
         DB::table('user_totp')->updateOrInsert(
             ['email' => $email],
             ['secret' => $secret, 'updated_at' => now(), 'created_at' => now()]
@@ -66,7 +59,6 @@ class TotpController extends Controller
 
         session()->forget('totp_setup_secret');
         $this->completeLogin($email);
-
         return redirect()->intended('/dashboard');
     }
 
@@ -76,9 +68,9 @@ class TotpController extends Controller
         $email = session('auth_pending');
         if (!$email) return redirect('/login');
 
-        // Not set up yet → setup first
-        $record = DB::table('user_totp')->where('email', $email)->first();
-        if (!$record) return redirect('/auth/totp/setup');
+        if (!DB::table('user_totp')->where('email', $email)->exists()) {
+            return redirect('/auth/totp/setup');
+        }
 
         return view('auth.totp-verify', compact('email'));
     }
@@ -94,10 +86,7 @@ class TotpController extends Controller
         $record = DB::table('user_totp')->where('email', $email)->first();
         if (!$record) return redirect('/auth/totp/setup');
 
-        $google2fa = app('pragmarx.google2fa');
-        $valid = $google2fa->verifyKey($record->secret, $request->code);
-
-        if (!$valid) {
+        if (!$this->g2fa()->verifyKey($record->secret, $request->code)) {
             return back()->with('error', 'Invalid code. Check your authenticator app.');
         }
 
@@ -109,12 +98,7 @@ class TotpController extends Controller
     {
         $name   = session('auth_pending_name');
         $avatar = session('auth_pending_avatar');
-
         session()->forget(['auth_pending', 'auth_pending_name', 'auth_pending_avatar']);
-        session([
-            'auth_user'   => $email,
-            'auth_name'   => $name,
-            'auth_avatar' => $avatar,
-        ]);
+        session(['auth_user' => $email, 'auth_name' => $name, 'auth_avatar' => $avatar]);
     }
 }
