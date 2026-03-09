@@ -12,6 +12,10 @@ class RequireAuth
         '/login',
         '/auth/google',
         '/auth/google/callback',
+        '/auth/totp/setup',
+        '/auth/totp/setup/confirm',
+        '/auth/totp/verify',
+        '/auth/totp/check',
         '/offline',
         '/up',
     ];
@@ -30,9 +34,9 @@ class RequireAuth
             }
         }
 
-        // Check session
+        // Must have completed both Google OAuth + TOTP
         if (!session('auth_user')) {
-            return redirect('/login')->with('intended', $request->url());
+            return redirect('/login');
         }
 
         return $next($request);

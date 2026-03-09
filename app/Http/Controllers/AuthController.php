@@ -42,14 +42,20 @@ class AuthController extends Controller
             return redirect('/login')->with('error', 'Access denied. Your account is not authorised.');
         }
 
-        // Store in session
+        // Store pending session — TOTP step required before full access
         session([
-            'auth_user'  => $email,
-            'auth_name'  => $googleUser->getName(),
-            'auth_avatar'=> $googleUser->getAvatar(),
+            'auth_pending'        => $email,
+            'auth_pending_name'   => $googleUser->getName(),
+            'auth_pending_avatar' => $googleUser->getAvatar(),
         ]);
 
-        return redirect()->intended('/dashboard');
+        // Check if TOTP is set up for this user
+        $hasTOTP = \Illuminate\Support\Facades\DB::table('user_totp')
+            ->where('email', $email)->exists();
+
+        return $hasTOTP
+            ? redirect('/auth/totp/verify')
+            : redirect('/auth/totp/setup');
     }
 
     /** Logout */

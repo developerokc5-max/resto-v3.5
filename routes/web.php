@@ -8,6 +8,7 @@ use App\Helpers\ShopHelper;
 use App\Helpers\CacheOptimizationHelper;
 use App\Helpers\SyncHelper;
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\TotpController;
 
 // Increase execution time for heavy operations
 set_time_limit(300);
@@ -17,6 +18,12 @@ Route::get('/login', [AuthController::class, 'login'])->name('login');
 Route::get('/auth/google', [AuthController::class, 'redirectToGoogle']);
 Route::get('/auth/google/callback', [AuthController::class, 'handleGoogleCallback']);
 Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
+
+// ── TOTP 2FA routes ────────────────────────────────────────────────────────────
+Route::get('/auth/totp/setup', [TotpController::class, 'setup']);
+Route::post('/auth/totp/setup/confirm', [TotpController::class, 'confirmSetup']);
+Route::get('/auth/totp/verify', [TotpController::class, 'verify']);
+Route::post('/auth/totp/check', [TotpController::class, 'check']);
 
 // PWA offline fallback page
 Route::get('/offline', function () {
