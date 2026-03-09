@@ -1,7 +1,7 @@
 // HawkerOps Service Worker v3
 // Stale-while-revalidate for HTML: instant on mobile, always fresh in background
 
-const CACHE_NAME = 'hawkerops-v3';
+const CACHE_NAME = 'hawkerops-v4';
 
 // Only precache the offline fallback — everything else is cached on first visit
 const PRECACHE_URLS = ['/offline'];
@@ -43,6 +43,9 @@ self.addEventListener('fetch', event => {
 
   // Skip API calls — always fetch fresh
   if (url.pathname.startsWith('/api/')) return;
+
+  // Never cache auth/login pages — flash messages must always render fresh
+  if (url.pathname === '/login' || url.pathname.startsWith('/auth/')) return;
 
   // Skip export/download routes
   if (url.pathname.includes('/export') || url.pathname.includes('/logs/export')) return;
