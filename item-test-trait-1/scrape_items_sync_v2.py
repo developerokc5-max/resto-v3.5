@@ -389,8 +389,10 @@ def process_all_platforms_for_outlet(page, outlet_name, worker_id):
             tab_selector = f'div[data-node-key="{platform_key}"]'
             tab = page.locator(tab_selector).first
 
-            if tab.count() == 0:
-                log(f"  [{platform_display}] Tab not found", worker_id)
+            try:
+                tab.wait_for(state="visible", timeout=8000)
+            except:
+                log(f"  [{platform_display}] Tab not visible - skipping", worker_id)
                 continue
 
             tab.click(timeout=5000)
@@ -540,7 +542,7 @@ def worker_process_outlets(worker_id, outlets_to_process):
                                 store_title = store_elem.get_attribute('title')
                                 if store_title == outlet_name and store_elem.is_visible():
                                     store_elem.click(timeout=5000)
-                                    page.wait_for_timeout(2000)
+                                    page.wait_for_timeout(3000)
 
                                     # Process all 3 platforms for this outlet
                                     items = process_all_platforms_for_outlet(page, outlet_name, worker_id)
