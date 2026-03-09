@@ -42,7 +42,7 @@ php artisan migrate --force --no-interaction
 # Build caches for production performance
 echo "⚡ Building Laravel caches..."
 mkdir -p /var/www/html/storage/framework/views
-mkdir -p /var/www/html/storage/framework/cache
+mkdir -p /var/www/html/storage/framework/cache/data
 mkdir -p /var/www/html/storage/framework/sessions
 mkdir -p /var/www/html/storage/logs
 chown -R www-data:www-data /var/www/html/storage
