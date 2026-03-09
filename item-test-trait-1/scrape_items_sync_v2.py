@@ -254,7 +254,10 @@ def extract_items_from_table(page, shop_name, platform_name, worker_id):
     items = []
 
     try:
-        page.wait_for_timeout(1500)
+        try:
+            page.wait_for_selector('.ant-table-tbody tr', timeout=3000)
+        except:
+            pass
         rows = page.locator('.ant-table-tbody tr').all()
 
         log(f"  [{platform_name}] Extracting from {len(rows)} rows...", worker_id)
@@ -335,7 +338,10 @@ def extract_items_from_table(page, shop_name, platform_name, worker_id):
 def scroll_table(page, platform_name, worker_id):
     """Scroll through table to load all content"""
     try:
-        page.wait_for_timeout(1500)
+        try:
+            page.wait_for_selector('.ant-table-body', timeout=3000)
+        except:
+            pass
         table_body = page.locator('.ant-table-body').first
 
         if table_body.count() == 0:
