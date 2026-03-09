@@ -423,7 +423,7 @@ def process_all_platforms_for_outlet(page, outlet_name, worker_id):
     try:
         grab_tab = page.locator('div[data-node-key="grab"]').first
         if grab_tab.count() > 0:
-            grab_tab.click(timeout=2000)
+            grab_tab.click(timeout=5000)
             page.wait_for_timeout(800)
     except:
         pass
