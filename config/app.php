@@ -40,6 +40,7 @@ return [
     */
 
     'debug' => (bool) env('APP_DEBUG', false),
+    'auth_enabled' => (bool) env('AUTH_ENABLED', true),
 
     /*
     |--------------------------------------------------------------------------

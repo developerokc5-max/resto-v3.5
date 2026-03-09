@@ -22,6 +22,11 @@ class RequireAuth
 
     public function handle(Request $request, Closure $next)
     {
+        // Auth disabled via env — bypass entirely
+        if (!config('app.auth_enabled', true)) {
+            return $next($request);
+        }
+
         // Always allow API routes (scrapers, GitHub Actions)
         if ($request->is('api/*')) {
             return $next($request);
