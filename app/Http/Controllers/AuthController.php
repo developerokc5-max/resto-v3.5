@@ -27,35 +27,37 @@ class AuthController extends Controller
     {
         try {
             $googleUser = Socialite::driver('google')->user();
+
+            $email = strtolower($googleUser->getEmail());
+
+            // Check whitelist — use config() so it works with config:cache
+            $allowed = collect(explode(',', config('services.google.auth_emails', '')))
+                ->map(fn($e) => strtolower(trim($e)))
+                ->filter();
+
+            if (!$allowed->contains($email)) {
+                return redirect('/login')->with('error', 'Access denied. Your account is not authorised.');
+            }
+
+            // Store pending session — TOTP step required before full access
+            session([
+                'auth_pending'        => $email,
+                'auth_pending_name'   => $googleUser->getName(),
+                'auth_pending_avatar' => $googleUser->getAvatar(),
+            ]);
+
+            // Check if TOTP is set up for this user
+            $hasTOTP = \Illuminate\Support\Facades\DB::table('user_totp')
+                ->where('email', $email)->exists();
+
+            return $hasTOTP
+                ? redirect('/auth/totp/verify')
+                : redirect('/auth/totp/setup');
+
         } catch (\Exception $e) {
-            return redirect('/login')->with('error', 'Google sign-in failed. Please try again.');
+            \Illuminate\Support\Facades\Log::error('Google callback error: ' . $e->getMessage());
+            return redirect('/login')->with('error', 'Sign-in failed. Please try again.');
         }
-
-        $email = strtolower($googleUser->getEmail());
-
-        // Check whitelist
-        $allowed = collect(explode(',', env('AUTH_EMAILS', '')))
-            ->map(fn($e) => strtolower(trim($e)))
-            ->filter();
-
-        if (!$allowed->contains($email)) {
-            return redirect('/login')->with('error', 'Access denied. Your account is not authorised.');
-        }
-
-        // Store pending session — TOTP step required before full access
-        session([
-            'auth_pending'        => $email,
-            'auth_pending_name'   => $googleUser->getName(),
-            'auth_pending_avatar' => $googleUser->getAvatar(),
-        ]);
-
-        // Check if TOTP is set up for this user
-        $hasTOTP = \Illuminate\Support\Facades\DB::table('user_totp')
-            ->where('email', $email)->exists();
-
-        return $hasTOTP
-            ? redirect('/auth/totp/verify')
-            : redirect('/auth/totp/setup');
     }
 
     /** Logout */
