@@ -573,10 +573,8 @@ Route::get('/platforms', function () {
         }
     }
 
-    // Get all platform statuses - only for known shops in shopMap (filter out unknown scraped IDs)
-    $knownShopIds = array_keys($shopMap);
+    // Get all platform statuses — show all shops, use shopMap for display names
     $platformStatuses = DB::table('platform_status')
-        ->whereIn('shop_id', $knownShopIds)
         ->whereNotIn('shop_id', $testingShopIds)
         ->orderBy('shop_id')
         ->orderBy('platform')
@@ -586,9 +584,8 @@ Route::get('/platforms', function () {
     $shopsPlatforms = [];
     foreach ($platformStatuses as $status) {
         if (!isset($shopsPlatforms[$status->shop_id])) {
-            $shopInfo = $shopMap[$status->shop_id] ?? null;
-            // Skip entirely if not in shopMap (should not happen after whereIn, but safety net)
-            if (!$shopInfo) continue;
+            $fallbackName = $status->store_name && $status->store_name !== 'Unknown' ? $status->store_name : $status->shop_id;
+            $shopInfo = $shopMap[$status->shop_id] ?? ['name' => $fallbackName, 'brand' => $fallbackName];
             $shopsPlatforms[$status->shop_id] = [
                 'shop_id' => $status->shop_id,
                 'shop_name' => $shopInfo['name'],
