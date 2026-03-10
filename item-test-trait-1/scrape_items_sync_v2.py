@@ -500,17 +500,11 @@ def worker_process_outlets(worker_id, outlets_to_process):
 
             log("Group view ready", worker_id)
 
-            # Close all brands first
-            for brand_name, _ in BRANDS:
+            # Close all open brands first (dynamic - no hardcoded list needed)
+            for switcher in page.locator('.ant-tree-switcher_open').all():
                 try:
-                    brand_title = page.locator(f'span[title="{brand_name}"]').first
-                    if brand_title.count() > 0:
-                        brand_node = brand_title.locator('xpath=ancestor::div[@role="treeitem"]').first
-                        switcher = brand_node.locator('.ant-tree-switcher').first
-                        switcher_class = switcher.get_attribute('class')
-                        if 'ant-tree-switcher_open' in switcher_class:
-                            switcher.click(timeout=5000)
-                            page.wait_for_timeout(500)
+                    switcher.click(timeout=3000)
+                    page.wait_for_timeout(300)
                 except:
                     pass
 
@@ -600,10 +594,13 @@ def worker_process_outlets(worker_id, outlets_to_process):
 
 
 def get_all_outlets():
-    """Get list of all outlets by scanning once"""
+    """
+    Dynamically discover all brands and outlets by scanning the tree.
+    No hardcoded brand list needed — auto-detects new brands automatically.
+    """
     outlets = []
 
-    log("Scanning for all outlets...")
+    log("Scanning for all brands and outlets...")
 
     with sync_playwright() as p:
         browser = p.chromium.launch(headless=True)
@@ -642,29 +639,46 @@ def get_all_outlets():
             page.locator('text=ACHIEVERS RESOURCE CONSULTANCY PTE LTD').first.click(timeout=5000)
             page.wait_for_timeout(3000)
 
-            # Scan each brand for outlets
-            for brand_name, expected_count in BRANDS:
+            # Step 1: Capture all top-level brand names BEFORE expanding anything
+            # Whatever is visible now = brand nodes (no outlets expanded yet)
+            top_level_titles = set()
+            for elem in page.locator('.ant-tree-node-content-wrapper').all():
+                title = elem.get_attribute('title')
+                if title and elem.is_visible():
+                    top_level_titles.add(title)
+
+            log(f"Auto-detected {len(top_level_titles)} brands: {sorted(top_level_titles)}")
+
+            # Step 2: For each brand, expand it and collect new visible nodes (= outlets)
+            for brand_name in sorted(top_level_titles):
                 try:
                     brand_title = page.locator(f'span[title="{brand_name}"]').first
+                    if brand_title.count() == 0:
+                        continue
+
                     brand_node = brand_title.locator('xpath=ancestor::div[@role="treeitem"]').first
                     switcher = brand_node.locator('.ant-tree-switcher').first
+                    switcher_class = switcher.get_attribute('class') or ''
 
-                    # Expand
-                    switcher_class = switcher.get_attribute('class')
+                    # Skip leaf nodes (no expand arrow = no child outlets)
+                    if 'ant-tree-switcher-noop' in switcher_class:
+                        log(f"  {brand_name}: no outlets (leaf node)")
+                        continue
+
+                    # Expand brand
                     if 'ant-tree-switcher_close' in switcher_class:
                         switcher.click(timeout=5000)
                         page.wait_for_timeout(1500)
 
-                    # Find outlets
-                    store_elements = page.locator('.ant-tree-node-content-wrapper').all()
-                    brand_names_list = [b[0] for b in BRANDS]
+                    # New visible nodes (not in top_level_titles) = outlets under this brand
+                    brand_outlet_count = 0
+                    for elem in page.locator('.ant-tree-node-content-wrapper').all():
+                        title = elem.get_attribute('title')
+                        if title and title not in top_level_titles and elem.is_visible():
+                            outlets.append((brand_name, title))
+                            brand_outlet_count += 1
 
-                    for store_elem in store_elements:
-                        store_title = store_elem.get_attribute('title')
-                        if (store_title and
-                            store_title not in brand_names_list and
-                            store_elem.is_visible()):
-                            outlets.append((brand_name, store_title))
+                    log(f"  {brand_name}: {brand_outlet_count} outlets found")
 
                     # Close brand
                     switcher.click(timeout=5000)
@@ -679,7 +693,7 @@ def get_all_outlets():
         finally:
             browser.close()
 
-    log(f"Found {len(outlets)} outlets across {len(BRANDS)} brands")
+    log(f"Found {len(outlets)} outlets total across all brands")
     return outlets
 
 
