@@ -655,8 +655,8 @@ def get_all_outlets():
                         switcher.click(timeout=5000)
                         page.wait_for_timeout(1500)
 
-                    # Find outlets - scope to current brand node only to avoid duplicates
-                    store_elements = brand_node.locator('.ant-tree-node-content-wrapper').all()
+                    # Find outlets
+                    store_elements = page.locator('.ant-tree-node-content-wrapper').all()
                     brand_names_list = [b[0] for b in BRANDS]
 
                     for store_elem in store_elements:
