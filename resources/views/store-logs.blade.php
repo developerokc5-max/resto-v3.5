@@ -108,7 +108,7 @@
             <div class="flex items-center justify-between">
                 <div class="flex-1 min-w-0">
                     <div class="flex items-center gap-2 mb-0.5">
-                      <a href="/stores" class="text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 flex-shrink-0">
+                      <a href="/dashboard" class="text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 flex-shrink-0">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
                         </svg>

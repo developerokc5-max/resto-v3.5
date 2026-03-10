@@ -25,7 +25,7 @@
             <div class="flex items-center justify-between">
                 <div class="flex-1 min-w-0">
                     <div class="flex items-center gap-2">
-                      <a href="/stores" class="text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 flex-shrink-0">
+                      <a href="/dashboard" class="text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 flex-shrink-0">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
                         </svg>
@@ -213,8 +213,8 @@
                     <p class="text-xs md:text-sm text-slate-600 dark:text-slate-400">Manage your menu items directly on the platform apps</p>
                 </div>
                 <div class="flex gap-3 self-end sm:self-auto">
-                    <a href="/stores" class="px-4 py-2 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-300 rounded-xl text-sm font-medium transition">
-                        ← Stores
+                    <a href="/dashboard" class="px-4 py-2 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-300 rounded-xl text-sm font-medium transition">
+                        ← Dashboard
                     </a>
                     <button onclick="window.location.reload()" class="px-4 py-2 bg-slate-900 dark:bg-slate-700 hover:opacity-90 text-white rounded-xl text-sm font-medium transition flex items-center gap-2">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
