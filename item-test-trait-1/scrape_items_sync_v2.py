@@ -401,13 +401,17 @@ def process_all_platforms_for_outlet(page, outlet_name, worker_id):
                 log(f"  [{platform_display}] Tab not visible - skipping", worker_id)
                 continue
 
-            tab.click(timeout=5000)
-            page.wait_for_timeout(1000)
+            tab.click(timeout=8000)
+            page.wait_for_timeout(2000)
 
             # Set page size to 100
             page_size_selector = page.locator('.ant-select-selection-item').filter(has_text="/ page").first
             if page_size_selector.count() > 0:
-                page_size_selector.click(timeout=5000)
+                try:
+                    page_size_selector.wait_for(state="visible", timeout=5000)
+                except:
+                    pass
+                page_size_selector.click(timeout=8000)
                 page.wait_for_timeout(800)
                 page.locator('div[title="100 / page"]').click(timeout=5000)
                 page.wait_for_timeout(1000)
