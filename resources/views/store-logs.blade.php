@@ -3,270 +3,184 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{ $shopName }} - Status Log</title>
+    <title>{{ $shopName }} — Status Log</title>
     <link rel="icon" type="image/png" href="/favicon.png" />
-    <script>
-        if (localStorage.getItem('darkMode') === 'true') {
-            document.documentElement.classList.add('dark');
-        }
-    </script>
+    <script>if (localStorage.getItem('darkMode') === 'true') document.documentElement.classList.add('dark');</script>
     @vite(['resources/css/app.css'])
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
         body { font-family: 'Inter', sans-serif; }
-        .platform-dropdown { max-height: 0; overflow: hidden; transition: max-height 0.3s ease; }
-        .platform-dropdown.active { max-height: 2000px; }
+        .dropdown-body { max-height: 0; overflow: hidden; transition: max-height 0.3s ease; }
+        .dropdown-body.open { max-height: 2000px; }
+        .chevron { transition: transform 0.25s ease; }
+        .chevron.open { transform: rotate(180deg); }
     </style>
 </head>
-<body class="bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 transition-colors duration-200">
-    <!-- Info Popup Modal -->
-    <div id="infoPopup" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 pointer-events-none">
-        <div class="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl max-w-5xl w-full p-8 max-h-[90vh] overflow-y-auto pointer-events-auto">
-            <div class="flex items-center justify-between mb-6 sticky top-0 bg-white dark:bg-slate-900 pb-4">
-                <div>
-                    <h3 class="text-3xl font-bold text-slate-900 dark:text-slate-100">📖 HawkerOps Guide</h3>
-                    <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">Complete guide to using the store management system</p>
-                </div>
-                <button onclick="toggleInfoPopup()" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 text-3xl leading-none hover:bg-slate-100 dark:hover:bg-slate-800 w-8 h-8 flex items-center justify-center rounded-lg transition flex-shrink-0">&times;</button>
-            </div>
+<body class="bg-slate-100 dark:bg-slate-950 text-slate-900 dark:text-slate-100 transition-colors duration-200">
 
-            <!-- Two Column Layout -->
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-                <!-- LEFT COLUMN -->
-                <div>
-                    <div class="bg-blue-50 dark:bg-blue-900/30 border-l-4 border-blue-500 p-4 rounded-lg mb-4">
-                        <div class="font-semibold text-slate-900 dark:text-slate-100 mb-2">🔄 Refresh Data Button</div>
-                        <p class="text-slate-600 dark:text-slate-400 text-xs leading-relaxed">Located in the left sidebar. Refreshes data from the database and updates platform status and item availability without running scrapers. Useful for quick data updates.</p>
-                    </div>
-                    <div class="bg-green-50 dark:bg-green-900/30 border-l-4 border-green-500 p-4 rounded-lg mb-4">
-                        <div class="font-semibold text-slate-900 dark:text-slate-100 mb-2">↻ Reload Button</div>
-                        <p class="text-slate-600 dark:text-slate-400 text-xs leading-relaxed">Located in the top-right corner. Reloads the entire page to show the latest data from the database. Use when data seems outdated.</p>
-                    </div>
-                    <div class="bg-orange-50 dark:bg-orange-900/30 border-l-4 border-orange-500 p-4 rounded-lg mb-4">
-                        <div class="font-semibold text-slate-900 dark:text-slate-100 mb-2">⚠️ Troubleshooting</div>
-                        <p class="text-slate-600 dark:text-slate-400 text-xs leading-relaxed">If an entire column shows as offline or data seems incorrect, simply refresh the page.</p>
-                    </div>
-                    <div class="bg-purple-50 dark:bg-purple-900/30 border-l-4 border-purple-500 p-4 rounded-lg mb-4">
-                        <div class="font-semibold text-slate-900 dark:text-slate-100 mb-2">🕐 Auto-Refresh</div>
-                        <p class="text-slate-600 dark:text-slate-400 text-xs leading-relaxed">Pages automatically reload every 5 minutes to keep data current.</p>
-                    </div>
-                    <div class="bg-indigo-50 dark:bg-indigo-900/30 border-l-4 border-indigo-500 p-4 rounded-lg mb-4">
-                        <div class="font-semibold text-slate-900 dark:text-slate-100 mb-2">🏪 Store Actions</div>
-                        <p class="text-slate-600 dark:text-slate-400 text-xs leading-relaxed"><strong>View Items:</strong> See all menu items with their status across all platforms. <strong>View Logs:</strong> Check daily status history and changes.</p>
-                    </div>
-                    <div class="bg-cyan-50 dark:bg-cyan-900/30 border-l-4 border-cyan-500 p-4 rounded-lg">
-                        <div class="font-semibold text-slate-900 dark:text-slate-100 mb-2">🎨 Filter Buttons</div>
-                        <p class="text-slate-600 dark:text-slate-400 text-xs leading-relaxed"><strong>All Stores:</strong> Show all outlets. <strong>All Online:</strong> Only all 3 platforms online. <strong>Partial Offline:</strong> 1-2 platforms down. <strong>All Offline:</strong> All 3 platforms down.</p>
-                    </div>
-                </div>
-                <!-- RIGHT COLUMN -->
-                <div>
-                    <div class="bg-pink-50 dark:bg-pink-900/30 border-l-4 border-pink-500 p-4 rounded-lg mb-4">
-                        <div class="font-semibold text-slate-900 dark:text-slate-100 mb-2">📊 Status Indicators</div>
-                        <div class="text-slate-600 dark:text-slate-400 text-xs leading-relaxed space-y-1">
-                            <p><strong>🟢 Green Badge:</strong> All 3 platforms online - Fully operational</p>
-                            <p><strong>🟡 Orange Badge:</strong> 1-2 platforms offline - Partial service</p>
-                            <p><strong>🔴 Red Badge:</strong> All 3 platforms offline - No service</p>
-                        </div>
-                    </div>
-                    <div class="bg-yellow-50 dark:bg-yellow-900/30 border-l-4 border-yellow-500 p-4 rounded-lg mb-4">
-                        <div class="font-semibold text-slate-900 dark:text-slate-100 mb-2">🔢 Item Information</div>
-                        <p class="text-slate-600 dark:text-slate-400 text-xs leading-relaxed">Each menu item appears 3 times (Grab, FoodPanda, Deliveroo). Total item count shows unique items.</p>
-                    </div>
-                    <div class="bg-red-50 dark:bg-red-900/30 border-l-4 border-red-500 p-4 rounded-lg mb-4">
-                        <div class="font-semibold text-slate-900 dark:text-slate-100 mb-2">🌐 Platforms Monitored</div>
-                        <div class="text-slate-600 dark:text-slate-400 text-xs leading-relaxed space-y-1">
-                            <p><strong>🟢 Grab:</strong> Green indicators</p>
-                            <p><strong>🩷 FoodPanda:</strong> Pink indicators</p>
-                            <p><strong>🔵 Deliveroo:</strong> Cyan indicators</p>
-                        </div>
-                    </div>
-                    <div class="bg-slate-50 dark:bg-slate-800 border-l-4 border-slate-500 p-4 rounded-lg mb-4">
-                        <div class="font-semibold text-slate-900 dark:text-slate-100 mb-2">📈 Dashboard Cards</div>
-                        <div class="text-slate-600 dark:text-slate-400 text-xs leading-relaxed space-y-1">
-                            <p><strong>Stores Online:</strong> Number of outlets currently online</p>
-                            <p><strong>Items OFF:</strong> Total items offline across all platforms</p>
-                            <p><strong>Active Alerts:</strong> Critical status changes requiring attention</p>
-                        </div>
-                    </div>
-                    <div class="bg-teal-50 dark:bg-teal-900/30 border-l-4 border-teal-500 p-4 rounded-lg mb-4">
-                        <div class="font-semibold text-slate-900 dark:text-slate-100 mb-2">📍 Timezone & Location</div>
-                        <p class="text-slate-600 dark:text-slate-400 text-xs leading-relaxed">All timestamps in Singapore Time (SGT, UTC+8). 46 restaurant outlets across Singapore monitored in real-time.</p>
-                    </div>
-                    <div class="bg-green-50 dark:bg-green-900/30 border-l-4 border-green-500 p-4 rounded-lg">
-                        <div class="font-semibold text-slate-900 dark:text-slate-100 mb-2">⚡ Performance</div>
-                        <p class="text-slate-600 dark:text-slate-400 text-xs leading-relaxed">Dashboard optimized for speed - loads in under 1 second. 99% fewer database queries.</p>
-                    </div>
-                </div>
+<!-- Sticky Header -->
+<header class="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 sticky top-0 z-50 shadow-sm">
+    <div class="max-w-6xl mx-auto px-4 sm:px-6 h-14 flex items-center justify-between gap-4">
+        <div class="flex items-center gap-3 min-w-0">
+            <a href="/dashboard" class="flex-shrink-0 w-8 h-8 flex items-center justify-center rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
+                </svg>
+            </a>
+            <div class="min-w-0">
+                <div class="font-bold text-slate-900 dark:text-slate-100 text-sm md:text-base truncate leading-tight">{{ $shopName }}</div>
+                <div class="text-xs text-slate-500 dark:text-slate-400 truncate leading-tight">{{ $brandName }} — Status Log</div>
             </div>
+        </div>
+        <div class="flex items-center gap-2 flex-shrink-0">
+            <button onclick="toggleDarkMode()" id="darkToggle" class="w-8 h-8 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-500 dark:text-slate-400 flex items-center justify-center transition text-sm">
+                <span id="darkIcon">🌙</span>
+            </button>
+            <button onclick="window.location.reload()" class="h-8 px-3 bg-slate-900 dark:bg-slate-700 text-white rounded-lg text-xs font-semibold hover:opacity-90 transition">
+                Reload
+            </button>
         </div>
     </div>
+</header>
 
-    <!-- Header -->
-    <header class="bg-white dark:bg-slate-900 border-b-2 border-slate-200 dark:border-slate-800 sticky top-0 z-50 shadow-sm">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5">
-            <div class="flex items-center justify-between">
-                <div class="flex-1 min-w-0">
-                    <div class="flex items-center gap-2 mb-0.5">
-                      <a href="/dashboard" class="text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 flex-shrink-0">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
-                        </svg>
-                      </a>
-                      <h1 class="text-base md:text-2xl font-bold text-slate-900 dark:text-slate-100 truncate">{{ $shopName }}</h1>
-                    </div>
-                    <p class="text-xs md:text-sm text-slate-600 dark:text-slate-300 truncate">{{ $brandName }} — Status Log</p>
-                </div>
-                <div class="flex items-center gap-2 flex-shrink-0">
-                    <button onclick="toggleDarkMode()" id="darkToggle" class="h-8 w-8 rounded-full bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 text-slate-600 dark:text-slate-300 text-xs flex items-center justify-center transition" title="Toggle dark mode">
-                        <span id="darkIcon">🌙</span>
-                    </button>
-                    <button onclick="toggleInfoPopup()" class="h-8 w-8 rounded-full bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 text-slate-600 dark:text-slate-300 text-xs font-bold flex items-center justify-center transition">
-                        i
-                    </button>
-                    <button onclick="window.location.reload()" class="px-3 py-2 bg-slate-900 dark:bg-slate-700 text-white rounded-xl text-sm font-medium hover:opacity-90 transition">
-                        Reload
-                    </button>
-                </div>
+<main class="max-w-6xl mx-auto px-4 sm:px-6 py-6">
+
+    <!-- Page title -->
+    <div class="mb-6">
+        <h1 class="text-xl md:text-2xl font-bold text-slate-900 dark:text-slate-100">Status History</h1>
+        <p class="text-sm text-slate-500 dark:text-slate-400 mt-0.5">Platform availability records for this outlet</p>
+    </div>
+
+    @if(empty($statusCards))
+        <div class="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl p-16 text-center shadow-sm">
+            <div class="w-12 h-12 bg-slate-100 dark:bg-slate-700 rounded-full flex items-center justify-center mx-auto mb-3">
+                <svg class="w-6 h-6 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+                </svg>
             </div>
+            <p class="font-semibold text-slate-700 dark:text-slate-300">No status records yet</p>
+            <p class="text-sm text-slate-400 mt-1">Records will appear once the scraper runs.</p>
         </div>
-    </header>
-
-    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-
-        <!-- Status History Timeline -->
-        <div class="space-y-6">
+    @else
+        <div class="space-y-4">
             @foreach($statusCards as $index => $card)
                 @php
                     $isCurrent = isset($card['is_current']) && $card['is_current'];
                     $cardNumber = $card['id'] ?? (count($statusCards) - $index);
+                    $ts = \Carbon\Carbon::parse($card['timestamp'])->setTimezone('Asia/Singapore');
+                    $status = $card['outlet_status'] ?? 'Mixed';
+                    $onlineCount = $card['platforms_online'] ?? 0;
+                    $statusColor = match(true) {
+                        $status === 'All Online'  => ['bg' => 'bg-emerald-500', 'text' => 'All Online',  'badge' => 'bg-emerald-50 dark:bg-emerald-900/20 border-emerald-300 dark:border-emerald-700 text-emerald-700 dark:text-emerald-400'],
+                        $status === 'All Offline' => ['bg' => 'bg-red-500',     'text' => 'All Offline', 'badge' => 'bg-red-50 dark:bg-red-900/20 border-red-300 dark:border-red-700 text-red-700 dark:text-red-400'],
+                        default                   => ['bg' => 'bg-amber-500',   'text' => 'Mixed',       'badge' => 'bg-amber-50 dark:bg-amber-900/20 border-amber-300 dark:border-amber-700 text-amber-700 dark:text-amber-400'],
+                    };
                 @endphp
 
-                <!-- Status Card -->
-                <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-lg border-2 border-slate-200 dark:border-slate-700 overflow-hidden">
+                <div class="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl shadow-sm overflow-hidden">
 
                     <!-- Card Header -->
-                    <div class="bg-white dark:bg-slate-800 border-b-2 border-slate-200 dark:border-slate-700 p-4 md:p-6">
-                        <div class="flex items-start justify-between gap-3">
-                            <div class="flex items-center gap-3 min-w-0">
-                                <div class="w-9 h-9 md:w-12 md:h-12 flex-shrink-0 bg-slate-100 dark:bg-slate-700 rounded-xl flex items-center justify-center border-2 border-slate-300 dark:border-slate-600">
-                                    <span class="text-sm md:text-xl font-bold text-slate-700 dark:text-slate-300">#{{ $cardNumber }}</span>
-                                </div>
-                                <div class="min-w-0">
-                                    <div class="flex items-center gap-2 flex-wrap">
-                                        <h3 class="text-sm md:text-xl font-bold text-slate-900 dark:text-slate-100">{{ $isCurrent ? 'CURRENT STATUS' : 'Status Record' }}</h3>
-                                        @if($isCurrent)
-                                            <span class="px-2 py-0.5 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 rounded text-xs font-semibold">LIVE</span>
-                                        @endif
-                                    </div>
-                                    <p class="text-[10px] md:text-sm text-slate-600 dark:text-slate-300 mt-0.5">{{ \Carbon\Carbon::parse($card['timestamp'])->setTimezone('Asia/Singapore')->format('M j, Y g:i A') }} SGT</p>
-                                </div>
-                            </div>
+                    <div class="p-4 md:p-5 flex items-center gap-4">
+                        <!-- Number badge -->
+                        <div class="flex-shrink-0 w-10 h-10 bg-slate-100 dark:bg-slate-700 rounded-xl flex items-center justify-center">
+                            <span class="text-sm font-bold text-slate-600 dark:text-slate-300">#{{ $cardNumber }}</span>
+                        </div>
 
-                            <!-- Status Summary -->
-                            <div class="flex items-center gap-2 flex-shrink-0">
-                                @if($card['outlet_status'] === 'All Online')
-                                    <div class="px-3 md:px-5 py-2 md:py-3 bg-green-50 dark:bg-green-900/30 border-2 border-green-500 dark:border-green-700 rounded-xl text-center">
-                                        <div class="text-sm md:text-lg font-bold text-green-700 dark:text-green-400">All On</div>
-                                        <div class="text-[10px] md:text-xs text-green-600 dark:text-green-500">{{ $card['platforms_online'] }}/3</div>
-                                    </div>
-                                @elseif($card['outlet_status'] === 'All Offline')
-                                    <div class="px-3 md:px-5 py-2 md:py-3 bg-red-50 dark:bg-red-900/30 border-2 border-red-500 dark:border-red-700 rounded-xl text-center">
-                                        <div class="text-sm md:text-lg font-bold text-red-700 dark:text-red-400">All Off</div>
-                                        <div class="text-[10px] md:text-xs text-red-600 dark:text-red-500">{{ $card['platforms_online'] }}/3</div>
-                                    </div>
-                                @else
-                                    <div class="px-3 md:px-5 py-2 md:py-3 bg-amber-50 dark:bg-amber-900/30 border-2 border-amber-500 dark:border-amber-700 rounded-xl text-center">
-                                        <div class="text-sm md:text-lg font-bold text-amber-700 dark:text-amber-400">Mixed</div>
-                                        <div class="text-[10px] md:text-xs text-amber-600 dark:text-amber-500">{{ $card['platforms_online'] }}/3</div>
-                                    </div>
-                                @endif
-
-                                @if($card['total_offline_items'] > 0)
-                                    <div class="px-3 md:px-5 py-2 md:py-3 bg-slate-900 rounded-xl text-center">
-                                        <div class="text-lg md:text-2xl font-bold text-white">{{ $card['total_offline_items'] }}</div>
-                                        <div class="text-[10px] md:text-xs text-slate-300">Items Off</div>
-                                    </div>
+                        <!-- Title + timestamp -->
+                        <div class="flex-1 min-w-0">
+                            <div class="flex items-center gap-2 flex-wrap">
+                                <span class="font-bold text-slate-900 dark:text-slate-100 text-sm md:text-base">
+                                    {{ $isCurrent ? 'Current Status' : 'Status Record' }}
+                                </span>
+                                @if($isCurrent)
+                                    <span class="px-2 py-0.5 bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-full text-[10px] font-bold uppercase tracking-wide">Live</span>
                                 @endif
                             </div>
+                            <p class="text-xs text-slate-400 dark:text-slate-500 mt-0.5">{{ $ts->format('M j, Y') }} · {{ $ts->format('g:i A') }} SGT</p>
+                        </div>
+
+                        <!-- Status badge -->
+                        <div class="flex items-center gap-2 flex-shrink-0">
+                            <div class="border {{ $statusColor['badge'] }} rounded-xl px-3 py-1.5 text-center min-w-[72px]">
+                                <div class="text-xs font-bold leading-tight">{{ $statusColor['text'] }}</div>
+                                <div class="text-[10px] opacity-70">{{ $onlineCount }}/3</div>
+                            </div>
+                            @if(($card['total_offline_items'] ?? 0) > 0)
+                                <div class="bg-slate-900 dark:bg-slate-700 rounded-xl px-3 py-1.5 text-center min-w-[56px]">
+                                    <div class="text-sm font-bold text-white leading-tight">{{ $card['total_offline_items'] }}</div>
+                                    <div class="text-[10px] text-slate-400">items off</div>
+                                </div>
+                            @endif
                         </div>
                     </div>
 
-                    <!-- Platform Breakdown -->
-                    <div class="p-3 md:p-6 bg-slate-50 dark:bg-slate-900/30 space-y-3">
+                    <!-- Platform rows -->
+                    <div class="border-t border-slate-100 dark:border-slate-700 divide-y divide-slate-100 dark:divide-slate-700">
                         @foreach(['grab', 'foodpanda', 'deliveroo'] as $platform)
                             @php
                                 $data = $card['platform_data'][$platform];
-                                $dropdownId = $index . '-' . $platform;
-                                $hasOfflineItems = $data['offline_count'] > 0;
-
-                                $platformColors = [
-                                    'grab' => ['bg' => 'bg-green-50 dark:bg-green-900/20', 'border' => 'border-green-200 dark:border-green-800', 'icon' => 'bg-green-600'],
-                                    'foodpanda' => ['bg' => 'bg-pink-50 dark:bg-pink-900/20', 'border' => 'border-pink-200 dark:border-pink-800', 'icon' => 'bg-pink-600'],
-                                    'deliveroo' => ['bg' => 'bg-cyan-50 dark:bg-cyan-900/20', 'border' => 'border-cyan-200 dark:border-cyan-800', 'icon' => 'bg-cyan-600'],
-                                ];
-                                $colors = $platformColors[$platform];
+                                $hasItems = ($data['offline_count'] ?? 0) > 0;
+                                $dropId = 'drop-' . $index . '-' . $platform;
+                                $plConfig = [
+                                    'grab'      => ['label' => 'Grab',      'color' => 'bg-green-600', 'light' => 'bg-green-50 dark:bg-green-900/10'],
+                                    'foodpanda' => ['label' => 'foodpanda', 'color' => 'bg-pink-600',  'light' => 'bg-pink-50 dark:bg-pink-900/10'],
+                                    'deliveroo' => ['label' => 'Deliveroo', 'color' => 'bg-cyan-600',  'light' => 'bg-cyan-50 dark:bg-cyan-900/10'],
+                                ][$platform];
                             @endphp
 
-                            <div class="bg-white dark:bg-slate-800 border-2 {{ $colors['border'] }} rounded-xl overflow-hidden hover:shadow-md transition">
-                                <!-- Platform Header (Clickable) -->
-                                <button onclick="toggleDropdown('{{ $dropdownId }}')" class="w-full p-3 md:p-4 {{ $colors['bg'] }} flex items-center justify-between hover:opacity-90 transition">
-                                    <div class="flex items-center gap-3">
-                                        <div class="w-9 h-9 md:w-12 md:h-12 flex-shrink-0 {{ $colors['icon'] }} rounded-lg flex items-center justify-center shadow-sm">
-                                            <span class="text-sm md:text-lg font-bold text-white">{{ strtoupper(substr($data['name'], 0, 1)) }}</span>
-                                        </div>
-                                        <div class="text-left min-w-0">
-                                            <h4 class="font-bold text-slate-900 dark:text-slate-100 text-sm md:text-base">{{ $data['name'] }}</h4>
-                                            @if(isset($data['last_checked']) && $data['last_checked'])
-                                                <p class="text-[10px] md:text-xs text-slate-600 dark:text-slate-300 truncate">{{ \Carbon\Carbon::parse($data['last_checked'])->setTimezone('Asia/Singapore')->format('M d, g:i A') }} SGT</p>
-                                            @else
-                                                <p class="text-[10px] md:text-xs text-slate-500 dark:text-slate-400">Logged {{ \Carbon\Carbon::parse($card['timestamp'])->setTimezone('Asia/Singapore')->format('M d, g:i A') }} SGT</p>
-                                            @endif
-                                        </div>
+                            <div>
+                                <!-- Platform row (clickable if has items) -->
+                                <button
+                                    onclick="{{ $hasItems ? "toggleDrop('" . $dropId . "')" : '' }}"
+                                    class="w-full flex items-center gap-3 px-4 py-3 text-left {{ $hasItems ? 'hover:bg-slate-50 dark:hover:bg-slate-700/50 cursor-pointer' : 'cursor-default' }} transition"
+                                >
+                                    <div class="w-8 h-8 flex-shrink-0 {{ $plConfig['color'] }} rounded-lg flex items-center justify-center shadow-sm">
+                                        <span class="text-xs font-bold text-white">{{ strtoupper(substr($plConfig['label'], 0, 1)) }}</span>
                                     </div>
-
-                                    <div class="flex items-center gap-2 flex-shrink-0">
-                                        @if($hasOfflineItems)
-                                            <div class="px-3 py-1.5 bg-red-600 text-white rounded-lg font-bold shadow-sm">
-                                                <div class="text-xs md:text-sm">{{ $data['offline_count'] }} OFF</div>
-                                            </div>
-                                        @else
-                                            <div class="px-3 py-1.5 bg-green-600 text-white rounded-lg font-bold shadow-sm">
-                                                <div class="text-xs md:text-sm">0 OFF</div>
+                                    <div class="flex-1 min-w-0 text-left">
+                                        <div class="font-semibold text-slate-800 dark:text-slate-200 text-sm">{{ $plConfig['label'] }}</div>
+                                        @if(isset($data['last_checked']) && $data['last_checked'])
+                                            <div class="text-[10px] text-slate-400 dark:text-slate-500">
+                                                {{ \Carbon\Carbon::parse($data['last_checked'])->setTimezone('Asia/Singapore')->format('M d, g:i A') }} SGT
                                             </div>
                                         @endif
-
-                                        @if($hasOfflineItems)
-                                            <svg id="arrow-{{ $dropdownId }}" class="w-4 h-4 md:w-5 md:h-5 text-slate-600 dark:text-slate-300 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                                    </div>
+                                    <div class="flex items-center gap-2 flex-shrink-0">
+                                        @if($hasItems)
+                                            <span class="px-2.5 py-1 bg-red-500 text-white rounded-lg text-xs font-bold">{{ $data['offline_count'] }} OFF</span>
+                                            <svg id="chev-{{ $dropId }}" class="chevron w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
                                             </svg>
+                                        @else
+                                            <span class="px-2.5 py-1 bg-emerald-500 text-white rounded-lg text-xs font-bold">0 OFF</span>
                                         @endif
                                     </div>
                                 </button>
 
-                                @if($hasOfflineItems)
-                                    <div id="dropdown-{{ $dropdownId }}" class="platform-dropdown">
-                                        <div class="p-3 md:p-5 bg-slate-50 dark:bg-slate-700/50 border-t-2 border-slate-200 dark:border-slate-600">
-                                            <h5 class="font-bold text-slate-900 dark:text-slate-100 mb-3 text-sm">Offline Items ({{ $data['offline_count'] }})</h5>
-                                            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                                @if($hasItems)
+                                    <div id="{{ $dropId }}" class="dropdown-body">
+                                        <div class="px-4 pb-4 pt-2 bg-slate-50 dark:bg-slate-900/30">
+                                            <p class="text-xs font-semibold text-slate-500 dark:text-slate-400 mb-3 uppercase tracking-wide">{{ $data['offline_count'] }} offline item{{ $data['offline_count'] > 1 ? 's' : '' }}</p>
+                                            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
                                                 @foreach($data['offline_items'] as $item)
-                                                    @php
-                                                        $itemData = is_array($item) ? (object)$item : $item;
-                                                    @endphp
-                                                    <div class="bg-white dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-600 rounded-lg p-3 hover:border-slate-300 dark:hover:border-slate-500 transition">
-                                                        <div class="flex gap-3">
-                                                            @if(isset($itemData->image_url) && $itemData->image_url)
-                                                                <img src="{{ $itemData->image_url }}" alt="{{ $itemData->name }}" class="w-16 h-16 rounded-lg object-cover border border-slate-200 dark:border-slate-600" loading="lazy" onerror="this.style.display='none'">
-                                                            @endif
-                                                            <div class="flex-1 min-w-0">
-                                                                <h6 class="font-bold text-slate-900 dark:text-slate-100 text-sm mb-1 line-clamp-2">{{ $itemData->name }}</h6>
-                                                                <div class="flex items-center gap-2 mb-1">
-                                                                    <span class="font-bold text-slate-900 dark:text-slate-100">${{ number_format($itemData->price, 2) }}</span>
-                                                                    <span class="px-2 py-0.5 bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 border border-red-200 dark:border-red-700 rounded text-xs font-semibold">OFF</span>
-                                                                </div>
-                                                                @if(isset($itemData->category) && $itemData->category)
-                                                                    <p class="text-xs text-slate-500 dark:text-slate-400">{{ $itemData->category }}</p>
-                                                                @endif
+                                                    @php $itemData = is_array($item) ? (object)$item : $item; @endphp
+                                                    <div class="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-3 flex gap-3">
+                                                        @if(isset($itemData->image_url) && $itemData->image_url)
+                                                            <img src="{{ $itemData->image_url }}" alt="{{ $itemData->name }}"
+                                                                 class="w-12 h-12 rounded-lg object-cover flex-shrink-0 border border-slate-100 dark:border-slate-700"
+                                                                 loading="lazy" onerror="this.style.display='none'">
+                                                        @else
+                                                            <div class="w-12 h-12 rounded-lg bg-slate-100 dark:bg-slate-700 flex-shrink-0 flex items-center justify-center">
+                                                                <svg class="w-5 h-5 text-slate-300 dark:text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14"/>
+                                                                </svg>
+                                                            </div>
+                                                        @endif
+                                                        <div class="flex-1 min-w-0">
+                                                            <h6 class="font-semibold text-slate-900 dark:text-slate-100 text-xs leading-snug line-clamp-2 mb-1">{{ $itemData->name }}</h6>
+                                                            <div class="flex items-center gap-1.5">
+                                                                <span class="font-bold text-slate-800 dark:text-slate-200 text-xs">${{ number_format($itemData->price, 2) }}</span>
+                                                                <span class="px-1.5 py-0.5 bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 rounded text-[9px] font-bold">OFF</span>
                                                             </div>
                                                         </div>
                                                     </div>
@@ -281,40 +195,46 @@
                 </div>
             @endforeach
         </div>
+    @endif
 
-    </main>
+    <!-- Bottom nav -->
+    <div class="mt-8 flex items-center justify-between">
+        <a href="/dashboard" class="flex items-center gap-2 text-sm text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 transition font-medium">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
+            </svg>
+            Back to Dashboard
+        </a>
+        <a href="/store/{{ $shopId }}/items" class="flex items-center gap-2 text-sm text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 transition font-medium">
+            View Items
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"/>
+            </svg>
+        </a>
+    </div>
 
-    <script>
-        // Dark mode toggle
-        function toggleDarkMode() {
-            const html = document.getElementById('html-root');
-            const icon = document.getElementById('darkIcon');
-            const isDark = html.classList.toggle('dark');
-            localStorage.setItem('darkMode', isDark);
-            icon.textContent = isDark ? '☀️' : '🌙';
-        }
-        document.addEventListener('DOMContentLoaded', () => {
-            const icon = document.getElementById('darkIcon');
-            if (icon) icon.textContent = localStorage.getItem('darkMode') === 'true' ? '☀️' : '🌙';
-        });
+</main>
 
-        function toggleDropdown(id) {
-            const dropdown = document.getElementById('dropdown-' + id);
-            const arrow = document.getElementById('arrow-' + id);
-            if (dropdown && arrow) {
-                dropdown.classList.toggle('active');
-                arrow.classList.toggle('rotate-180');
-            }
-        }
+<script>
+    function toggleDarkMode() {
+        const html = document.getElementById('html-root');
+        const icon = document.getElementById('darkIcon');
+        const isDark = html.classList.toggle('dark');
+        localStorage.setItem('darkMode', isDark);
+        icon.textContent = isDark ? '☀️' : '🌙';
+    }
+    document.addEventListener('DOMContentLoaded', () => {
+        const icon = document.getElementById('darkIcon');
+        if (icon) icon.textContent = localStorage.getItem('darkMode') === 'true' ? '☀️' : '🌙';
+    });
 
-        function toggleInfoPopup() {
-            const popup = document.getElementById('infoPopup');
-            popup.classList.toggle('hidden');
-        }
-
-        document.getElementById('infoPopup')?.addEventListener('click', function(e) {
-            if (e.target === this) toggleInfoPopup();
-        });
-    </script>
+    function toggleDrop(id) {
+        const body = document.getElementById(id);
+        const chev = document.getElementById('chev-' + id);
+        if (!body) return;
+        body.classList.toggle('open');
+        if (chev) chev.classList.toggle('open');
+    }
+</script>
 </body>
 </html>
