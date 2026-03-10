@@ -61,11 +61,11 @@
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex justify-between h-16">
                 <div class="flex items-center space-x-8">
-                    <a href="/" class="text-2xl font-bold text-blue-600">
-                        <i class="fas fa-utensils mr-2"></i>RestoHub
+                    <a href="/dashboard" class="text-2xl font-bold text-blue-600">
+                        HawkerOps
                     </a>
                     <div class="hidden md:flex space-x-4">
-                        <a href="/" class="text-gray-600 dark:text-gray-300 hover:text-blue-600 px-3 py-2 rounded-md text-sm font-medium transition">
+                        <a href="/platforms" class="text-gray-600 dark:text-gray-300 hover:text-blue-600 px-3 py-2 rounded-md text-sm font-medium transition">
                             <i class="fas fa-store mr-1"></i> Platforms
                         </a>
                         <a href="/items" class="text-gray-600 dark:text-gray-300 hover:text-blue-600 px-3 py-2 rounded-md text-sm font-medium transition">
@@ -222,8 +222,8 @@
                                 @endif
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-center">
-                                <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full {{ $itemGroup['any_available'] ? 'status-badge-available' : 'status-badge-unavailable' }}">
-                                    {{ $itemGroup['any_available'] ? 'AVAILABLE' : 'UNAVAILABLE' }}
+                                <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full whitespace-nowrap {{ $itemGroup['any_available'] ? 'status-badge-available' : 'status-badge-unavailable' }}">
+                                    {{ $itemGroup['any_available'] ? 'Available' : 'Unavailable' }}
                                 </span>
                             </td>
                         </tr>
