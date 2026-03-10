@@ -70,7 +70,7 @@ class AuthController extends Controller
             return back()->with('error', 'Admin login is not configured.');
         }
 
-        if ($request->username !== $adminUser || $request->password !== $adminPass) {
+        if (!hash_equals($adminUser, $request->username) || !hash_equals($adminPass, $request->password)) {
             return back()->with('error', 'Invalid username or password.');
         }
 

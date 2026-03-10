@@ -30,9 +30,12 @@ from playwright.sync_api import sync_playwright
 from datetime import datetime
 from threading import Lock
 
-# Credentials
-EMAIL = "okchickenrice2018@gmail.com"
-PASSWORD = "90267051@Arc"
+# Credentials — loaded from environment variables (set in GitHub Actions secrets)
+EMAIL = os.getenv('RESTOSUITE_EMAIL')
+PASSWORD = os.getenv('RESTOSUITE_PASSWORD')
+if not EMAIL or not PASSWORD:
+    raise RuntimeError("RESTOSUITE_EMAIL and RESTOSUITE_PASSWORD env vars must be set")
+
 BASE_URL = "https://bo.sea.restosuite.ai"
 
 DATABASE_URL = os.getenv('NEON_DB', '')

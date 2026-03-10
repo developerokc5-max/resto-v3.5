@@ -13,8 +13,10 @@ import psycopg2
 from datetime import datetime
 from playwright.sync_api import sync_playwright, TimeoutError as PlaywrightTimeout
 
-EMAIL = os.getenv("RESTOSUITE_EMAIL", "okchickenrice2018@gmail.com")
-PASSWORD = os.getenv("RESTOSUITE_PASSWORD", "90267051@Arc")
+EMAIL = os.getenv("RESTOSUITE_EMAIL")
+PASSWORD = os.getenv("RESTOSUITE_PASSWORD")
+if not EMAIL or not PASSWORD:
+    raise RuntimeError("RESTOSUITE_EMAIL and RESTOSUITE_PASSWORD env vars must be set")
 BASE_URL = "https://bo.sea.restosuite.ai"
 TARGET_URL = f"{BASE_URL}/takeaway-store-binding"
 

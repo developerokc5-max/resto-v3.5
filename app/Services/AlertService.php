@@ -104,7 +104,8 @@ class AlertService
         if ($envEmails) {
             return array_values(array_filter(array_map('trim', explode(',', $envEmails))));
         }
-        return ['developerokc5@gmail.com'];
+        Log::error('AlertService: No alert recipients configured. Set ALERT_TO_EMAILS env var or configure alert_email in Settings.');
+        return [];
     }
 
     // ── Offline Email ─────────────────────────────────────────────────────────

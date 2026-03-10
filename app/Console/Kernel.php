@@ -14,7 +14,6 @@ class Kernel extends ConsoleKernel
     protected $commands = [
         \App\Console\Commands\TestRestoSuite::class,
         \App\Console\Commands\RestoSuiteSyncItems::class,
-        \App\Console\Commands\ScrapePlatformStatus::class,
         \App\Console\Commands\RunPlatformScraper::class,
         \App\Console\Commands\ScrapeRestoSuiteProduction::class,
     ];
