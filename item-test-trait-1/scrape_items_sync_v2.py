@@ -639,8 +639,16 @@ def get_all_outlets():
             page.locator('text=ACHIEVERS RESOURCE CONSULTANCY PTE LTD').first.click(timeout=5000)
             page.wait_for_timeout(3000)
 
+            # Ensure all brands are collapsed before scanning
+            for switcher in page.locator('.ant-tree-switcher_open').all():
+                try:
+                    switcher.click(timeout=3000)
+                    page.wait_for_timeout(300)
+                except:
+                    pass
+
             # Step 1: Capture all top-level brand names BEFORE expanding anything
-            # Whatever is visible now = brand nodes (no outlets expanded yet)
+            # Whatever is visible now = brand nodes (all collapsed, no outlets visible)
             top_level_titles = set()
             for elem in page.locator('.ant-tree-node-content-wrapper').all():
                 title = elem.get_attribute('title')
