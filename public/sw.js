@@ -1,7 +1,7 @@
 // HawkerOps Service Worker v4
 // Stale-while-revalidate for HTML: instant on mobile, always fresh in background
 
-const CACHE_NAME = 'hawkerops-v5';
+const CACHE_NAME = 'hawkerops-v6';
 
 // Only precache the offline fallback — everything else is cached on first visit
 const PRECACHE_URLS = ['/offline'];
