@@ -7,7 +7,7 @@
 @section('top-actions')
 <div class="hidden sm:flex items-center gap-2">
   <button class="hide-test-btn px-3 py-2 text-xs font-medium rounded-xl border border-slate-300 dark:border-slate-600 text-slate-600 dark:text-slate-300 hover:opacity-80 transition whitespace-nowrap" onclick="toggleTestFilter()">
-    Hide Test
+    Hide Test/Demo
   </button>
   <div class="flex items-center bg-slate-100 dark:bg-slate-800 rounded-xl px-3 py-2">
     <input id="storeSearch" class="bg-transparent outline-none text-sm w-64 dark:text-slate-100 dark:placeholder-slate-400" placeholder="Search store..." onkeyup="applyFilters()" />
@@ -184,7 +184,7 @@
 
     document.querySelectorAll('.store-row').forEach(row => {
       const name   = row.getAttribute('data-name') || '';
-      const isTest = name.includes('testing');
+      const isTest = name.includes('testing') || name.includes('demo');
       const show   = name.includes(filter) && !(hideTestActive && isTest);
       row.style.display = show ? '' : 'none';
     });
