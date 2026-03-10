@@ -656,7 +656,12 @@ Route::get('/platforms', function () {
 Route::get('/store/{shopId}/items', function ($shopId) {
     $shopMap = ShopHelper::getShopMap();
     $shop = DB::table('shops')->where('shop_id', $shopId)->first();
-    $shopInfo = $shopMap[$shopId] ?? ['name' => $shop?->shop_name ?? 'Unknown Store', 'brand' => $shop?->organization_name ?? $shop?->shop_name ?? 'Unknown Brand'];
+    // Fallback to platform_status.store_name when shopMap has no entry (e.g. numeric IDs with null store_name)
+    $platformRow = DB::table('platform_status')->where('shop_id', $shopId)->whereNotNull('store_name')->first();
+    $shopInfo = $shopMap[$shopId]
+        ?? ($shop ? ['name' => $shop->shop_name, 'brand' => $shop->organization_name ?? $shop->shop_name]
+        : ($platformRow ? ['name' => $platformRow->store_name, 'brand' => explode(' @ ', $platformRow->store_name)[0]]
+        : ['name' => 'Unknown Store', 'brand' => 'Unknown Brand']));
 
     // Get platform status for this store
     $platformStatus = DB::table('platform_status')
@@ -842,7 +847,11 @@ Route::get('/offline-items', function () {
 Route::get('/store/{shopId}/logs', function ($shopId) {
     $shopMap = ShopHelper::getShopMap();
     $shop = DB::table('shops')->where('shop_id', $shopId)->first();
-    $shopInfo = $shopMap[$shopId] ?? ['name' => $shop?->shop_name ?? 'Unknown Store', 'brand' => $shop?->organization_name ?? $shop?->shop_name ?? 'Unknown Brand'];
+    $platformRow = DB::table('platform_status')->where('shop_id', $shopId)->whereNotNull('store_name')->first();
+    $shopInfo = $shopMap[$shopId]
+        ?? ($shop ? ['name' => $shop->shop_name, 'brand' => $shop->organization_name ?? $shop->shop_name]
+        : ($platformRow ? ['name' => $platformRow->store_name, 'brand' => explode(' @ ', $platformRow->store_name)[0]]
+        : ['name' => 'Unknown Store', 'brand' => 'Unknown Brand']));
 
     // Get current platform status
     $platformStatus = DB::table('platform_status')
@@ -852,7 +861,7 @@ Route::get('/store/{shopId}/logs', function ($shopId) {
 
     // Batch all 3 platform queries into ONE DB call (avoids N+1)
     $allOfflineItems = DB::table('items')
-        ->where('shop_name', $shopInfo['name'])
+        ->whereRaw('LOWER(shop_name) = LOWER(?)', [$shopInfo['name']])
         ->where('is_available', false)
         ->whereIn('platform', ['grab', 'foodpanda', 'deliveroo'])
         ->get()
