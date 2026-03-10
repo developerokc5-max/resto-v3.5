@@ -31,7 +31,7 @@
             </div>
 
             <!-- Two Column Layout -->
-            <div class="grid grid-cols-2 gap-4 text-sm">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
                 <!-- LEFT COLUMN -->
                 <div>
                     <div class="bg-blue-50 dark:bg-blue-900/30 border-l-4 border-blue-500 p-4 rounded-lg mb-4">

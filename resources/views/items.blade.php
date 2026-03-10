@@ -30,6 +30,14 @@
 @endsection
 
 @section('content')
+  <!-- Mobile Search (visible on small screens only) -->
+  <div class="sm:hidden flex items-center bg-white dark:bg-slate-800 border dark:border-slate-700 rounded-xl px-3 py-2 shadow-sm">
+    <svg class="w-4 h-4 text-slate-400 mr-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+    </svg>
+    <input id="searchInputMobile" class="bg-transparent outline-none text-sm w-full dark:text-slate-100 dark:placeholder-slate-400" placeholder="Search items..." />
+  </div>
+
   <!-- Stats Cards -->
   <section class="grid grid-cols-1 md:grid-cols-4 gap-4">
     <div class="bg-white dark:bg-slate-800 border dark:border-slate-700 rounded-2xl p-5 shadow-sm">
@@ -215,6 +223,7 @@
 <script>
   const items = document.querySelectorAll('.item-card');
   const searchInput = document.getElementById('searchInput');
+  const searchInputMobile = document.getElementById('searchInputMobile');
   const restaurantFilter = document.getElementById('restaurantFilter');
   const categoryFilter = document.getElementById('categoryFilter');
   const platformFilter = document.getElementById('platformFilter');
@@ -224,7 +233,7 @@
   const itemsGrid = document.getElementById('itemsGrid');
 
   function filterItems() {
-    const searchTerm = searchInput.value.toLowerCase();
+    const searchTerm = (searchInput?.value || searchInputMobile?.value || '').toLowerCase();
     const selectedRestaurant = restaurantFilter.value;
     const selectedCategory = categoryFilter.value;
     const selectedPlatform = platformFilter.value;
@@ -266,7 +275,8 @@
     }
   }
 
-  searchInput.addEventListener('input', filterItems);
+  searchInput?.addEventListener('input', filterItems);
+  searchInputMobile?.addEventListener('input', filterItems);
   restaurantFilter.addEventListener('change', filterItems);
   categoryFilter.addEventListener('change', filterItems);
   platformFilter.addEventListener('change', filterItems);

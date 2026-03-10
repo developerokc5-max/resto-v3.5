@@ -26,7 +26,7 @@
       <input id="storeSearchMobile" class="bg-transparent outline-none text-sm w-full dark:text-slate-100 dark:placeholder-slate-400" placeholder="Search store..." onkeyup="applyFilters()" />
     </div>
     <button class="hide-test-btn flex-shrink-0 px-3 py-2 text-xs font-medium rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:opacity-80 transition shadow-sm whitespace-nowrap" onclick="toggleTestFilter()">
-      Hide Test
+      Hide Test/Demo
     </button>
   </div>
 
