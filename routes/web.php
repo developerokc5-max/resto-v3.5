@@ -63,7 +63,8 @@ Route::get('/dashboard', function () {
         $allPlatformStatuses = CacheOptimizationHelper::getAllPlatformStatuses();
 
         foreach ($storeStats as $stat) {
-            $shopInfo = $shopMap[$stat->shop_id] ?? ['name' => 'Unknown', 'brand' => 'Unknown'];
+            $fallbackName = collect($allPlatformStatuses[$stat->shop_id] ?? [])->first()?->store_name ?? $stat->shop_id;
+            $shopInfo = $shopMap[$stat->shop_id] ?? ['name' => $fallbackName, 'brand' => $fallbackName];
 
             // Use batched data instead of querying in loop
             $recentChanges = $allRecentChanges[$stat->shop_id] ?? 0;
@@ -123,7 +124,8 @@ Route::get('/dashboard', function () {
         $shopsPlatforms = [];
         foreach ($platformStatuses as $status) {
             if (!isset($shopsPlatforms[$status->shop_id])) {
-                $shopInfo = $shopMap[$status->shop_id] ?? ['name' => 'Unknown', 'brand' => 'Unknown'];
+                $fallbackName = $status->store_name ?? $status->shop_id;
+                $shopInfo = $shopMap[$status->shop_id] ?? ['name' => $fallbackName, 'brand' => $fallbackName];
                 $shopsPlatforms[$status->shop_id] = [
                     'shop_id' => $status->shop_id,
                     'brand' => $shopInfo['brand'],
@@ -727,7 +729,8 @@ Route::get('/offline-items', function () {
         $allStores = [];
         foreach ($platformStatuses as $status) {
         if (!isset($allStores[$status->shop_id])) {
-            $shopInfo = $shopMap[$status->shop_id] ?? ['name' => 'Unknown', 'brand' => 'Unknown'];
+            $fallbackName = $status->store_name ?? $status->shop_id;
+            $shopInfo = $shopMap[$status->shop_id] ?? ['name' => $fallbackName, 'brand' => $fallbackName];
             $allStores[$status->shop_id] = [
                 'shop_id' => $status->shop_id,
                 'shop_name' => $shopInfo['name'],
