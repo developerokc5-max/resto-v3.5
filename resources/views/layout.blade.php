@@ -14,7 +14,6 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="apple-mobile-web-app-title" content="HawkerOps" />
   <link rel="apple-touch-icon" href="/icon-192.png" />
-  <link rel="preconnect" href="https://cdnjs.cloudflare.com">
   <script>
     // Apply dark mode immediately to prevent flash
     if (localStorage.getItem('darkMode') === 'true') {
@@ -22,8 +21,6 @@
     }
   </script>
   @vite(['resources/css/app.css', 'resources/js/app.js'])
-  <link rel="preload" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" as="style" onload="this.onload=null;this.rel='stylesheet'">
-  <noscript><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"></noscript>
   @yield('extra-head')
 </head>
 
@@ -40,8 +37,8 @@
     <!-- Sidebar -->
     <aside class="w-72 hidden md:flex flex-col border-r border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 relative z-20">
       <div class="px-6 py-5 flex items-center gap-3">
-        <img src="/images/logo-light.png?v=3" class="h-10 w-10 rounded-xl object-cover dark:hidden" alt="HO">
-        <img src="/images/logo-dark.png?v=3"  class="h-10 w-10 rounded-xl object-cover hidden dark:block" alt="HO">
+        <img src="/images/logo-light.png?v=3" class="h-10 w-10 rounded-xl object-cover dark:hidden" alt="HO" width="40" height="40" fetchpriority="high">
+        <img src="/images/logo-dark.png?v=3"  class="h-10 w-10 rounded-xl object-cover hidden dark:block" alt="HO" width="40" height="40" loading="lazy">
         <div class="flex-1">
           <div class="font-semibold leading-tight dark:text-slate-100">HawkerOps</div>
           <div class="text-xs text-slate-500 dark:text-slate-400">Store Management</div>
@@ -181,8 +178,8 @@
     {{-- Drawer header --}}
     <div class="flex items-center justify-between px-5 py-4 border-b border-slate-200 dark:border-slate-800">
       <div class="flex items-center gap-3">
-        <img src="/images/logo-light.png?v=3" class="h-9 w-9 rounded-xl object-cover dark:hidden" alt="HO">
-        <img src="/images/logo-dark.png?v=3"  class="h-9 w-9 rounded-xl object-cover hidden dark:block" alt="HO">
+        <img src="/images/logo-light.png?v=3" class="h-9 w-9 rounded-xl object-cover dark:hidden" alt="HO" width="36" height="36" loading="lazy">
+        <img src="/images/logo-dark.png?v=3"  class="h-9 w-9 rounded-xl object-cover hidden dark:block" alt="HO" width="36" height="36" loading="lazy">
         <div>
           <div class="font-semibold text-sm dark:text-slate-100">HawkerOps</div>
           <div class="text-xs text-slate-500 dark:text-slate-400">Store Management</div>
