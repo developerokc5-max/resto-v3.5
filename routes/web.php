@@ -78,6 +78,20 @@ Route::get('/dashboard', function () {
             $foodpandaOffline = $offlineItemsCounts->get($shopInfo['name'] . '|foodpanda')?->offline_count ?? 0;
             $deliverooOffline = $offlineItemsCounts->get($shopInfo['name'] . '|deliveroo')?->offline_count ?? 0;
 
+            $platformOfflineCount = 0;
+            foreach (['grab', 'foodpanda', 'deliveroo'] as $_p) {
+                $isOnline = $platformStatus->get($_p)?->is_online ?? null;
+                if ($isOnline === false) $platformOfflineCount++;
+            }
+            $platformOnlineCount = 3 - $platformOfflineCount;
+            if ($platformOnlineCount === 3) {
+                $overallStatus = 'all_online';
+            } elseif ($platformOnlineCount === 0) {
+                $overallStatus = 'all_offline';
+            } else {
+                $overallStatus = 'mixed';
+            }
+
             $stores[] = [
                 'brand' => $shopInfo['brand'],
                 'store' => $shopInfo['name'],
@@ -88,6 +102,9 @@ Route::get('/dashboard', function () {
                 'alerts' => $recentChanges,
                 'total_items' => (int) $stat->total_items,
                 'last_change' => $stat->last_sync ? \Carbon\Carbon::parse($stat->last_sync)->diffForHumans() : '—',
+                'platform_offline_count' => $platformOfflineCount,
+                'platform_online_count' => $platformOnlineCount,
+                'overall_status' => $overallStatus,
                 // HYBRID: Platform status from scraping
                 'platforms' => [
                     'grab' => [
@@ -648,12 +665,26 @@ Route::get('/store/{shopId}/items', function ($shopId) {
         ->keyBy('platform');
 
     // Get ALL items for this store (grouped by platform)
+    // Try by shop_name first, then fallback to store_name from platform_status (handles name mismatches)
     $allItems = DB::table('items')
         ->where('shop_name', $shopInfo['name'])
         ->orderBy('platform')
         ->orderBy('category')
         ->orderBy('name')
         ->get();
+
+    if ($allItems->isEmpty()) {
+        // Fallback: try using store_name directly from platform_status (different scrapers may store slightly different names)
+        $storeName = DB::table('platform_status')->where('shop_id', $shopId)->value('store_name');
+        if ($storeName) {
+            $allItems = DB::table('items')
+                ->whereRaw('LOWER(shop_name) = LOWER(?)', [$storeName])
+                ->orderBy('platform')
+                ->orderBy('category')
+                ->orderBy('name')
+                ->get();
+        }
+    }
 
     // Group items by platform and filter offline items
     $offlineItemsByPlatform = [
