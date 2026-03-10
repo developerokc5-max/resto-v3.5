@@ -11,6 +11,10 @@
       <div class="text-xs text-slate-500 dark:text-slate-400">Last Updated</div>
       <div class="text-sm font-semibold text-slate-900 dark:text-slate-100 break-words leading-tight">{{ $lastScrape ?? '—' }}</div>
     </div>
+    <button id="hideTestBtn" onclick="toggleTestFilter()"
+      class="hidden md:inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-300 text-xs font-semibold transition">
+      <span class="md:hidden">Filter</span><span class="hidden md:inline">Hide Test</span>
+    </button>
     <button onclick="showSyncInfo()" class="p-2 rounded-xl bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 transition" title="Sync Information">
       <svg class="w-5 h-5 text-slate-600 dark:text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
@@ -87,9 +91,15 @@
 
   <!-- Shop Platform Status Table -->
   <section class="bg-white dark:bg-slate-800 border dark:border-slate-700 rounded-2xl shadow-sm overflow-hidden">
-    <div class="p-5 border-b dark:border-slate-700">
-      <h2 class="text-lg font-semibold">Shop Platform Status</h2>
-      <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">Detailed status for each store across all platforms</p>
+    <div class="p-5 border-b dark:border-slate-700 flex items-center justify-between gap-3">
+      <div>
+        <h2 class="text-lg font-semibold">Shop Platform Status</h2>
+        <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">Detailed status for each store across all platforms</p>
+      </div>
+      <button id="hideTestBtnMobile" onclick="toggleTestFilter()"
+        class="md:hidden flex-shrink-0 inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-300 text-xs font-semibold transition">
+        Hide Test
+      </button>
     </div>
 
     <div class="overflow-x-auto">
@@ -109,7 +119,7 @@
         </thead>
         <tbody class="divide-y divide-slate-100 dark:divide-slate-700">
           @forelse($shops as $shop)
-            <tr class="hover:bg-slate-50 dark:hover:bg-slate-700 transition">
+            <tr class="hover:bg-slate-50 dark:hover:bg-slate-700 transition" data-name="{{ strtolower($shop['shop_name']) }}">
               <td class="px-3 md:px-5 py-3 md:py-4">
                 <div class="font-medium text-xs md:text-sm text-slate-900 dark:text-slate-100 leading-tight">{{ $shop['shop_name'] }}</div>
                 <div class="text-[10px] md:text-xs text-slate-500 dark:text-slate-400">{{ $shop['brand'] }}</div>
@@ -161,6 +171,33 @@
 
 @section('extra-scripts')
 <script>
+  let hideTestActive = false;
+
+  function toggleTestFilter() {
+    hideTestActive = !hideTestActive;
+    const rows = document.querySelectorAll('tbody tr[data-name]');
+    rows.forEach(row => {
+      const name = row.getAttribute('data-name') || '';
+      const isTest = name.includes('testing') || name.includes('test outlet') || name.includes('(test)');
+      if (isTest) row.style.display = hideTestActive ? 'none' : '';
+    });
+    const label = hideTestActive ? 'Show Test' : 'Hide Test';
+    ['hideTestBtn', 'hideTestBtnMobile'].forEach(id => {
+      const btn = document.getElementById(id);
+      if (!btn) return;
+      // Update label text (last text node / span)
+      const span = btn.querySelector('span.hidden.md\\:inline');
+      if (span) span.textContent = label; else btn.textContent = label;
+      // Toggle active styling
+      btn.classList.toggle('bg-slate-900', hideTestActive);
+      btn.classList.toggle('text-white', hideTestActive);
+      btn.classList.toggle('bg-slate-100', !hideTestActive);
+      btn.classList.toggle('dark:bg-slate-700', !hideTestActive);
+      btn.classList.toggle('text-slate-700', !hideTestActive);
+      btn.classList.toggle('dark:text-slate-300', !hideTestActive);
+    });
+  }
+
   function showSyncInfo() {
     const lastScrape = '{{ $lastScrape ?? "Never" }}';
     const totalPlatforms = {{ $stats['total'] ?? 0 }};

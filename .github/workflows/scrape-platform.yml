@@ -40,6 +40,8 @@ jobs:
       - name: Run Platform Scraper
         env:
           NEON_DB: ${{ secrets.NEON_DB }}
+          RESTOSUITE_EMAIL: ${{ secrets.RESTOSUITE_EMAIL }}
+          RESTOSUITE_PASSWORD: ${{ secrets.RESTOSUITE_PASSWORD }}
         run: python platform-test-trait-1/scrape_platform_sync.py
 
       - name: Update Daily History Snapshot
