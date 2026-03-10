@@ -788,6 +788,520 @@ Route::post('/store-logs/snapshot', function () {
     }
 });
 
+// ========================================
+// READ-ONLY API FOR MISSING PAGES
+// ========================================
+
+// GET /api/alerts — same logic as /alerts page
+Route::get('/alerts', function () {
+    $dbData = \Illuminate\Support\Facades\Cache::remember('alerts_db_data', 300, function () {
+        $allPlatformCounts = DB::table('platform_status')
+            ->selectRaw('shop_id, COUNT(*) as total_platforms')
+            ->groupBy('shop_id')
+            ->pluck('total_platforms', 'shop_id');
+
+        return [
+            'allPlatformCounts' => $allPlatformCounts,
+            'offlineCounts'     => DB::table('platform_status')
+                ->selectRaw('shop_id, COUNT(*) as offline_count, MAX(last_checked_at) as last_checked')
+                ->where('is_online', false)
+                ->groupBy('shop_id')
+                ->get()
+                ->keyBy('shop_id'),
+            'storeNameMap'      => DB::table('platform_status')
+                ->selectRaw('shop_id, MIN(store_name) as store_name')
+                ->groupBy('shop_id')
+                ->pluck('store_name', 'shop_id'),
+            'platformStats'     => DB::table('platform_status')
+                ->selectRaw('platform,
+                    SUM(CASE WHEN is_online = false THEN 1 ELSE 0 END) as offline_count,
+                    SUM(CASE WHEN is_online = true  THEN 1 ELSE 0 END) as online_count,
+                    COUNT(*) as total,
+                    MAX(last_checked_at) as last_checked')
+                ->groupBy('platform')
+                ->get()
+                ->keyBy('platform'),
+            'storesWithOfflineItems' => DB::table('items')
+                ->selectRaw('shop_name,
+                    SUM(CASE WHEN is_available = false THEN 1 ELSE 0 END) as offline_count,
+                    COUNT(*) as total_items,
+                    MAX(updated_at) as last_updated')
+                ->groupBy('shop_name')
+                ->havingRaw('SUM(CASE WHEN is_available = false THEN 1 ELSE 0 END) > 20')
+                ->orderByRaw('offline_count DESC')
+                ->limit(8)
+                ->get(),
+            'latestScrape' => DB::table('platform_status')->max('last_checked_at'),
+            'totalStores'  => DB::table('platform_status')->distinct()->count('shop_id'),
+        ];
+    });
+
+    $allPlatformCounts      = $dbData['allPlatformCounts'];
+    $offlineCounts          = $dbData['offlineCounts'];
+    $storeNameMap           = $dbData['storeNameMap'];
+    $platformStats          = $dbData['platformStats'];
+    $storesWithOfflineItems = $dbData['storesWithOfflineItems'];
+    $latestScrape           = $dbData['latestScrape'];
+    $totalStores            = $dbData['totalStores'];
+
+    $alerts = [];
+
+    // Stores where ALL platforms offline
+    $fullyOfflineStores = [];
+    foreach ($allPlatformCounts as $shopId => $total) {
+        $offlineRow = $offlineCounts->get($shopId);
+        if ($offlineRow && $offlineRow->offline_count >= $total) {
+            $fullyOfflineStores[] = [
+                'shop_id'      => $shopId,
+                'name'         => $storeNameMap->get($shopId) ?? $shopId,
+                'last_checked' => $offlineRow->last_checked,
+            ];
+        }
+    }
+    if (!empty($fullyOfflineStores)) {
+        usort($fullyOfflineStores, fn($a, $b) => strcmp($a['last_checked'] ?? '', $b['last_checked'] ?? ''));
+        $oldest = $fullyOfflineStores[0]['last_checked'] ?? null;
+        $alerts[] = [
+            'type'         => 'critical',
+            'title'        => count($fullyOfflineStores) === 1
+                ? $fullyOfflineStores[0]['name'] . ' — All Platforms Offline'
+                : count($fullyOfflineStores) . ' Stores Completely Offline',
+            'stores'       => $fullyOfflineStores,
+            'last_checked' => $oldest,
+            'time_human'   => $oldest ? \Carbon\Carbon::parse($oldest)->diffForHumans() : null,
+        ];
+    }
+
+    // Per-platform offline counts
+    foreach ($platformStats as $platform => $stat) {
+        if ($stat->offline_count >= 3) {
+            $pct = $stat->total > 0 ? round(($stat->offline_count / $stat->total) * 100) : 0;
+            $alerts[] = [
+                'type'         => $pct >= 50 ? 'critical' : 'warning',
+                'title'        => ucfirst($platform) . ' — ' . $stat->offline_count . ' Stores Offline',
+                'platform'     => $platform,
+                'offline'      => (int) $stat->offline_count,
+                'total'        => (int) $stat->total,
+                'pct'          => $pct,
+                'last_checked' => $stat->last_checked,
+                'time_human'   => $stat->last_checked ? \Carbon\Carbon::parse($stat->last_checked)->diffForHumans() : null,
+            ];
+        }
+    }
+
+    // Stores with many offline items
+    foreach ($storesWithOfflineItems as $store) {
+        $pct = $store->total_items > 0 ? round(($store->offline_count / $store->total_items) * 100) : 0;
+        $alerts[] = [
+            'type'         => $pct >= 70 ? 'critical' : 'warning',
+            'title'        => $store->shop_name . ' — ' . $store->offline_count . ' Items Unavailable',
+            'shop_name'    => $store->shop_name,
+            'offline_items'=> (int) $store->offline_count,
+            'total_items'  => (int) $store->total_items,
+            'pct'          => $pct,
+            'last_updated' => $store->last_updated,
+            'time_human'   => $store->last_updated ? \Carbon\Carbon::parse($store->last_updated)->diffForHumans() : null,
+        ];
+    }
+
+    // Stale data warning
+    if ($latestScrape) {
+        $minutesAgo = \Carbon\Carbon::parse($latestScrape)->diffInMinutes(now());
+        if ($minutesAgo > 120) {
+            $alerts[] = [
+                'type'        => 'info',
+                'title'       => 'Data May Be Stale',
+                'minutes_ago' => $minutesAgo,
+                'time_human'  => \Carbon\Carbon::parse($latestScrape)->diffForHumans(),
+            ];
+        }
+    }
+
+    $order = ['critical' => 0, 'warning' => 1, 'info' => 2];
+    usort($alerts, fn($a, $b) => ($order[$a['type']] ?? 9) <=> ($order[$b['type']] ?? 9));
+
+    $platformSummary = [];
+    foreach ($platformStats as $platform => $stat) {
+        $platformSummary[] = [
+            'platform' => $platform,
+            'online'   => (int) $stat->online_count,
+            'offline'  => (int) $stat->offline_count,
+            'total'    => (int) $stat->total,
+        ];
+    }
+
+    return response()->json([
+        'success'         => true,
+        'alerts'          => $alerts,
+        'stats'           => [
+            'critical' => count(array_filter($alerts, fn($a) => $a['type'] === 'critical')),
+            'warnings' => count(array_filter($alerts, fn($a) => $a['type'] === 'warning')),
+            'info'     => count(array_filter($alerts, fn($a) => $a['type'] === 'info')),
+            'total'    => $totalStores,
+            'healthy'  => max(0, $totalStores - count($fullyOfflineStores)),
+        ],
+        'platform_summary'=> $platformSummary,
+        'latest_scrape'   => $latestScrape,
+    ]);
+});
+
+// GET /api/history — list of all snapshot dates with summaries
+Route::get('/history', function () {
+    if (!\Illuminate\Support\Facades\Schema::hasTable('daily_history')) {
+        return response()->json(['success' => true, 'data' => [], 'message' => 'No history yet']);
+    }
+
+    $todaySgt = \Carbon\Carbon::now('Asia/Singapore')->format('Y-m-d');
+
+    $dateSummaries = DB::table('daily_history')
+        ->selectRaw("snapshot_date,
+            COUNT(*) as total_stores,
+            SUM(CASE WHEN platforms_online < total_platforms THEN 1 ELSE 0 END) as stores_with_issues,
+            SUM(total_offline_items) as total_offline_items,
+            MAX(last_updated_at) as last_updated_at")
+        ->groupBy('snapshot_date')
+        ->orderByDesc('snapshot_date')
+        ->get();
+
+    $scrapeCounts = \Illuminate\Support\Facades\Schema::hasTable('daily_scrape_log')
+        ? DB::table('daily_scrape_log')
+            ->selectRaw('snapshot_date, COUNT(*) as scrape_count')
+            ->groupBy('snapshot_date')
+            ->get()
+            ->keyBy('snapshot_date')
+        : collect();
+
+    $data = $dateSummaries->map(fn($day) => [
+        'date'                => $day->snapshot_date,
+        'is_today'            => $day->snapshot_date === $todaySgt,
+        'total_stores'        => (int) $day->total_stores,
+        'stores_with_issues'  => (int) $day->stores_with_issues,
+        'total_offline_items' => (int) $day->total_offline_items,
+        'last_updated_at'     => $day->last_updated_at,
+        'scrape_count'        => (int) ($scrapeCounts->get($day->snapshot_date)?->scrape_count ?? 0),
+    ]);
+
+    return response()->json(['success' => true, 'data' => $data]);
+});
+
+// GET /api/history/{date} — all stores for a specific date
+Route::get('/history/{date}', function ($date) {
+    if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $date)) {
+        return response()->json(['success' => false, 'message' => 'Invalid date format. Use YYYY-MM-DD'], 422);
+    }
+    if (!\Illuminate\Support\Facades\Schema::hasTable('daily_history')) {
+        return response()->json(['success' => false, 'message' => 'No history data'], 404);
+    }
+
+    $stores = DB::table('daily_history')
+        ->where('snapshot_date', $date)
+        ->orderByRaw('CASE WHEN platforms_online < total_platforms OR total_offline_items > 0 THEN 0 ELSE 1 END')
+        ->orderBy('shop_name')
+        ->get()
+        ->map(function ($store) {
+            $store->platform_data = json_decode($store->platform_data, true);
+            return $store;
+        });
+
+    if ($stores->isEmpty()) {
+        return response()->json(['success' => false, 'message' => 'No data for this date'], 404);
+    }
+
+    $scrapeLog = \Illuminate\Support\Facades\Schema::hasTable('daily_scrape_log')
+        ? DB::table('daily_scrape_log')
+            ->where('snapshot_date', $date)
+            ->orderBy('scanned_at')
+            ->get()
+            ->map(fn($log) => [
+                'scanned_at'     => $log->scanned_at,
+                'scanned_at_sgt' => \Carbon\Carbon::parse($log->scanned_at)->setTimezone('Asia/Singapore')->toIso8601String(),
+                'stores_total'   => $log->stores_total,
+                'stores_offline' => $log->stores_offline,
+                'items_offline'  => $log->items_offline,
+                'recoveries'     => json_decode($log->recoveries ?? '[]', true) ?: [],
+            ])
+        : collect();
+
+    return response()->json([
+        'success'    => true,
+        'date'       => $date,
+        'is_today'   => $date === \Carbon\Carbon::now('Asia/Singapore')->format('Y-m-d'),
+        'stores'     => $stores,
+        'scrape_log' => $scrapeLog,
+        'last_updated' => DB::table('daily_history')->where('snapshot_date', $date)->max('last_updated_at'),
+    ]);
+});
+
+// GET /api/store/{shopId} — store detail with platform status + grouped items
+Route::get('/store/{shopId}', function ($shopId) {
+    $shop = DB::table('shops')->where('shop_id', $shopId)->first();
+    if (!$shop) {
+        return response()->json(['success' => false, 'message' => 'Store not found'], 404);
+    }
+
+    $items = DB::table('items')
+        ->where('shop_name', $shop->shop_name)
+        ->orderBy('category')
+        ->orderBy('name')
+        ->get();
+
+    $groupedItems = [];
+    foreach ($items as $item) {
+        $key = $item->name . '|' . $item->category;
+        if (!isset($groupedItems[$key])) {
+            $groupedItems[$key] = [
+                'name'       => $item->name,
+                'category'   => $item->category,
+                'image_url'  => $item->image_url,
+                'price'      => $item->price,
+                'platforms'  => [],
+                'all_active' => true,
+            ];
+        }
+        $groupedItems[$key]['platforms'][$item->platform] = [
+            'is_available' => (bool) $item->is_available,
+            'price'        => $item->price,
+        ];
+        if (!$item->is_available) {
+            $groupedItems[$key]['all_active'] = false;
+        }
+    }
+
+    $platformStatus = DB::table('platform_status')
+        ->where('store_name', $shop->shop_name)
+        ->get()
+        ->keyBy('platform');
+
+    return response()->json([
+        'success'         => true,
+        'shop'            => $shop,
+        'platform_status' => $platformStatus,
+        'items'           => array_values($groupedItems),
+        'summary'         => [
+            'total_items'   => count($groupedItems),
+            'offline_items' => count(array_filter($groupedItems, fn($i) => !$i['all_active'])),
+        ],
+    ]);
+});
+
+// GET /api/reports/daily-trends — daily trends data
+Route::get('/reports/daily-trends', function (\Illuminate\Http\Request $request) {
+    $now       = \Carbon\Carbon::now('Asia/Singapore');
+    $startDate = $request->get('start', $now->copy()->subDays(6)->toDateString());
+    $endDate   = $request->get('end', $now->toDateString());
+
+    $trends = \Illuminate\Support\Facades\Cache::remember('reports_daily_trends', 300, function () use ($now) {
+        $platformStats  = DB::table('platform_status')
+            ->selectRaw('platform, AVG(CASE WHEN is_online = true THEN 100 ELSE 0 END) as uptime')
+            ->groupBy('platform')->get();
+        $todaySgt       = $now->toDateString();
+        $peakHourData   = DB::table('store_status_logs')
+            ->selectRaw("EXTRACT(HOUR FROM logged_at + INTERVAL '8 hours')::int as hour, COUNT(*) as count")
+            ->whereRaw("DATE(logged_at + INTERVAL '8 hours') = ?", [$todaySgt])
+            ->groupBy('hour')->orderBy('count', 'desc')->first();
+        $h24            = $peakHourData ? (int)$peakHourData->hour : null;
+        return [
+            'avg_uptime'  => round($platformStats->avg('uptime') ?? 0, 1),
+            'avg_offline' => DB::table('items')->where('is_available', false)->count(),
+            'peak_hour'   => $h24 !== null ? sprintf('%d %s', $h24 % 12 ?: 12, $h24 >= 12 ? 'PM' : 'AM') : 'N/A',
+            'incidents'   => DB::table('store_status_logs')
+                ->whereRaw("DATE(logged_at + INTERVAL '8 hours') = ?", [$todaySgt])->count(),
+        ];
+    });
+
+    $dailyData = DB::table('daily_history')
+        ->selectRaw('snapshot_date, SUM(total_offline_items) as total_offline')
+        ->whereBetween('snapshot_date', [$startDate, $endDate])
+        ->groupBy('snapshot_date')->orderBy('snapshot_date')->get();
+
+    $platformUptimeData = DB::table('daily_history')
+        ->selectRaw("snapshot_date,
+            ROUND(AVG(CASE WHEN (platform_data::jsonb)->'grab'->>'status'      = 'Online' THEN 100.0 ELSE 0 END), 1) as grab_uptime,
+            ROUND(AVG(CASE WHEN (platform_data::jsonb)->'foodpanda'->>'status'  = 'Online' THEN 100.0 ELSE 0 END), 1) as foodpanda_uptime,
+            ROUND(AVG(CASE WHEN (platform_data::jsonb)->'deliveroo'->>'status'  = 'Online' THEN 100.0 ELSE 0 END), 1) as deliveroo_uptime")
+        ->whereBetween('snapshot_date', [$startDate, $endDate])
+        ->whereNotNull('platform_data')->where('platform_data', '!=', '')
+        ->groupBy('snapshot_date')->orderBy('snapshot_date')->get();
+
+    return response()->json([
+        'success'             => true,
+        'trends'              => $trends,
+        'daily_data'          => $dailyData,
+        'platform_uptime'     => $platformUptimeData,
+        'date_range'          => ['start' => $startDate, 'end' => $endDate],
+    ]);
+});
+
+// GET /api/reports/platform-reliability
+Route::get('/reports/platform-reliability', function () {
+    $platformData = \Illuminate\Support\Facades\Cache::remember('reports_platform_reliability', 300, function () {
+        $statuses = DB::table('platform_status')
+            ->select('platform',
+                DB::raw('COUNT(*) as total_stores'),
+                DB::raw('SUM(CASE WHEN is_online = true THEN 1 ELSE 0 END) as online_stores'))
+            ->groupBy('platform')->get()->keyBy('platform');
+
+        $data = [];
+        foreach (['grab', 'foodpanda', 'deliveroo'] as $p) {
+            $s = $statuses->get($p);
+            $total  = $s->total_stores  ?? 0;
+            $online = $s->online_stores ?? 0;
+            $data[$p] = [
+                'platform'      => $p,
+                'name'          => ucfirst($p),
+                'uptime'        => $total > 0 ? round(($online / $total) * 100, 1) : 100,
+                'online_stores' => (int) $online,
+                'total_stores'  => (int) $total,
+            ];
+        }
+        return $data;
+    });
+
+    return response()->json(['success' => true, 'data' => array_values($platformData)]);
+});
+
+// GET /api/reports/item-performance
+Route::get('/reports/item-performance', function () {
+    $reportData = \Illuminate\Support\Facades\Cache::remember('reports_item_performance_v2', 300, function () {
+        $totalItems   = DB::table('items')
+            ->selectRaw("COUNT(DISTINCT name || '|' || shop_name || '|' || platform) as total")->first()->total;
+        $offlineItems = DB::table('items')->where('is_available', false)->count();
+        $onlineItems  = $totalItems - $offlineItems;
+
+        $sevenDaysAgo  = \Carbon\Carbon::now('Asia/Singapore')->subDays(7)->toDateTimeString();
+        $hasHistory    = DB::table('item_status_history')->where('changed_at', '>=', $sevenDaysAgo)->exists();
+
+        $topOfflineItems = $hasHistory
+            ? DB::select("
+                WITH ranked AS (
+                    SELECT item_name, shop_name, platform, is_available, changed_at,
+                        LEAD(changed_at) OVER (PARTITION BY item_name, shop_name, platform ORDER BY changed_at) as next_change
+                    FROM item_status_history WHERE changed_at >= :since
+                ),
+                offline_durations AS (
+                    SELECT item_name, shop_name, platform,
+                        EXTRACT(EPOCH FROM (COALESCE(next_change, NOW()) - changed_at)) / 3600.0 as hours
+                    FROM ranked WHERE is_available = false
+                )
+                SELECT item_name as name, shop_name, platform,
+                    COUNT(*) as offline_count,
+                    ROUND(AVG(hours)::numeric, 1) as avg_hours_offline
+                FROM offline_durations
+                GROUP BY item_name, shop_name, platform
+                ORDER BY offline_count DESC LIMIT 10
+            ", ['since' => $sevenDaysAgo])
+            : DB::table('items')->where('is_available', false)
+                ->selectRaw("name, shop_name, platform, COUNT(*) as offline_count, 0 as avg_hours_offline")
+                ->groupBy('name', 'shop_name', 'platform')
+                ->orderBy('offline_count', 'desc')->limit(10)->get();
+
+        $categoryData = DB::table('items')
+            ->selectRaw("category,
+                COUNT(DISTINCT name || '|' || shop_name || '|' || platform) as total_items,
+                ROUND(100.0 * SUM(CASE WHEN is_available = true THEN 1 ELSE 0 END) / COUNT(*), 1) as availability_pct,
+                SUM(CASE WHEN is_available = false THEN 1 ELSE 0 END) as offline_count")
+            ->groupBy('category')->orderByRaw('CAST(category AS TEXT)')->get();
+
+        return [
+            'item_stats'       => [
+                'total'            => (int) $totalItems,
+                'offline'          => (int) $offlineItems,
+                'online'           => (int) $onlineItems,
+                'frequently_offline' => DB::table('items')->where('is_available', false)
+                    ->where('updated_at', '>', \Carbon\Carbon::now('Asia/Singapore')->subDays(7))->count(),
+            ],
+            'top_offline_items'=> $topOfflineItems,
+            'category_data'    => $categoryData,
+        ];
+    });
+
+    return response()->json([
+        'success'      => true,
+        'item_stats'   => $reportData['item_stats'],
+        'top_offline'  => $reportData['top_offline_items'],
+        'categories'   => $reportData['category_data'],
+        'total_stores' => DB::table('platform_status')->distinct()->count('shop_id'),
+    ]);
+});
+
+// GET /api/reports/store-comparison
+Route::get('/reports/store-comparison', function () {
+    $shopMap = \App\Helpers\ShopHelper::getShopMap();
+
+    $dbData = \Illuminate\Support\Facades\Cache::remember('store_comparison_db', 300, function () {
+        $shopIds = DB::table('platform_status')->select('shop_id')->distinct()->pluck('shop_id')->toArray();
+        return [
+            'shopIds'             => $shopIds,
+            'allPlatformStatuses' => DB::table('platform_status')->whereIn('shop_id', $shopIds)->get()
+                ->groupBy('shop_id')->map(fn($i) => $i->keyBy('platform')),
+            'itemCounts'          => DB::table('items')
+                ->select('shop_name',
+                    DB::raw('COUNT(*) as total'),
+                    DB::raw('SUM(CASE WHEN is_available = false THEN 1 ELSE 0 END) as offline'))
+                ->groupBy('shop_name')->get()->keyBy('shop_name'),
+        ];
+    });
+
+    $stores = collect($dbData['shopIds'])->map(function ($shopId) use ($shopMap, $dbData) {
+        $ps           = $dbData['allPlatformStatuses']->get($shopId, collect());
+        $onlinePlatforms = $ps->filter(fn($p) => $p->is_online)->count();
+        $totalPlatforms  = $ps->count() ?: 3;
+        $shopName     = $shopMap[$shopId]['name'] ?? 'Unknown Store';
+        $itemData     = $dbData['itemCounts']->get($shopName, (object)['total' => 0, 'offline' => 0]);
+        $totalItems   = $itemData->total ?? 0;
+        $offlineItems = $itemData->offline ?? 0;
+        $lastChecked  = $ps->max('last_checked_at');
+
+        return [
+            'shop_id'          => $shopId,
+            'shop_name'        => $shopName,
+            'overall_status'   => $onlinePlatforms === $totalPlatforms ? 'All Online'
+                : ($onlinePlatforms === 0 ? 'All Offline' : 'Partial'),
+            'platforms_online' => $onlinePlatforms,
+            'total_platforms'  => $totalPlatforms,
+            'grab_online'      => (bool)($ps->get('grab')?->is_online),
+            'foodpanda_online' => (bool)($ps->get('foodpanda')?->is_online),
+            'deliveroo_online' => (bool)($ps->get('deliveroo')?->is_online),
+            'total_items'      => (int) $totalItems,
+            'offline_items'    => (int) $offlineItems,
+            'availability_pct' => $totalItems > 0 ? round((($totalItems - $offlineItems) / $totalItems) * 100, 1) : 0,
+            'last_checked'     => $lastChecked,
+            'last_checked_human' => $lastChecked ? \Carbon\Carbon::parse($lastChecked)->diffForHumans() : 'Never',
+        ];
+    })->sortBy('shop_name')->values();
+
+    $summary = [
+        'total'        => $stores->count(),
+        'all_online'   => $stores->where('overall_status', 'All Online')->count(),
+        'partial'      => $stores->where('overall_status', 'Partial')->count(),
+        'all_offline'  => $stores->where('overall_status', 'All Offline')->count(),
+        'total_items'  => $stores->sum('total_items'),
+        'offline_items'=> $stores->sum('offline_items'),
+    ];
+
+    return response()->json(['success' => true, 'summary' => $summary, 'stores' => $stores]);
+});
+
+// GET /api/settings/configuration
+Route::get('/settings/configuration', function () {
+    $configs = \App\Models\Configuration::all()->keyBy('key');
+    return response()->json([
+        'success' => true,
+        'data'    => [
+            'scraper_run_interval'           => $configs->get('scraper_run_interval')?->value          ?? 'every_10_minutes',
+            'auto_refresh_interval'          => $configs->get('auto_refresh_interval')?->value         ?? 'every_5_minutes',
+            'enable_parallel_scraping'       => (bool)($configs->get('enable_parallel_scraping')?->value      ?? true),
+            'enable_platform_offline_alerts' => (bool)($configs->get('enable_platform_offline_alerts')?->value ?? true),
+            'enable_high_offline_items_alert'=> (bool)($configs->get('enable_high_offline_items_alert')?->value ?? true),
+            'offline_items_threshold'        => $configs->get('offline_items_threshold')?->value       ?? '20',
+            'alert_email'                    => $configs->get('alert_email')?->value                   ?? '',
+            'timezone'                       => $configs->get('timezone')?->value                      ?? 'Asia/Singapore',
+            'date_format'                    => $configs->get('date_format')?->value                   ?? 'DD/MM/YYYY',
+            'show_item_images'               => (bool)($configs->get('show_item_images')?->value       ?? true),
+        ],
+    ]);
+});
+
 // Health check
 Route::get('/health', function () {
     // Single consolidated query instead of 4 separate queries
