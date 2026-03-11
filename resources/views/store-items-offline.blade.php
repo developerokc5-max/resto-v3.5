@@ -82,9 +82,9 @@
             </div>
 
             <!-- Platform count pills -->
-            <div class="grid grid-cols-3 border-t border-slate-200 dark:border-slate-800">
+            <div class="grid grid-cols-3 bg-slate-50 dark:bg-slate-800/50 border-t border-slate-200 dark:border-slate-700">
                 @foreach($platformMeta as $p => $meta)
-                    <div class="px-5 py-4 {{ !$loop->last ? 'border-r border-slate-200 dark:border-slate-800' : '' }} flex items-center gap-3">
+                    <div class="px-5 py-4 {{ !$loop->last ? 'border-r border-slate-200 dark:border-slate-700' : '' }} flex items-center gap-3">
                         <div class="w-7 h-7 {{ $meta['color'] }} rounded-lg flex items-center justify-center flex-shrink-0">
                             <span class="text-white font-black text-xs">{{ strtoupper(substr($meta['name'], 0, 1)) }}</span>
                         </div>
