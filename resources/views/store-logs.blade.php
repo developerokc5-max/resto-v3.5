@@ -77,9 +77,9 @@
                     default                   => 'bg-amber-400',
                 };
                 $statusLabel = match(true) {
-                    $status === 'All Online'  => ['text' => 'All Online',  'class' => 'bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800'],
-                    $status === 'All Offline' => ['text' => 'All Offline', 'class' => 'bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-400 border border-red-200 dark:border-red-800'],
-                    default                   => ['text' => $onlineCount.'/3 Online', 'class' => 'bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-800'],
+                    $status === 'All Online'  => ['text' => 'All Online',  'class' => 'bg-emerald-100 dark:bg-emerald-900/20 text-emerald-800 dark:text-emerald-400 border border-emerald-300 dark:border-emerald-800'],
+                    $status === 'All Offline' => ['text' => 'All Offline', 'class' => 'bg-red-100 dark:bg-red-900/20 text-red-800 dark:text-red-400 border border-red-300 dark:border-red-800'],
+                    default                   => ['text' => $onlineCount.'/3 Online', 'class' => 'bg-amber-100 dark:bg-amber-900/20 text-amber-800 dark:text-amber-400 border border-amber-300 dark:border-amber-800'],
                 };
 
                 $platformConfig = [
@@ -93,7 +93,7 @@
             <div class="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
 
                 <!-- Card Header -->
-                <div class="px-5 py-4 flex items-center justify-between gap-4 border-b border-slate-100 dark:border-slate-800">
+                <div class="px-5 py-4 flex items-center justify-between gap-4 border-b border-slate-200 dark:border-slate-800">
                     <div class="flex items-center gap-3 min-w-0">
                         <!-- Accent dot -->
                         <div class="w-2.5 h-2.5 rounded-full {{ $accentColor }} flex-shrink-0"></div>
@@ -119,7 +119,7 @@
                             {{ $statusLabel['text'] }}
                         </span>
                         @if($totalOffline > 0)
-                            <span class="text-xs font-bold px-2.5 py-1 rounded-full bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 border border-red-200 dark:border-red-800">
+                            <span class="text-xs font-bold px-2.5 py-1 rounded-full bg-red-100 dark:bg-red-900/20 text-red-700 dark:text-red-400 border border-red-300 dark:border-red-800">
                                 {{ $totalOffline }} items off
                             </span>
                         @endif
@@ -127,7 +127,7 @@
                 </div>
 
                 <!-- Platform Rows -->
-                <div class="divide-y divide-slate-100 dark:divide-slate-800">
+                <div class="divide-y divide-slate-200 dark:divide-slate-800">
                     @foreach(['grab', 'foodpanda', 'deliveroo'] as $platform)
                         @php
                             $data     = $card['platform_data'][$platform] ?? [];
@@ -160,12 +160,12 @@
                                 <!-- Status + items count + chevron -->
                                 <div class="flex items-center gap-2.5 flex-shrink-0">
                                     @if($isOnline)
-                                        <span class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800 rounded-full text-xs font-bold">
+                                        <span class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-100 dark:bg-emerald-900/20 text-emerald-800 dark:text-emerald-400 border border-emerald-300 dark:border-emerald-800 rounded-full text-xs font-bold">
                                             <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block"></span>
                                             Online
                                         </span>
                                     @else
-                                        <span class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-400 border border-red-200 dark:border-red-800 rounded-full text-xs font-bold">
+                                        <span class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-red-100 dark:bg-red-900/20 text-red-800 dark:text-red-400 border border-red-300 dark:border-red-800 rounded-full text-xs font-bold">
                                             <span class="w-1.5 h-1.5 rounded-full bg-red-500 inline-block"></span>
                                             Offline
                                         </span>
