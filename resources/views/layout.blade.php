@@ -35,8 +35,8 @@
   <div class="min-h-screen flex">
 
     <!-- Sidebar -->
-    <aside class="w-72 hidden md:flex flex-col border-r border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 relative z-20">
-      <div class="px-6 py-5 flex items-center gap-3">
+    <aside class="w-60 hidden md:flex flex-col border-r border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 relative z-20">
+      <div class="px-4 py-4 flex items-center gap-3">
         <img src="/images/logo-light.png?v=3" class="h-10 w-10 rounded-xl object-cover dark:hidden" alt="HO" width="40" height="40" fetchpriority="high">
         <img src="/images/logo-dark.png?v=3"  class="h-10 w-10 rounded-xl object-cover hidden dark:block" alt="HO" width="40" height="40" loading="lazy">
         <div class="flex-1">
@@ -54,7 +54,7 @@
         </div>
       </div>
 
-      <nav class="px-3 pb-6 space-y-1 overflow-y-auto flex-1">
+      <nav class="px-2 pb-6 space-y-0.5 overflow-y-auto flex-1">
         <a class="flex items-center gap-3 px-3 py-2 rounded-xl @if(Request::is('/') || Request::is('dashboard')) bg-slate-900 dark:bg-slate-700 text-white shadow-sm @else text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 @endif transition" href="/dashboard">
           <span class="text-sm font-medium">📊 Overview</span>
         </a>
@@ -124,7 +124,7 @@
     <main class="flex-1">
       <!-- Topbar -->
       <header class="sticky top-0 z-10 bg-white/80 dark:bg-slate-900/80 backdrop-blur border-b border-slate-200 dark:border-slate-800">
-        <div class="px-4 md:px-8 py-3 md:py-4 flex items-center gap-3">
+        <div class="px-4 md:px-6 py-3 md:py-3 flex items-center gap-2">
           {{-- Hamburger: mobile only --}}
           <button onclick="toggleMobileDrawer()" class="md:hidden flex-shrink-0 h-9 w-9 rounded-xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-700 dark:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-700 transition" aria-label="Menu">
             <svg id="hamburger-icon" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -158,7 +158,7 @@
       </header>
 
       <!-- Page Content -->
-      <div id="main-content" class="px-4 md:px-8 py-6 space-y-6">
+      <div id="main-content" class="px-4 md:px-6 py-5 space-y-5">
         @yield('content')
       </div>
     </main>
@@ -171,7 +171,7 @@
 
   <!-- ── Mobile Drawer Panel ────────────────────────────────────────────── -->
   <div id="mobile-drawer"
-       class="md:hidden fixed top-0 left-0 bottom-0 z-50 w-72 bg-white dark:bg-slate-900 shadow-2xl flex flex-col
+       class="md:hidden fixed top-0 left-0 bottom-0 z-50 w-60 bg-white dark:bg-slate-900 shadow-2xl flex flex-col
               transform -translate-x-full transition-transform duration-300 ease-in-out"
        style="padding-bottom: env(safe-area-inset-bottom);">
 
