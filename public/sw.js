@@ -62,9 +62,10 @@ self.addEventListener('fetch', event => {
     event.respondWith((async () => {
       const cache = await caches.open(CACHE_NAME);
       try {
-        // Abort fetch if server doesn't respond within 4 seconds
+        // Abort fetch if server doesn't respond within 15 seconds
+        // (some pages like /stores hit Neon DB and take 6-8s — 4s was too aggressive)
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 4000);
+        const timeoutId = setTimeout(() => controller.abort(), 15000);
         const response = await fetch(event.request.url, { signal: controller.signal });
         clearTimeout(timeoutId);
         // Cache non-redirected OK responses as offline/deploy fallback
