@@ -482,98 +482,33 @@ Route::get('/items', function (Request $request) {
     ]);
 });
 
-// Items Management Page - PRODUCTION
+// Items Management Page - DISABLED (view moved to resources/views/_unused/)
+/*
 Route::get('/items/management', function (Request $request) {
-    set_time_limit(60); // Increase timeout for large dataset
-
-    // Get filter parameters
+    set_time_limit(60);
     $shopFilter = $request->get('shop');
     $categoryFilter = $request->get('category');
-    $limit = $request->get('limit', 100); // Default show 100 items
-
-    // Build query
-    $query = DB::table('items')
-        ->select('id', 'item_id', 'shop_name', 'name', 'sku', 'category', 'price', 'is_available', 'platform');
-
-    // Apply filters if provided
-    if ($shopFilter) {
-        $query->where('shop_name', $shopFilter);
-    }
-    if ($categoryFilter) {
-        $query->where('category', $categoryFilter);
-    }
-
-    $items = $query
-        ->orderBy('shop_name')
-        ->orderBy('name')
-        ->orderBy('platform')
-        ->limit($limit * 3) // Get enough for limit unique items (3 platforms each)
-        ->get();
-
-    // Group items by name and shop (same item across different platforms)
+    $limit = $request->get('limit', 100);
+    $query = DB::table('items')->select('id', 'item_id', 'shop_name', 'name', 'sku', 'category', 'price', 'is_available', 'platform');
+    if ($shopFilter) { $query->where('shop_name', $shopFilter); }
+    if ($categoryFilter) { $query->where('category', $categoryFilter); }
+    $items = $query->orderBy('shop_name')->orderBy('name')->orderBy('platform')->limit($limit * 3)->get();
     $itemsGrouped = [];
     foreach ($items as $item) {
         $key = $item->shop_name . '|' . $item->name;
-
         if (!isset($itemsGrouped[$key])) {
-            $itemsGrouped[$key] = [
-                'shop_name' => $item->shop_name,
-                'name' => $item->name,
-                'sku' => $item->sku,
-                'category' => $item->category,
-                'price' => $item->price,
-                'platforms' => [
-                    'grab' => null,
-                    'foodpanda' => null,
-                    'deliveroo' => null,
-                ],
-                'any_available' => false,
-            ];
+            $itemsGrouped[$key] = ['shop_name' => $item->shop_name, 'name' => $item->name, 'sku' => $item->sku, 'category' => $item->category, 'price' => $item->price, 'platforms' => ['grab' => null, 'foodpanda' => null, 'deliveroo' => null], 'any_available' => false];
         }
-
-        $itemsGrouped[$key]['platforms'][$item->platform] = [
-            'id' => $item->id,
-            'is_available' => (bool)$item->is_available,
-        ];
-
-        if ($item->is_available) {
-            $itemsGrouped[$key]['any_available'] = true;
-        }
+        $itemsGrouped[$key]['platforms'][$item->platform] = ['id' => $item->id, 'is_available' => (bool)$item->is_available];
+        if ($item->is_available) { $itemsGrouped[$key]['any_available'] = true; }
     }
-
-    // Limit to requested number of unique items
     $itemsGrouped = array_slice(array_values($itemsGrouped), 0, $limit);
-
-    // Get unique shops and categories for filters (select only needed columns)
-    $shops = DB::table('items')
-        ->select('shop_name')
-        ->distinct()
-        ->pluck('shop_name')
-        ->sort()
-        ->values();
-
-    $categories = DB::table('items')
-        ->select('category')
-        ->distinct()
-        ->whereNotNull('category')
-        ->pluck('category')
-        ->sort()
-        ->values();
-
-    // Get total unique items count (divide by 3 for 3 platforms)
-    $totalUniqueItems = DB::table('items')
-        ->select(DB::raw("COUNT(DISTINCT CONCAT(shop_name, '|', name)) as count"))
-        ->first()
-        ->count ?? 0;
-
-    return view('items-management', [
-        'itemsGrouped' => $itemsGrouped,
-        'shops' => $shops,
-        'categories' => $categories,
-        'totalItems' => $totalUniqueItems,
-        'limit' => $limit,
-    ]);
+    $shops = DB::table('items')->select('shop_name')->distinct()->pluck('shop_name')->sort()->values();
+    $categories = DB::table('items')->select('category')->distinct()->whereNotNull('category')->pluck('category')->sort()->values();
+    $totalUniqueItems = DB::table('items')->select(DB::raw("COUNT(DISTINCT (shop_name || '|' || name)) as count"))->first()->count ?? 0;
+    return view('items-management', ['itemsGrouped' => $itemsGrouped, 'shops' => $shops, 'categories' => $categories, 'totalItems' => $totalUniqueItems, 'limit' => $limit]);
 });
+*/
 
 // HYBRID: Platform Status Page
 Route::get('/platforms', function () {
