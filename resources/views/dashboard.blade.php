@@ -172,13 +172,14 @@
                 <div class="group relative {{ $isOnline ? 'bg-white dark:bg-slate-900' : 'bg-red-50 dark:bg-red-950/20' }} border-2 {{ $isOnline ? 'border-slate-200 dark:border-slate-600' : 'border-red-200 dark:border-red-800/50' }} rounded-xl p-3 hover:shadow-md transition-all">
                   <div class="flex items-center justify-between">
                     <div class="flex items-center gap-3 flex-1">
-                      @if($platform === 'grab')
-                        <div class="w-10 h-10 rounded-lg bg-gradient-to-br from-green-800 to-green-900 {{ $isOnline ? 'opacity-100' : 'opacity-50' }} flex items-center justify-center text-white font-bold text-sm shadow-sm">
-                      @elseif($platform === 'foodpanda')
-                        <div class="w-10 h-10 rounded-lg bg-gradient-to-br from-rose-700 to-pink-900 {{ $isOnline ? 'opacity-100' : 'opacity-50' }} flex items-center justify-center text-white font-bold text-sm shadow-sm">
-                      @else
-                        <div class="w-10 h-10 rounded-lg bg-gradient-to-br from-teal-700 to-cyan-900 {{ $isOnline ? 'opacity-100' : 'opacity-50' }} flex items-center justify-center text-white font-bold text-sm shadow-sm">
-                      @endif
+                      @php
+                        $iconBg = match($platform) {
+                          'grab'      => 'background:linear-gradient(to bottom right,#166534,#14532d)',
+                          'foodpanda' => 'background:linear-gradient(to bottom right,#be123c,#831843)',
+                          default     => 'background:linear-gradient(to bottom right,#0f766e,#164e63)',
+                        };
+                      @endphp
+                      <div style="{{ $iconBg }}" class="w-10 h-10 rounded-lg {{ $isOnline ? '' : 'opacity-50' }} flex items-center justify-center text-white font-bold text-sm shadow-sm">
                         {{ strtoupper(substr($config['name'], 0, 1)) }}
                       </div>
                       <div class="flex-1">
