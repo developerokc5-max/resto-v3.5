@@ -2,7 +2,7 @@ services:
   - type: web
     name: resto-v3.5
     env: docker
-    plan: free
+    plan: starter
     autoDeploy: true
     healthCheckPath: /api/health
     envVars:
