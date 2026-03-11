@@ -1,7 +1,7 @@
-// HawkerOps Service Worker v4
-// Stale-while-revalidate for HTML: instant on mobile, always fresh in background
+// HawkerOps Service Worker v5
+// Network-first for HTML: always fetch fresh, fall back to cache only if offline
 
-const CACHE_NAME = 'hawkerops-v6';
+const CACHE_NAME = 'hawkerops-v7';
 
 // Only precache the offline fallback — everything else is cached on first visit
 const PRECACHE_URLS = ['/offline'];
@@ -53,40 +53,29 @@ self.addEventListener('fetch', event => {
   // Skip export/download routes
   if (url.pathname.includes('/export') || url.pathname.includes('/logs/export')) return;
 
-  // HTML pages: stale-while-revalidate
-  // — Serve cached version instantly (fast on mobile)
-  // — Fetch fresh in background and update cache for next visit
+  // HTML pages: network-first
+  // — Always fetch fresh HTML from server (live data dashboard needs it)
+  // — Cache the fresh response for offline fallback only
   if (event.request.headers.get('accept')?.includes('text/html')) {
     event.respondWith((async () => {
       const cache = await caches.open(CACHE_NAME);
-      const cached = await cache.match(event.request);
-
-      // Kick off network fetch in background regardless
-      // Use URL string (not the Request object) to avoid navigate-mode fetch issues
-      const networkPromise = fetch(event.request.url)
-        .then(response => {
-          // Only cache non-redirected OK responses to avoid URL key mismatches
-          if (response.ok && !response.redirected) cache.put(event.request, response.clone());
-          return response;
-        })
-        .catch(() => null);
-
-      // If cached, return instantly — network updates cache in background
-      if (cached) {
-        networkPromise.catch(() => {});
-        return cached;
+      try {
+        // Always try network first — use URL string to avoid navigate-mode issues
+        const response = await fetch(event.request.url);
+        // Cache non-redirected OK responses as offline fallback
+        if (response.ok && !response.redirected) cache.put(event.request, response.clone());
+        return response;
+      } catch (_) {
+        // Network failed — serve from cache if available
+        const cached = await cache.match(event.request);
+        if (cached) return cached;
+        // No cache — show offline page
+        return cache.match('/offline') || new Response(
+          '<html><body style="font-family:sans-serif;text-align:center;padding:60px;background:#0f172a;color:#fff">' +
+          '<h1>⚡ HawkerOps</h1><p>You are offline. Connect to see live data.</p></body></html>',
+          { headers: { 'Content-Type': 'text/html' } }
+        );
       }
-
-      // No cache yet — wait for network
-      const response = await networkPromise;
-      if (response) return response;
-
-      // Network failed, no cache — show offline page
-      return cache.match('/offline') || new Response(
-        '<html><body style="font-family:sans-serif;text-align:center;padding:60px;background:#0f172a;color:#fff">' +
-        '<h1>⚡ HawkerOps</h1><p>You are offline. Connect to see live data.</p></body></html>',
-        { headers: { 'Content-Type': 'text/html' } }
-      );
     })());
     return;
   }
