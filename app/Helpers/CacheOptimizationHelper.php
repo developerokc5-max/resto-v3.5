@@ -14,10 +14,12 @@ use Illuminate\Support\Facades\DB;
 class CacheOptimizationHelper
 {
     // Cache TTL values (in seconds) - optimized for data change frequency
-    const CACHE_TTL_FAST = 60;           // 1 minute - for frequently changing data (platform status)
-    const CACHE_TTL_MODERATE = 300;      // 5 minutes - for moderately changing data (items, alerts)
-    const CACHE_TTL_SLOW = 3600;         // 1 hour - for slowly changing data (store stats, reports)
-    const CACHE_TTL_VERY_SLOW = 86400;   // 24 hours - for rarely changing data (shop names, brands)
+    // Scrapers explicitly call invalidateDashboardCaches() on each run, so TTLs are
+    // just a safety net — longer values reduce unnecessary DB round-trips between runs
+    const CACHE_TTL_FAST = 300;          // 5 minutes - platform status (scraper invalidates anyway)
+    const CACHE_TTL_MODERATE = 600;      // 10 minutes - items, alerts, dashboard KPIs
+    const CACHE_TTL_SLOW = 3600;         // 1 hour - store stats, reports
+    const CACHE_TTL_VERY_SLOW = 86400;   // 24 hours - shop names, brands
 
     /**
      * Get consolidated dashboard KPIs

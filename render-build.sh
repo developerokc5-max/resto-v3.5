@@ -12,4 +12,7 @@ php artisan migrate --force
 npm ci
 npm run build
 
-echo "event:cache"
+# Cache config + views for faster cold-start bootstrap
+# (route:cache skipped — routes use closures)
+php artisan config:cache
+php artisan view:cache
