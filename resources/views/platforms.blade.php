@@ -112,7 +112,7 @@
               <span class="md:hidden">Panda</span><span class="hidden md:inline">FoodPanda</span>
             </th>
             <th class="w-1/5 md:w-1/6 px-2 md:px-5 py-3 text-center text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">
-              <span class="md:hidden">Delivroo</span><span class="hidden md:inline">Deliveroo</span>
+              <span class="md:hidden">Deliveroo</span><span class="hidden md:inline">Deliveroo</span>
             </th>
             <th class="hidden md:table-cell md:w-1/6 px-5 py-3 text-right text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">Status</th>
           </tr>

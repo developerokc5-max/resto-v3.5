@@ -290,15 +290,6 @@ class MonitorController extends Controller
         });
     }
 
-    private function calculateSuccessRate()
-    {
-        $total = ScraperLog::count();
-        if ($total === 0) return 0;
-
-        $successful = ScraperLog::where('status', 'success')->count();
-        return round(($successful / $total) * 100, 2);
-    }
-
     /**
      * Get health status for ALL webapp pages/routes
      */

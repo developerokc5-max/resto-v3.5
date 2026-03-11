@@ -125,7 +125,6 @@ class ShopService
     {
         if ($shopId) {
             Cache::forget("shop.{$shopId}.offline_count");
-            CacheService::invalidateShopStatusCache($shopId);
         } else {
             Cache::flush(); // Flush all caches
         }
