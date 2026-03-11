@@ -16,3 +16,7 @@ npm run build
 # (route:cache skipped — routes use closures)
 php artisan config:cache
 php artisan view:cache
+
+# Pre-warm all DB-backed caches so first visitor after deploy gets fast responses
+# (without this every page is a cold DB hit — 6-8s per page on Neon)
+php artisan cache:warm

@@ -1,6 +1,9 @@
 // HawkerOps Service Worker
-// Network-first for HTML: always fetch fresh, fall back to cache during deploy/offline
-// Stable cache name — never wiped on SW update so old pages survive Render redeploys
+// HTML strategy: stale-while-revalidate
+//   — Serve SW-cached page INSTANTLY on navigation (no waiting for server)
+//   — Fetch fresh version in background and update cache silently
+//   — smartReload() + /api/last-sync handles showing new data to the user
+// Static assets: cache-first (Vite content-hashes guarantee freshness)
 
 const CACHE_NAME = 'hawkerops-cache';
 const LEGACY_CACHES = ['hawkerops-v6', 'hawkerops-v7', 'hawkerops-v8'];
@@ -55,38 +58,50 @@ self.addEventListener('fetch', event => {
   // Skip export/download routes (but not /settings/export which is an HTML page)
   if (url.pathname !== '/settings/export' && (url.pathname.startsWith('/export') || url.pathname.endsWith('/export') || url.pathname.includes('/logs/export'))) return;
 
-  // HTML pages: network-first with 4s timeout
-  // — Always try to get fresh HTML (live data dashboard)
-  // — If server is slow or unreachable (e.g. mid-deploy), fall back to cached version
+  // ── HTML pages: stale-while-revalidate ─────────────────────────────────────
+  // Serve the cached version IMMEDIATELY so navigation feels instant,
+  // then fetch a fresh copy in the background and update the cache.
+  // smartReload() (every 5 min) will swap in fresh content without a hard reload.
   if (event.request.headers.get('accept')?.includes('text/html')) {
     event.respondWith((async () => {
-      const cache = await caches.open(CACHE_NAME);
-      try {
-        // Abort fetch if server doesn't respond within 15 seconds
-        // (some pages like /stores hit Neon DB and take 6-8s — 4s was too aggressive)
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 15000);
-        const response = await fetch(event.request.url, { signal: controller.signal });
-        clearTimeout(timeoutId);
-        // Cache non-redirected OK responses as offline/deploy fallback
-        if (response.ok && !response.redirected) cache.put(event.request, response.clone());
-        return response;
-      } catch (_) {
-        // Network failed or timed out — serve cached version if available
-        const cached = await cache.match(event.request);
-        if (cached) return cached;
-        // No cache — show offline page
-        return cache.match('/offline') || new Response(
-          '<html><body style="font-family:sans-serif;text-align:center;padding:60px;background:#0f172a;color:#fff">' +
-          '<h1>⚡ HawkerOps</h1><p>You are offline. Connect to see live data.</p></body></html>',
-          { headers: { 'Content-Type': 'text/html' } }
-        );
+      const cache  = await caches.open(CACHE_NAME);
+      const cached = await cache.match(event.request);
+
+      // Background network fetch — always runs to keep cache fresh
+      const networkFetch = (async () => {
+        try {
+          const controller = new AbortController();
+          const timeoutId  = setTimeout(() => controller.abort(), 15000);
+          const response   = await fetch(event.request.url, { signal: controller.signal });
+          clearTimeout(timeoutId);
+          // Store non-redirected OK responses for next visit
+          if (response.ok && !response.redirected) cache.put(event.request, response.clone());
+          return response;
+        } catch (_) {
+          // Network failed — fall back to cache then offline page
+          const fallback = await cache.match(event.request);
+          if (fallback) return fallback;
+          return cache.match('/offline') || new Response(
+            '<html><body style="font-family:sans-serif;text-align:center;padding:60px;background:#0f172a;color:#fff">' +
+            '<h1>⚡ HawkerOps</h1><p>You are offline. Connect to see live data.</p></body></html>',
+            { headers: { 'Content-Type': 'text/html' } }
+          );
+        }
+      })();
+
+      // If we have a cached copy: serve it NOW, let network run in background
+      if (cached) {
+        networkFetch.catch(() => {}); // fire-and-forget, errors silently ignored
+        return cached;
       }
+
+      // No cached copy yet (first-ever visit) — wait for network
+      return networkFetch;
     })());
     return;
   }
 
-  // Static assets (CSS, JS, images): cache-first
+  // ── Static assets (CSS, JS, images): cache-first ───────────────────────────
   // Vite content-hashes filenames so stale cache is never an issue
   event.respondWith(
     caches.match(event.request).then(cached => {
