@@ -1408,25 +1408,28 @@ Route::get('/history', function () {
             ->keyBy('snapshot_date')
         : collect();
 
+    // Batch-load all store rows in ONE query instead of one per day (fixes N+1)
+    $allDates   = $dateSummaries->pluck('snapshot_date')->toArray();
+    $allStoreRows = DB::table('daily_history')
+        ->whereIn('snapshot_date', $allDates)
+        ->orderByRaw('CASE WHEN platforms_online < total_platforms OR total_offline_items > 0 THEN 0 ELSE 1 END')
+        ->orderBy('shop_name')
+        ->get()
+        ->map(function ($store) {
+            $store->platform_data = json_decode($store->platform_data ?? '{}', true) ?? [];
+            return $store;
+        })
+        ->groupBy('snapshot_date');
+
     $history = [];
     foreach ($dateSummaries as $day) {
-        $stores = DB::table('daily_history')
-            ->where('snapshot_date', $day->snapshot_date)
-            ->orderByRaw('CASE WHEN platforms_online < total_platforms OR total_offline_items > 0 THEN 0 ELSE 1 END')
-            ->orderBy('shop_name')
-            ->get()
-            ->map(function ($store) {
-                $store->platform_data = json_decode($store->platform_data ?? '{}', true) ?? [];
-                return $store;
-            });
-
         $history[] = [
             'date'                => $day->snapshot_date,
             'total_stores'        => (int) $day->total_stores,
             'stores_with_issues'  => (int) $day->stores_with_issues,
             'total_offline_items' => (int) $day->total_offline_items,
             'last_updated_at'     => $day->last_updated_at,
-            'stores'              => $stores,
+            'stores'              => $allStoreRows->get($day->snapshot_date, collect()),
             'is_today'            => $day->snapshot_date === $todaySgt,
             'scrape_count'        => (int) ($scrapeCounts->get($day->snapshot_date)?->scrape_count ?? 0),
         ];
@@ -1656,28 +1659,32 @@ Route::get('/reports/daily-trends', function (\Illuminate\Http\Request $request)
         ];
     });
 
-    // Chart data: daily total offline items per day
-    $dailyData = DB::table('daily_history')
-        ->selectRaw('snapshot_date, SUM(total_offline_items) as total_offline')
-        ->whereBetween('snapshot_date', [$startDate, $endDate])
-        ->groupBy('snapshot_date')
-        ->orderBy('snapshot_date')
-        ->get();
+    // Chart data: cached per date-range (key includes dates so different ranges stay separate)
+    $chartCacheKey = "reports_daily_trends_chart_{$startDate}_{$endDate}";
+    [$dailyData, $platformUptimeData] = Cache::remember($chartCacheKey, 300, function () use ($startDate, $endDate) {
+        $daily = DB::table('daily_history')
+            ->selectRaw('snapshot_date, SUM(total_offline_items) as total_offline')
+            ->whereBetween('snapshot_date', [$startDate, $endDate])
+            ->groupBy('snapshot_date')
+            ->orderBy('snapshot_date')
+            ->get();
 
-    // Chart data: per-platform uptime % per day (from platform_data JSON)
-    $platformUptimeData = DB::table('daily_history')
-        ->selectRaw("
-            snapshot_date,
-            ROUND(AVG(CASE WHEN (platform_data::jsonb)->'grab'->>'status' = 'Online' THEN 100.0 ELSE 0 END), 1) as grab_uptime,
-            ROUND(AVG(CASE WHEN (platform_data::jsonb)->'foodpanda'->>'status' = 'Online' THEN 100.0 ELSE 0 END), 1) as foodpanda_uptime,
-            ROUND(AVG(CASE WHEN (platform_data::jsonb)->'deliveroo'->>'status' = 'Online' THEN 100.0 ELSE 0 END), 1) as deliveroo_uptime
-        ")
-        ->whereBetween('snapshot_date', [$startDate, $endDate])
-        ->whereNotNull('platform_data')
-        ->where('platform_data', '!=', '')
-        ->groupBy('snapshot_date')
-        ->orderBy('snapshot_date')
-        ->get();
+        $uptime = DB::table('daily_history')
+            ->selectRaw("
+                snapshot_date,
+                ROUND(AVG(CASE WHEN (platform_data::jsonb)->'grab'->>'status' = 'Online' THEN 100.0 ELSE 0 END), 1) as grab_uptime,
+                ROUND(AVG(CASE WHEN (platform_data::jsonb)->'foodpanda'->>'status' = 'Online' THEN 100.0 ELSE 0 END), 1) as foodpanda_uptime,
+                ROUND(AVG(CASE WHEN (platform_data::jsonb)->'deliveroo'->>'status' = 'Online' THEN 100.0 ELSE 0 END), 1) as deliveroo_uptime
+            ")
+            ->whereBetween('snapshot_date', [$startDate, $endDate])
+            ->whereNotNull('platform_data')
+            ->where('platform_data', '!=', '')
+            ->groupBy('snapshot_date')
+            ->orderBy('snapshot_date')
+            ->get();
+
+        return [$daily, $uptime];
+    });
 
     return view('reports.daily-trends', [
         'trends'             => $trends,
