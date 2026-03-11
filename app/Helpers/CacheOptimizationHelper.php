@@ -51,19 +51,11 @@ class CacheOptimizationHelper
                 )
                 ->first();
 
-            // Single aggregated query for changes today
-            $changesStatus = DB::table('restosuite_item_changes')
-                ->whereDate('created_at', today())
-                ->select(
-                    DB::raw('COUNT(*) as change_count'),
-                    DB::raw('COUNT(DISTINCT shop_id) as shops_affected')
-                )
-                ->first();
-
-            // Fallback if no changes today — keep at 0 rather than substituting an unrelated count
-            if (!$changesStatus || $changesStatus->change_count == 0) {
-                $changesStatus = (object)['change_count' => 0, 'shops_affected' => 0];
-            }
+            // Count distinct stores that have at least one platform offline
+            $alertCount = DB::table('platform_status')
+                ->where('is_online', false)
+                ->distinct('shop_id')
+                ->count('shop_id');
 
             // Single aggregated query for platform stats
             $platformStats = DB::table('platform_status')
@@ -77,11 +69,11 @@ class CacheOptimizationHelper
                 'stores_online' => (int) $storeCount,
                 'items_off' => (int) ($itemsStatus?->items_off ?? 0),
                 'addons_off' => 0,
-                'alerts' => (int) ($changesStatus?->change_count ?? 0),
+                'alerts' => (int) $alertCount,
                 'platforms_online' => (int) ($platformStats?->platforms_online ?? 0),
                 'platforms_total' => (int) ($platformStats?->platforms_total ?? 0),
                 'platforms_offline' => (int) (($platformStats?->platforms_total ?? 0) - ($platformStats?->platforms_online ?? 0)),
-                'shops_affected' => (int) ($changesStatus?->shops_affected ?? 0),
+                'shops_affected' => (int) $alertCount,
             ];
         });
     }

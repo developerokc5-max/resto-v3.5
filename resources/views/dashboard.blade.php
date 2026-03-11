@@ -50,7 +50,8 @@
 
     <div class="bg-white dark:bg-slate-800 border dark:border-slate-700 rounded-2xl p-5 shadow-sm hover:shadow-md transition">
       <div class="text-sm text-slate-500 dark:text-slate-400">Active Alerts</div>
-      <div class="mt-2 text-3xl font-semibold">{{ $kpis['alerts'] ?? 0 }}</div>
+      <div class="mt-2 text-3xl font-semibold {{ ($kpis['alerts'] ?? 0) > 0 ? 'text-red-500' : '' }}">{{ $kpis['alerts'] ?? 0 }}</div>
+      <div class="text-xs text-slate-400 dark:text-slate-500 mt-1">stores w/ offline platforms</div>
     </div>
 
     {{-- HYBRID: Platform Status KPI --}}
