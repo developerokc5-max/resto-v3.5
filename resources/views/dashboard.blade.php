@@ -172,7 +172,13 @@
                 <div class="group relative {{ $isOnline ? 'bg-white dark:bg-slate-900' : 'bg-red-50 dark:bg-red-950/20' }} border-2 {{ $isOnline ? 'border-slate-200 dark:border-slate-600' : 'border-red-200 dark:border-red-800/50' }} rounded-xl p-3 hover:shadow-md transition-all">
                   <div class="flex items-center justify-between">
                     <div class="flex items-center gap-3 flex-1">
-                      <div class="w-10 h-10 rounded-lg bg-gradient-to-br {{ $config['gradient'] }} {{ $isOnline ? 'opacity-100' : 'opacity-50' }} flex items-center justify-center text-white font-bold text-sm shadow-sm">
+                      @if($platform === 'grab')
+                        <div class="w-10 h-10 rounded-lg bg-gradient-to-br from-green-800 to-green-900 {{ $isOnline ? 'opacity-100' : 'opacity-50' }} flex items-center justify-center text-white font-bold text-sm shadow-sm">
+                      @elseif($platform === 'foodpanda')
+                        <div class="w-10 h-10 rounded-lg bg-gradient-to-br from-rose-700 to-pink-900 {{ $isOnline ? 'opacity-100' : 'opacity-50' }} flex items-center justify-center text-white font-bold text-sm shadow-sm">
+                      @else
+                        <div class="w-10 h-10 rounded-lg bg-gradient-to-br from-teal-700 to-cyan-900 {{ $isOnline ? 'opacity-100' : 'opacity-50' }} flex items-center justify-center text-white font-bold text-sm shadow-sm">
+                      @endif
                         {{ strtoupper(substr($config['name'], 0, 1)) }}
                       </div>
                       <div class="flex-1">
