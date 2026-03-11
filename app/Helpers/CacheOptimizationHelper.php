@@ -204,6 +204,8 @@ class CacheOptimizationHelper
         Cache::forget('all_platform_statuses');
         Cache::forget('recent_changes_per_shop_1d');
         Cache::forget('recent_changes_per_shop_7d');
+        Cache::forget('store_comparison_db');
+        Cache::forget('shop_map');
     }
 
     /**

@@ -1840,12 +1840,12 @@ Route::get('/reports/store-comparison', function () {
     $allPlatformStatuses = $dbData['allPlatformStatuses'];
     $itemCounts          = $dbData['itemCounts'];
 
-    // Build store list with names (uses shopMap, fast in-memory)
-    $stores = collect($shopIds)->map(function ($shopId) use ($shopMap) {
-        return [
-            'id' => $shopId,
-            'name' => $shopMap[$shopId]['name'] ?? 'Unknown Store'
-        ];
+    // Build store list with names — shopMap first, fall back to store_name in platform_status
+    $stores = collect($shopIds)->map(function ($shopId) use ($shopMap, $allPlatformStatuses) {
+        $name = $shopMap[$shopId]['name']
+            ?? $allPlatformStatuses->get($shopId)?->first()?->store_name
+            ?? $shopId;  // Last resort: use the raw shop_id value
+        return ['id' => $shopId, 'name' => $name];
     })->sortBy('name')->values();
 
     // Process each store
