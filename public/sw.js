@@ -1,7 +1,7 @@
 // HawkerOps Service Worker v5
 // Network-first for HTML: always fetch fresh, fall back to cache only if offline
 
-const CACHE_NAME = 'hawkerops-v7';
+const CACHE_NAME = 'hawkerops-v8';
 
 // Only precache the offline fallback — everything else is cached on first visit
 const PRECACHE_URLS = ['/offline'];
@@ -53,20 +53,23 @@ self.addEventListener('fetch', event => {
   // Skip export/download routes
   if (url.pathname.includes('/export') || url.pathname.includes('/logs/export')) return;
 
-  // HTML pages: network-first
-  // — Always fetch fresh HTML from server (live data dashboard needs it)
-  // — Cache the fresh response for offline fallback only
+  // HTML pages: network-first with 4s timeout
+  // — Always try to get fresh HTML (live data dashboard)
+  // — If server is slow or unreachable, instantly fall back to cached version
   if (event.request.headers.get('accept')?.includes('text/html')) {
     event.respondWith((async () => {
       const cache = await caches.open(CACHE_NAME);
       try {
-        // Always try network first — use URL string to avoid navigate-mode issues
-        const response = await fetch(event.request.url);
+        // Abort fetch if server doesn't respond within 4 seconds
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 4000);
+        const response = await fetch(event.request.url, { signal: controller.signal });
+        clearTimeout(timeoutId);
         // Cache non-redirected OK responses as offline fallback
         if (response.ok && !response.redirected) cache.put(event.request, response.clone());
         return response;
       } catch (_) {
-        // Network failed — serve from cache if available
+        // Network failed or timed out — serve from cache if available
         const cached = await cache.match(event.request);
         if (cached) return cached;
         // No cache — show offline page
