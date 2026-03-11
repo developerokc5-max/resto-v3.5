@@ -4,12 +4,29 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Models\PlatformStatus;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Cache;
 use App\Helpers\ShopHelper;
 use App\Http\Controllers\Api\MonitorController;
 
 /**
  * API Routes for Hybrid System
  */
+
+// Lightweight sync-timestamp check used by smartReload() to skip full-page
+// fetches when no new data has arrived since the last reload.
+// Returns a unix timestamp — JS compares it to _lastSyncTs to decide whether
+// to pay for a full HTML fetch or bail out early.
+Route::get('/last-sync', function () {
+    $ts = Cache::remember('last_sync_unix', 60, function () {
+        $candidates = array_filter([
+            DB::table('platform_status')->max('last_checked_at'),
+            DB::table('restosuite_item_snapshots')->max('updated_at'),
+        ]);
+        if (empty($candidates)) return 0;
+        return \Carbon\Carbon::parse(max($candidates))->timestamp;
+    });
+    return response()->json(['timestamp' => $ts]);
+});
 
 // ========================================
 // PROTECTED MOBILE APP MONITORING API

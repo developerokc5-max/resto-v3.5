@@ -120,15 +120,34 @@ function showNotification(message, type = 'info') {
   }, 5000);
 }
 
+// Last known sync unix timestamp — used to skip full-page fetches when data hasn't changed
+let _lastSyncTs = 0;
+
 // Auto-reload every 5 minutes — timer cleared on navigation to prevent multi-tab waste
 const _autoReloadTimer = setTimeout(smartReload, 300000);
 window.addEventListener('beforeunload', () => clearTimeout(_autoReloadTimer));
 
 async function smartReload(btn) {
-  // Visual feedback
+  // Visual feedback (only when user explicitly clicks Reload)
   if (btn) { btn.disabled = true; btn.style.opacity = '0.6'; }
 
   try {
+    // ── Step 1: Lightweight timestamp check (~50ms vs ~500ms for full HTML) ──
+    // Skip the expensive full-page fetch on auto-refresh when data hasn't changed.
+    // Always fetch fresh content when the user explicitly clicks Reload (btn is set).
+    try {
+      const tsRes = await fetch('/api/last-sync', { cache: 'no-store' });
+      if (tsRes.ok) {
+        const { timestamp } = await tsRes.json();
+        if (!btn && _lastSyncTs !== 0 && timestamp === _lastSyncTs) {
+          // Auto-refresh, nothing new — bail out without touching the DOM
+          return;
+        }
+        _lastSyncTs = timestamp;
+      }
+    } catch (_) { /* timestamp check failed — proceed with full fetch anyway */ }
+
+    // ── Step 2: Fetch fresh full-page HTML and swap content ──
     const res = await fetch(window.location.href);
     if (!res.ok) throw new Error('fetch failed');
 

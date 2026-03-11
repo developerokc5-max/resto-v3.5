@@ -308,51 +308,57 @@ Route::get('/store/{shop_id}', function ($shop_id) {
 
     $shopInfo = $shopMap[$shop_id] ?? ['name' => $shop->shop_name, 'brand' => 'Unknown'];
 
-    // Get all items for this shop grouped by name+category (across all platforms)
-    $items = DB::table('items')
-        ->where('shop_name', $shop->shop_name)
-        ->orderBy('category')
-        ->orderBy('name')
-        ->get();
+    // Cache items + platform status per store (invalidated by TTL or scraper run)
+    $storeData = Cache::remember('store_detail_data_' . $shop_id, 300, function () use ($shop) {
+        // Get all items for this shop grouped by name+category (across all platforms)
+        $items = DB::table('items')
+            ->where('shop_name', $shop->shop_name)
+            ->orderBy('category')
+            ->orderBy('name')
+            ->get();
 
-    // Group items by unique item (name + category)
-    $groupedItems = [];
-    foreach ($items as $item) {
-        $key = $item->name . '|' . $item->category;
+        // Group items by unique item (name + category)
+        $groupedItems = [];
+        foreach ($items as $item) {
+            $key = $item->name . '|' . $item->category;
 
-        if (!isset($groupedItems[$key])) {
-            $groupedItems[$key] = [
-                'name' => $item->name,
-                'category' => $item->category,
-                'image_url' => $item->image_url,
-                'price' => $item->price,
-                'platforms' => [],
-                'all_active' => true,
+            if (!isset($groupedItems[$key])) {
+                $groupedItems[$key] = [
+                    'name'      => $item->name,
+                    'category'  => $item->category,
+                    'image_url' => $item->image_url,
+                    'price'     => $item->price,
+                    'platforms' => [],
+                    'all_active' => true,
+                ];
+            }
+
+            $groupedItems[$key]['platforms'][$item->platform] = [
+                'is_available' => (bool) $item->is_available,
+                'price'        => $item->price,
             ];
+
+            if (!$item->is_available) {
+                $groupedItems[$key]['all_active'] = false;
+            }
         }
 
-        $groupedItems[$key]['platforms'][$item->platform] = [
-            'is_available' => (bool) $item->is_available,
-            'price' => $item->price,
+        $platformStatus = DB::table('platform_status')
+            ->where('store_name', $shop->shop_name)
+            ->get()
+            ->keyBy('platform');
+
+        return [
+            'groupedItems'   => array_values($groupedItems),
+            'platformStatus' => $platformStatus,
         ];
-
-        // If any platform is unavailable, mark as not all active
-        if (!$item->is_available) {
-            $groupedItems[$key]['all_active'] = false;
-        }
-    }
-
-    // Get platform status
-    $platformStatus = DB::table('platform_status')
-        ->where('store_name', $shop->shop_name)
-        ->get()
-        ->keyBy('platform');
+    });
 
     return view('store-detail', [
-        'shop' => $shop,
-        'shopInfo' => $shopInfo,
-        'items' => array_values($groupedItems),
-        'platformStatus' => $platformStatus,
+        'shop'           => $shop,
+        'shopInfo'       => $shopInfo,
+        'items'          => $storeData['groupedItems'],
+        'platformStatus' => $storeData['platformStatus'],
     ]);
 });
 
@@ -432,12 +438,14 @@ Route::get('/items', function (Request $request) {
         }));
     }
 
-    // Get ALL restaurants from shops table (including those without items)
-    $restaurants = DB::table('shops')
-        ->select('shop_name')
-        ->orderBy('shop_name')
-        ->pluck('shop_name')
-        ->values();
+    // Get ALL restaurants from shops table — cached 1h (shop names rarely change)
+    $restaurants = Cache::remember('shops_name_list', 3600, function () {
+        return DB::table('shops')
+            ->select('shop_name')
+            ->orderBy('shop_name')
+            ->pluck('shop_name')
+            ->values();
+    });
 
     // Get unique categories - with caching
     $categories = Cache::remember('items_categories', 300, function () {
