@@ -60,15 +60,9 @@ class CacheOptimizationHelper
                 )
                 ->first();
 
-            // Fallback if no changes
-            if ($changesStatus->change_count == 0) {
-                $changesStatus = DB::table('platform_status')
-                    ->where('is_online', false)
-                    ->select(
-                        DB::raw('COUNT(DISTINCT shop_id) as change_count'),
-                        DB::raw('COUNT(DISTINCT shop_id) as shops_affected')
-                    )
-                    ->first();
+            // Fallback if no changes today — keep at 0 rather than substituting an unrelated count
+            if (!$changesStatus || $changesStatus->change_count == 0) {
+                $changesStatus = (object)['change_count' => 0, 'shops_affected' => 0];
             }
 
             // Single aggregated query for platform stats

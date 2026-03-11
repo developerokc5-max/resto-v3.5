@@ -852,7 +852,7 @@ Route::get('/store/{shopId}/logs', function ($shopId) {
     $statusCards = [];
     foreach ($historicalLogs as $index => $log) {
         $loggedAt = \Carbon\Carbon::parse($log->logged_at)->setTimezone('Asia/Singapore');
-        $platformDataDecoded = json_decode($log->platform_data, true);
+        $platformDataDecoded = json_decode($log->platform_data ?? '{}', true) ?? [];
 
         // For today's entry, always use current time (check against SGT date)
         $isTodaySgt = $loggedAt->format('Y-m-d') === $nowSgt->format('Y-m-d');
@@ -919,9 +919,9 @@ Route::get('/dashboard/export', function () {
         $foodpandaStatus = $platformStatusMap->get('foodpanda');
         $deliverooStatus = $platformStatusMap->get('deliveroo');
 
-        $grabOffline = $offlineItemsMap->get('grab')->offline_count ?? 0;
-        $foodpandaOffline = $offlineItemsMap->get('foodpanda')->offline_count ?? 0;
-        $deliverooOffline = $offlineItemsMap->get('deliveroo')->offline_count ?? 0;
+        $grabOffline = $offlineItemsMap->get('grab')?->offline_count ?? 0;
+        $foodpandaOffline = $offlineItemsMap->get('foodpanda')?->offline_count ?? 0;
+        $deliverooOffline = $offlineItemsMap->get('deliveroo')?->offline_count ?? 0;
 
         $totalOffline = $grabOffline + $foodpandaOffline + $deliverooOffline;
 
@@ -1308,7 +1308,7 @@ Route::get('/history', function () {
         ->where('is_available', false)
         ->whereIn('platform', ['grab', 'foodpanda', 'deliveroo'])
         ->get()
-        ->groupBy(fn($item) => $item->shop_name . '|' . $item->platform);
+        ->groupBy(fn($item) => strtolower($item->shop_name) . '|' . $item->platform);
 
     $insertRows = [];
     foreach ($allPlatformStatus as $shopId => $platforms) {
@@ -1319,7 +1319,7 @@ Route::get('/history', function () {
 
         foreach (['grab', 'foodpanda', 'deliveroo'] as $platform) {
             $status       = $platforms->firstWhere('platform', $platform);
-            $offlineItems = $allOfflineItems->get($storeName . '|' . $platform, collect());
+            $offlineItems = $allOfflineItems->get(strtolower($storeName) . '|' . $platform, collect());
             $offlineCount = $offlineItems->count();
             $isOnline     = $status && $status->is_online;
 
@@ -1391,7 +1391,7 @@ Route::get('/history', function () {
             ->orderBy('shop_name')
             ->get()
             ->map(function ($store) {
-                $store->platform_data = json_decode($store->platform_data, true);
+                $store->platform_data = json_decode($store->platform_data ?? '{}', true) ?? [];
                 return $store;
             });
 
@@ -1471,7 +1471,7 @@ Route::get('/history/{date}/export', function ($date) {
         ->orderBy('shop_name')
         ->get()
         ->map(function ($s) {
-            $s->platform_data = json_decode($s->platform_data, true);
+            $s->platform_data = json_decode($s->platform_data ?? '{}', true) ?? [];
             return $s;
         });
 
@@ -1542,7 +1542,7 @@ Route::get('/history/{date}', function ($date) {
         ->orderBy('shop_name')
         ->get()
         ->map(function ($store) {
-            $store->platform_data = json_decode($store->platform_data, true);
+            $store->platform_data = json_decode($store->platform_data ?? '{}', true) ?? [];
             return $store;
         });
 
@@ -1779,7 +1779,7 @@ Route::get('/reports/item-performance', function () {
         $categoryData = DB::table('items')
             ->selectRaw('
                 category,
-                COUNT(DISTINCT name || \'|\' || shop_name || \'|\' || platform) as total_items,
+                COUNT(DISTINCT (name || \'|\' || shop_name || \'|\' || platform)) as total_items,
                 ROUND(100.0 * SUM(CASE WHEN is_available = true THEN 1 ELSE 0 END) / COUNT(*), 1) as availability_percentage,
                 SUM(CASE WHEN is_available = false THEN 1 ELSE 0 END) as offline_count
             ')
