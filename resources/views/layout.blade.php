@@ -106,6 +106,15 @@
             <a class="flex items-center gap-2 px-3 py-2 rounded-lg @if(Request::is('settings/export')) bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-white @else text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 @endif transition text-sm" href="/settings/export">Export Data</a>
           </div>
         </div>
+
+        {{-- Install App — shown only when PWA is installable, hidden after install --}}
+        <button id="pwa-sidebar-btn" onclick="installPWA()"
+          class="hidden w-full items-center gap-2 px-3 py-2 rounded-xl text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-slate-800 transition text-sm font-medium mt-1">
+          <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v12m0 0l-4-4m4 4l4-4M4 20h16"/>
+          </svg>
+          Install App
+        </button>
       </nav>
 
       <div class="mt-auto p-4">
@@ -137,11 +146,7 @@
           </div>
           <div class="flex items-center gap-2 flex-shrink-0">
             @yield('top-actions')
-            {{-- PWA install button: hidden until browser fires beforeinstallprompt --}}
-            <button id="pwa-install-btn" onclick="installPWA()" class="hidden items-center gap-1.5 rounded-xl bg-indigo-600 text-white px-3 py-2 text-sm font-medium hover:opacity-90 transition">
-              <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v12m0 0l-4-4m4 4l4-4M4 20h16"/></svg>
-              <span class="hidden sm:inline">Install</span>
-            </button>
+            {{-- PWA install button moved to sidebar + startup prompt --}}
             <button onclick="smartReload(this)" class="rounded-xl bg-slate-900 dark:bg-slate-700 text-white px-4 py-2 text-sm font-medium hover:opacity-90 transition">
               Reload
             </button>
@@ -162,6 +167,32 @@
         @yield('content')
       </div>
     </main>
+  </div>
+
+  <!-- ── PWA Install Startup Prompt ────────────────────────────────────── -->
+  <div id="pwa-startup-prompt"
+       class="hidden fixed bottom-6 right-6 z-50 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl shadow-2xl p-4 w-72 animate-in">
+    <div class="flex items-start gap-3">
+      <img src="/images/logo-light.png?v=3" class="h-10 w-10 rounded-xl object-cover dark:hidden flex-shrink-0" alt="HO">
+      <img src="/images/logo-dark.png?v=3"  class="h-10 w-10 rounded-xl object-cover hidden dark:block flex-shrink-0" alt="HO">
+      <div class="flex-1 min-w-0">
+        <div class="font-semibold text-sm text-slate-900 dark:text-slate-100">Install HawkerOps</div>
+        <div class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Add to your desktop for quick access</div>
+      </div>
+      <button onclick="dismissPWAPrompt()" class="flex-shrink-0 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition" title="Dismiss">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+        </svg>
+      </button>
+    </div>
+    <div class="flex gap-2 mt-3">
+      <button onclick="installPWA()" class="flex-1 rounded-xl bg-slate-900 dark:bg-slate-700 text-white py-2 text-sm font-medium hover:opacity-90 transition">
+        Install
+      </button>
+      <button onclick="dismissPWAPrompt()" class="flex-1 rounded-xl bg-slate-100 dark:bg-slate-700/50 text-slate-700 dark:text-slate-300 py-2 text-sm font-medium hover:opacity-80 transition">
+        Not Now
+      </button>
+    </div>
   </div>
 
   <!-- ── Mobile Drawer Overlay ───────────────────────────────────────────── -->
@@ -404,27 +435,53 @@
     }
 
     // ── 3. PWA install prompt ─────────────────────────────────────────────────
+    function showPWASidebarBtn(show) {
+      const btn = document.getElementById('pwa-sidebar-btn');
+      if (!btn) return;
+      if (show) { btn.classList.remove('hidden'); btn.classList.add('flex'); }
+      else       { btn.classList.add('hidden');    btn.classList.remove('flex'); }
+    }
+
     window.addEventListener('beforeinstallprompt', e => {
       e.preventDefault();
       deferredInstallPrompt = e;
-      const btn = document.getElementById('pwa-install-btn');
-      if (btn) { btn.classList.remove('hidden'); btn.classList.add('flex'); }
+      showPWASidebarBtn(true);
+
+      // Show startup toast once per session (not on every page)
+      if (!sessionStorage.getItem('pwa-prompt-shown')) {
+        setTimeout(() => {
+          const prompt = document.getElementById('pwa-startup-prompt');
+          if (prompt && deferredInstallPrompt) {
+            prompt.classList.remove('hidden');
+            sessionStorage.setItem('pwa-prompt-shown', '1');
+          }
+        }, 3000);
+      }
     });
 
     window.addEventListener('appinstalled', () => {
       deferredInstallPrompt = null;
-      const btn = document.getElementById('pwa-install-btn');
-      if (btn) { btn.classList.add('hidden'); btn.classList.remove('flex'); }
+      showPWASidebarBtn(false);
+      const prompt = document.getElementById('pwa-startup-prompt');
+      if (prompt) prompt.classList.add('hidden');
     });
 
     function installPWA() {
       if (!deferredInstallPrompt) return;
+      // Hide startup prompt immediately
+      const prompt = document.getElementById('pwa-startup-prompt');
+      if (prompt) prompt.classList.add('hidden');
       deferredInstallPrompt.prompt();
       deferredInstallPrompt.userChoice.then(() => {
         deferredInstallPrompt = null;
-        const btn = document.getElementById('pwa-install-btn');
-        if (btn) { btn.classList.add('hidden'); btn.classList.remove('flex'); }
+        showPWASidebarBtn(false);
       });
+    }
+
+    function dismissPWAPrompt() {
+      const prompt = document.getElementById('pwa-startup-prompt');
+      if (prompt) prompt.classList.add('hidden');
+      // Sidebar button stays visible so they can install later
     }
   </script>
 
