@@ -41,7 +41,8 @@ class ShopHelper
                 ->toArray();
 
             // Merge: shopsMap takes priority (has full brand info)
-            return array_merge($platformMap, $shopsMap);
+            // Use + operator to preserve integer keys (array_merge renumbers them)
+            return $shopsMap + $platformMap;
         });
     }
 }
