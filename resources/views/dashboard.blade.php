@@ -38,24 +38,24 @@
 
   <!-- KPI cards -->
   <section class="grid grid-cols-2 lg:grid-cols-4 gap-4">
-    <div class="bg-white dark:bg-slate-800 border dark:border-slate-700 rounded-2xl p-5 shadow-sm hover:shadow-md transition">
+    <div class="bg-white dark:bg-slate-800 border dark:border-slate-700 rounded-2xl p-5 shadow-sm hover:shadow-md transition" style="border-left: 4px solid #16a34a">
       <div class="text-sm text-slate-500 dark:text-slate-400">Stores Online</div>
-      <div class="mt-2 text-3xl font-semibold">{{ $kpis['stores_online'] ?? 0 }}</div>
+      <div class="mt-2 text-3xl font-semibold" style="color:#16a34a">{{ $kpis['stores_online'] ?? 0 }}</div>
     </div>
 
-    <div class="bg-white dark:bg-slate-800 border dark:border-slate-700 rounded-2xl p-5 shadow-sm hover:shadow-md transition">
+    <div class="bg-white dark:bg-slate-800 border dark:border-slate-700 rounded-2xl p-5 shadow-sm hover:shadow-md transition" style="border-left: 4px solid #dc2626">
       <div class="text-sm text-slate-500 dark:text-slate-400">Items OFF</div>
-      <div class="mt-2 text-3xl font-semibold">{{ $kpis['items_off'] ?? 0 }}</div>
+      <div class="mt-2 text-3xl font-semibold" style="color:#dc2626">{{ $kpis['items_off'] ?? 0 }}</div>
     </div>
 
-    <div class="bg-white dark:bg-slate-800 border dark:border-slate-700 rounded-2xl p-5 shadow-sm hover:shadow-md transition">
+    <div class="bg-white dark:bg-slate-800 border dark:border-slate-700 rounded-2xl p-5 shadow-sm hover:shadow-md transition" style="border-left: 4px solid #dc2626">
       <div class="text-sm text-slate-500 dark:text-slate-400">Active Alerts</div>
-      <div class="mt-2 text-3xl font-semibold {{ ($kpis['alerts'] ?? 0) > 0 ? 'text-red-500' : '' }}">{{ $kpis['alerts'] ?? 0 }}</div>
+      <div class="mt-2 text-3xl font-semibold" style="{{ ($kpis['alerts'] ?? 0) > 0 ? 'color:#dc2626' : '' }}">{{ $kpis['alerts'] ?? 0 }}</div>
       <div class="text-xs text-slate-400 dark:text-slate-500 mt-1">stores w/ offline platforms</div>
     </div>
 
     {{-- HYBRID: Platform Status KPI --}}
-    <div class="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-900/30 dark:to-indigo-900/30 border border-blue-200 dark:border-blue-800 rounded-2xl p-5 shadow-sm hover:shadow-md transition">
+    <div class="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-900/30 dark:to-indigo-900/30 border border-blue-200 dark:border-blue-800 rounded-2xl p-5 shadow-sm hover:shadow-md transition" style="border-left: 4px solid #1d4ed8">
       <div class="text-sm text-blue-700 dark:text-blue-400 font-medium">Platforms Status</div>
       <div class="mt-2 flex items-baseline gap-2">
         <span class="text-3xl font-semibold text-blue-900 dark:text-blue-100">{{ $kpis['platforms_online'] ?? 0 }}</span>
