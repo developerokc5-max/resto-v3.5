@@ -82,9 +82,9 @@
             </div>
 
             <!-- Platform count pills -->
-            <div class="grid grid-cols-3 border-t border-slate-100 dark:border-slate-800">
+            <div class="grid grid-cols-3 border-t border-slate-200 dark:border-slate-800">
                 @foreach($platformMeta as $p => $meta)
-                    <div class="px-5 py-4 {{ !$loop->last ? 'border-r border-slate-100 dark:border-slate-800' : '' }} flex items-center gap-3">
+                    <div class="px-5 py-4 {{ !$loop->last ? 'border-r border-slate-200 dark:border-slate-800' : '' }} flex items-center gap-3">
                         <div class="w-7 h-7 {{ $meta['color'] }} rounded-lg flex items-center justify-center flex-shrink-0">
                             <span class="text-white font-black text-xs">{{ strtoupper(substr($meta['name'], 0, 1)) }}</span>
                         </div>
@@ -128,11 +128,11 @@
                         </div>
                     </div>
                     @if($itemCount > 0)
-                        <span class="bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 border border-red-100 dark:border-red-800 font-bold text-xs px-3 py-1.5 rounded-full">
+                        <span class="bg-red-100 dark:bg-red-900/20 text-red-700 dark:text-red-400 border border-red-300 dark:border-red-800 font-bold text-xs px-3 py-1.5 rounded-full">
                             {{ $itemCount }} item{{ $itemCount !== 1 ? 's' : '' }} off
                         </span>
                     @else
-                        <span class="bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400 border border-green-100 dark:border-green-800 font-semibold text-xs px-3 py-1.5 rounded-full">
+                        <span class="bg-emerald-100 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400 border border-emerald-300 dark:border-emerald-800 font-semibold text-xs px-3 py-1.5 rounded-full">
                             All available
                         </span>
                     @endif
