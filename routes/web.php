@@ -212,83 +212,85 @@ Route::get('/dashboard', function () {
 Route::get('/stores', function () {
     $shopMap = ShopHelper::getShopMap();
 
-    // Get all shops from shops table (populated by items scraper)
-    $allShops = DB::table('shops')
-        ->orderBy('shop_name')
-        ->get();
+    // Cache the entire computed stores list — all 4 DB queries run only on cache miss.
+    // Scraper calls invalidateDashboardCaches() which includes 'stores_page_data'.
+    $stores = Cache::remember('stores_page_data', 300, function () use ($shopMap) {
+        // Get all shops from shops table (populated by items scraper)
+        $allShops = DB::table('shops')
+            ->orderBy('shop_name')
+            ->get();
 
-    // BATCH: Get all item counts per shop in one query (fixes N+1)
-    $allItemCounts = DB::table('items')
-        ->select('shop_name', DB::raw("COUNT(DISTINCT (name || '|' || category)) as total_count"))
-        ->groupBy('shop_name')
-        ->pluck('total_count', 'shop_name');
+        // BATCH: Get all item counts per shop in one query (fixes N+1)
+        $allItemCounts = DB::table('items')
+            ->select('shop_name', DB::raw("COUNT(DISTINCT (name || '|' || category)) as total_count"))
+            ->groupBy('shop_name')
+            ->pluck('total_count', 'shop_name');
 
-    // BATCH: Get all offline item counts per shop in one query (fixes N+1)
-    $allOfflineCounts = DB::table('items')
-        ->select('shop_name', DB::raw("COUNT(DISTINCT (name || '|' || category)) as offline_count"))
-        ->where('is_available', false)
-        ->groupBy('shop_name')
-        ->pluck('offline_count', 'shop_name');
+        // BATCH: Get all offline item counts per shop in one query (fixes N+1)
+        $allOfflineCounts = DB::table('items')
+            ->select('shop_name', DB::raw("COUNT(DISTINCT (name || '|' || category)) as offline_count"))
+            ->where('is_available', false)
+            ->groupBy('shop_name')
+            ->pluck('offline_count', 'shop_name');
 
-    // BATCH: Get all platform statuses in one query (fixes N+1)
-    $allPlatformStatuses = DB::table('platform_status')
-        ->get()
-        ->groupBy('store_name');
+        // BATCH: Get all platform statuses in one query (fixes N+1)
+        $allPlatformStatuses = DB::table('platform_status')
+            ->get()
+            ->groupBy('store_name');
 
-    $stores = [];
-    foreach ($allShops as $shop) {
-        // Use batched data instead of querying in loop
-        $totalUniqueItems = $allItemCounts[$shop->shop_name] ?? 0;
-        $itemsOffCount = $allOfflineCounts[$shop->shop_name] ?? 0;
+        $stores = [];
+        foreach ($allShops as $shop) {
+            $totalUniqueItems = $allItemCounts[$shop->shop_name] ?? 0;
+            $itemsOffCount    = $allOfflineCounts[$shop->shop_name] ?? 0;
 
-        // Use batched platform status (no query in loop)
-        $platformStatus = collect($allPlatformStatuses[$shop->shop_name] ?? [])
-            ->keyBy('platform');
+            $platformStatus = collect($allPlatformStatuses[$shop->shop_name] ?? [])
+                ->keyBy('platform');
 
-        // Count online/offline platforms
-        $onlineCount = 0;
-        $offlineCount = 0;
-        foreach (['grab', 'foodpanda', 'deliveroo'] as $platform) {
-            if ($platformStatus->has($platform)) {
-                if ($platformStatus->get($platform)->is_online) {
-                    $onlineCount++;
-                } else {
-                    $offlineCount++;
+            $onlineCount = 0;
+            $offlineCount = 0;
+            foreach (['grab', 'foodpanda', 'deliveroo'] as $platform) {
+                if ($platformStatus->has($platform)) {
+                    if ($platformStatus->get($platform)->is_online) {
+                        $onlineCount++;
+                    } else {
+                        $offlineCount++;
+                    }
                 }
             }
+
+            if ($onlineCount === 3) {
+                $status = 'all_online';
+                $statusText = 'All Platforms Online';
+            } elseif ($onlineCount === 0) {
+                $status = 'all_offline';
+                $statusText = 'All Platforms Offline';
+            } else {
+                $status = 'partial_offline';
+                $statusText = "{$offlineCount}/3 Offline";
+            }
+
+            $shopInfo = $shopMap[$shop->shop_id] ?? ['name' => $shop->shop_name, 'brand' => $shop->organization_name ?? $shop->shop_name ?? 'Unknown'];
+
+            $stores[] = [
+                'brand'             => $shopInfo['brand'],
+                'store'             => $shopInfo['name'],
+                'shop_id'           => $shop->shop_id,
+                'status'            => $status,
+                'status_text'       => $statusText,
+                'platforms_online'  => $onlineCount,
+                'platforms_offline' => $offlineCount,
+                'total_items'       => (int) ($totalUniqueItems ?? 0),
+                'items_off'         => (int) ($itemsOffCount ?? 0),
+                'alerts'            => 0,
+                'last_change'       => $shop->last_synced_at ? \Carbon\Carbon::parse($shop->last_synced_at)->diffForHumans() : '—',
+            ];
         }
 
-        // Determine overall status
-        if ($onlineCount === 3) {
-            $status = 'all_online';
-            $statusText = 'All Platforms Online';
-        } elseif ($onlineCount === 0) {
-            $status = 'all_offline';
-            $statusText = 'All Platforms Offline';
-        } else {
-            $status = 'partial_offline';
-            $statusText = "{$offlineCount}/3 Offline";
-        }
-
-        $shopInfo = $shopMap[$shop->shop_id] ?? ['name' => $shop->shop_name, 'brand' => $shop->organization_name ?? $shop->shop_name ?? 'Unknown'];
-
-        $stores[] = [
-            'brand' => $shopInfo['brand'],
-            'store' => $shopInfo['name'],
-            'shop_id' => $shop->shop_id,
-            'status' => $status,
-            'status_text' => $statusText,
-            'platforms_online' => $onlineCount,
-            'platforms_offline' => $offlineCount,
-            'total_items' => (int) ($totalUniqueItems ?? 0),
-            'items_off' => (int) ($itemsOffCount ?? 0),
-            'alerts' => 0,
-            'last_change' => $shop->last_synced_at ? \Carbon\Carbon::parse($shop->last_synced_at)->diffForHumans() : '—',
-        ];
-    }
+        return $stores;
+    });
 
     return view('stores', [
-        'stores' => $stores,
+        'stores'   => $stores,
         'lastSync' => SyncHelper::getLastSyncTimestamp(),
     ]);
 });
@@ -514,76 +516,83 @@ Route::get('/items/management', function (Request $request) {
 Route::get('/platforms', function () {
     $shopMap = ShopHelper::getShopMap();
 
-    // Filter out testing outlets, edge, and depot stores
-    $testingShopIds = [];
-    foreach ($shopMap as $shopId => $info) {
-        if (stripos($info['name'], 'testing') !== false ||
-            stripos($info['name'], 'office testing') !== false ||
-            stripos($info['name'], 'edge') !== false ||
-            stripos($info['name'], 'depot') !== false) {
-            $testingShopIds[] = $shopId;
+    // Cache the computed platforms data — invalidated by scraper via invalidateDashboardCaches()
+    [$shopsPlatforms, $stats, $platformStats] = Cache::remember('platforms_page_data', 300, function () use ($shopMap) {
+        // Filter out testing outlets, edge, and depot stores
+        $testingShopIds = [];
+        foreach ($shopMap as $shopId => $info) {
+            if (stripos($info['name'], 'testing') !== false ||
+                stripos($info['name'], 'office testing') !== false ||
+                stripos($info['name'], 'edge') !== false ||
+                stripos($info['name'], 'depot') !== false) {
+                $testingShopIds[] = $shopId;
+            }
         }
-    }
 
-    // Get all platform statuses — show all shops, use shopMap for display names
-    $platformStatuses = DB::table('platform_status')
-        ->whereNotIn('shop_id', $testingShopIds)
-        ->orderBy('shop_id')
-        ->orderBy('platform')
-        ->get();
+        // Get all platform statuses — one query for entire page
+        $platformStatuses = DB::table('platform_status')
+            ->whereNotIn('shop_id', $testingShopIds)
+            ->orderBy('shop_id')
+            ->orderBy('platform')
+            ->get();
 
-    // Group by shop
-    $shopsPlatforms = [];
-    foreach ($platformStatuses as $status) {
-        if (!isset($shopsPlatforms[$status->shop_id])) {
-            $fallbackName = $status->store_name && $status->store_name !== 'Unknown' ? $status->store_name : $status->shop_id;
-            $shopInfo = $shopMap[$status->shop_id] ?? ['name' => $fallbackName, 'brand' => $fallbackName];
-            $shopsPlatforms[$status->shop_id] = [
-                'shop_id' => $status->shop_id,
-                'shop_name' => $shopInfo['name'],
-                'brand' => $shopInfo['brand'],
-                'platforms' => [],
+        // Group by shop
+        $shopsPlatforms = [];
+        foreach ($platformStatuses as $status) {
+            if (!isset($shopsPlatforms[$status->shop_id])) {
+                $fallbackName = $status->store_name && $status->store_name !== 'Unknown' ? $status->store_name : $status->shop_id;
+                $shopInfo = $shopMap[$status->shop_id] ?? ['name' => $fallbackName, 'brand' => $fallbackName];
+                $shopsPlatforms[$status->shop_id] = [
+                    'shop_id'   => $status->shop_id,
+                    'shop_name' => $shopInfo['name'],
+                    'brand'     => $shopInfo['brand'],
+                    'platforms' => [],
+                ];
+            }
+
+            $shopsPlatforms[$status->shop_id]['platforms'][$status->platform] = [
+                'is_online'    => (bool) $status->is_online,
+                'items_synced' => $status->items_synced ?? 0,
+                'items_total'  => $status->items_total ?? 0,
+                'last_checked' => $status->last_checked_at ? \Carbon\Carbon::parse($status->last_checked_at)->diffForHumans() : 'Never',
+                'status'       => $status->last_check_status ?? 'unknown',
             ];
         }
 
-        $shopsPlatforms[$status->shop_id]['platforms'][$status->platform] = [
-            'is_online' => (bool) $status->is_online,
-            'items_synced' => $status->items_synced ?? 0,
-            'items_total' => $status->items_total ?? 0,
-            'last_checked' => $status->last_checked_at ? \Carbon\Carbon::parse($status->last_checked_at)->diffForHumans() : 'Never',
-            'status' => $status->last_check_status ?? 'unknown',
+        // Calculate statistics
+        $totalPlatforms   = $platformStatuses->count();
+        $onlinePlatforms  = $platformStatuses->where('is_online', true)->count();
+        $offlinePlatforms = $totalPlatforms - $onlinePlatforms;
+
+        $stats = [
+            'total'      => $totalPlatforms,
+            'online'     => $onlinePlatforms,
+            'offline'    => $offlinePlatforms,
+            'percentage' => $totalPlatforms > 0 ? round(($onlinePlatforms / $totalPlatforms) * 100, 2) : 0,
         ];
-    }
 
-    // Calculate statistics
-    $totalPlatforms = $platformStatuses->count();
-    $onlinePlatforms = $platformStatuses->where('is_online', true)->count();
-    $offlinePlatforms = $totalPlatforms - $onlinePlatforms;
+        $platformStats = [];
+        foreach (['grab', 'foodpanda', 'deliveroo'] as $platform) {
+            $platformData = $platformStatuses->where('platform', $platform);
+            $total  = $platformData->count();
+            $online = $platformData->where('is_online', true)->count();
 
-    $platformStats = [];
-    foreach (['grab', 'foodpanda', 'deliveroo'] as $platform) {
-        $platformData = $platformStatuses->where('platform', $platform);
-        $total = $platformData->count();
-        $online = $platformData->where('is_online', true)->count();
+            $platformStats[$platform] = [
+                'total'      => $total,
+                'online'     => $online,
+                'offline'    => $total - $online,
+                'percentage' => $total > 0 ? round(($online / $total) * 100, 2) : 0,
+            ];
+        }
 
-        $platformStats[$platform] = [
-            'total' => $total,
-            'online' => $online,
-            'offline' => $total - $online,
-            'percentage' => $total > 0 ? round(($online / $total) * 100, 2) : 0,
-        ];
-    }
+        return [$shopsPlatforms, $stats, $platformStats];
+    });
 
     return view('platforms', [
-        'shops' => array_values($shopsPlatforms),
-        'stats' => [
-            'total' => $totalPlatforms,
-            'online' => $onlinePlatforms,
-            'offline' => $offlinePlatforms,
-            'percentage' => $totalPlatforms > 0 ? round(($onlinePlatforms / $totalPlatforms) * 100, 2) : 0,
-        ],
+        'shops'         => array_values($shopsPlatforms),
+        'stats'         => $stats,
         'platformStats' => $platformStats,
-        'lastScrape' => SyncHelper::getLastSyncTimestamp(),
+        'lastScrape'    => SyncHelper::getLastSyncTimestamp(),
     ]);
 });
 

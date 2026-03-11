@@ -208,6 +208,8 @@ class CacheOptimizationHelper
         Cache::forget('recent_changes_per_shop_7d');
         Cache::forget('store_comparison_db');
         Cache::forget('shop_map');
+        Cache::forget('stores_page_data');
+        Cache::forget('platforms_page_data');
     }
 
     /**
