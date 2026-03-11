@@ -1,3 +1,6 @@
+# Unused/archived view files
+resources/views/_unused/
+
 *.log
 .DS_Store
 .env
