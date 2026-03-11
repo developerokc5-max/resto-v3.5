@@ -193,19 +193,14 @@
                       </div>
                     </div>
                     <div class="flex flex-col items-end gap-1">
-                      @if($offlineItems >= 5)
-                        <div class="px-3 py-1.5 bg-red-700 rounded-lg shadow-sm">
-                          <div class="text-xs font-bold text-white">{{ $offlineItems }}</div>
-                        </div>
-                      @elseif($offlineItems > 0)
-                        <div class="px-3 py-1.5 bg-amber-600 rounded-lg shadow-sm">
-                          <div class="text-xs font-bold text-white">{{ $offlineItems }}</div>
-                        </div>
-                      @else
-                        <div class="px-3 py-1.5 bg-green-700 rounded-lg shadow-sm">
-                          <div class="text-xs font-bold text-white">0</div>
-                        </div>
-                      @endif
+                      @php
+                        $badgeBg = $offlineItems >= 5
+                          ? 'background:#b91c1c'
+                          : ($offlineItems > 0 ? 'background:#d97706' : 'background:#15803d');
+                      @endphp
+                      <div style="{{ $badgeBg }}" class="px-3 py-1.5 rounded-lg shadow-sm">
+                        <div class="text-xs font-bold text-white">{{ $offlineItems }}</div>
+                      </div>
                     </div>
                   </div>
                 </div>
