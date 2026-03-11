@@ -39,7 +39,7 @@
     </div>
 </header>
 
-<main class="max-w-4xl mx-auto px-4 py-6 space-y-5">
+<main class="max-w-4xl mx-auto px-4 py-8 space-y-6">
 
     @php
         $grabCount = count($offlineItemsByPlatform['grab'] ?? []);
@@ -68,7 +68,7 @@
 
         <!-- Summary Bar -->
         <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-sm overflow-hidden">
-            <div class="px-5 pt-5 pb-4">
+            <div class="px-6 pt-6 pb-5">
                 <div class="flex items-start justify-between gap-4">
                     <div>
                         <h1 class="text-lg font-bold text-slate-900 dark:text-slate-100">Offline Items</h1>
@@ -84,7 +84,7 @@
             <!-- Platform count pills -->
             <div class="grid grid-cols-3 border-t border-slate-100 dark:border-slate-800">
                 @foreach($platformMeta as $p => $meta)
-                    <div class="px-4 py-3 {{ !$loop->last ? 'border-r border-slate-100 dark:border-slate-800' : '' }} flex items-center gap-2.5">
+                    <div class="px-5 py-4 {{ !$loop->last ? 'border-r border-slate-100 dark:border-slate-800' : '' }} flex items-center gap-3">
                         <div class="w-7 h-7 {{ $meta['color'] }} rounded-lg flex items-center justify-center flex-shrink-0">
                             <span class="text-white font-black text-xs">{{ strtoupper(substr($meta['name'], 0, 1)) }}</span>
                         </div>
@@ -111,7 +111,7 @@
             <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-sm overflow-hidden ring-1 {{ $meta['ring'] }}">
 
                 <!-- Platform Header -->
-                <div class="flex items-center justify-between px-5 py-4 border-b border-slate-100 dark:border-slate-800">
+                <div class="flex items-center justify-between px-6 py-5 border-b border-slate-100 dark:border-slate-800">
                     <div class="flex items-center gap-3">
                         <div class="w-9 h-9 {{ $meta['color'] }} rounded-xl flex items-center justify-center flex-shrink-0">
                             <span class="text-white font-black text-sm">{{ strtoupper(substr($meta['name'], 0, 1)) }}</span>
@@ -140,7 +140,7 @@
 
                 <!-- Items -->
                 @if($itemCount == 0)
-                    <div class="px-5 py-8 text-center">
+                    <div class="px-6 py-10 text-center">
                         <svg class="w-7 h-7 text-green-400 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
                         </svg>
@@ -153,28 +153,28 @@
                         @foreach($groupedByCategory as $category => $categoryItems)
 
                             <!-- Category Row -->
-                            <div class="px-5 py-2 {{ $meta['badge'] }} flex items-center justify-between">
+                            <div class="px-6 py-2.5 {{ $meta['badge'] }} flex items-center justify-between">
                                 <span class="text-xs font-bold uppercase tracking-wider">{{ $category }}</span>
                                 <span class="text-xs font-semibold opacity-70">{{ count($categoryItems) }} item{{ count($categoryItems) !== 1 ? 's' : '' }}</span>
                             </div>
 
                             <!-- Item Rows -->
                             @foreach($categoryItems as $item)
-                                <div class="item-row flex items-center gap-4 px-5 py-3 hover:bg-slate-50 dark:hover:bg-slate-800/50">
+                                <div class="item-row flex items-center gap-4 px-6 py-4 hover:bg-slate-50 dark:hover:bg-slate-800/50">
 
                                     <!-- Image -->
                                     @if($item['image_url'])
                                         <img src="{{ $item['image_url'] }}"
                                              alt="{{ $item['name'] }}"
-                                             class="w-11 h-11 rounded-lg object-cover flex-shrink-0 border border-slate-100 dark:border-slate-700"
+                                             class="w-12 h-12 rounded-xl object-cover flex-shrink-0 border border-slate-100 dark:border-slate-700"
                                              onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
-                                        <div class="w-11 h-11 rounded-lg bg-slate-100 dark:bg-slate-800 flex-shrink-0 items-center justify-center hidden">
+                                        <div class="w-12 h-12 rounded-xl bg-slate-100 dark:bg-slate-800 flex-shrink-0 items-center justify-center hidden">
                                             <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14"/>
                                             </svg>
                                         </div>
                                     @else
-                                        <div class="w-11 h-11 rounded-lg bg-slate-100 dark:bg-slate-800 flex-shrink-0 flex items-center justify-center">
+                                        <div class="w-12 h-12 rounded-xl bg-slate-100 dark:bg-slate-800 flex-shrink-0 flex items-center justify-center">
                                             <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14"/>
                                             </svg>
@@ -206,7 +206,7 @@
     @endif
 
     <!-- Bottom nav -->
-    <div class="flex items-center justify-between pt-1 pb-4">
+    <div class="flex items-center justify-between pt-2 pb-6">
         <a href="/dashboard" class="flex items-center gap-2 text-sm text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 transition font-medium">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
