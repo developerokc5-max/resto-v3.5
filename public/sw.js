@@ -1,7 +1,9 @@
-// HawkerOps Service Worker v5
-// Network-first for HTML: always fetch fresh, fall back to cache only if offline
+// HawkerOps Service Worker
+// Network-first for HTML: always fetch fresh, fall back to cache during deploy/offline
+// Stable cache name — never wiped on SW update so old pages survive Render redeploys
 
-const CACHE_NAME = 'hawkerops-v8';
+const CACHE_NAME = 'hawkerops-cache';
+const LEGACY_CACHES = ['hawkerops-v6', 'hawkerops-v7', 'hawkerops-v8'];
 
 // Only precache the offline fallback — everything else is cached on first visit
 const PRECACHE_URLS = ['/offline'];
@@ -15,12 +17,12 @@ self.addEventListener('install', event => {
   );
 });
 
-// ── Activate: delete old caches, notify clients of update ─────────────────────
+// ── Activate: delete only known old versioned caches, keep current ─────────────
 self.addEventListener('activate', event => {
   event.waitUntil(
     caches.keys().then(keys =>
       Promise.all(
-        keys.filter(key => key !== CACHE_NAME).map(key => caches.delete(key))
+        keys.filter(key => LEGACY_CACHES.includes(key)).map(key => caches.delete(key))
       )
     ).then(() => {
       self.clients.claim();
@@ -55,7 +57,7 @@ self.addEventListener('fetch', event => {
 
   // HTML pages: network-first with 4s timeout
   // — Always try to get fresh HTML (live data dashboard)
-  // — If server is slow or unreachable, instantly fall back to cached version
+  // — If server is slow or unreachable (e.g. mid-deploy), fall back to cached version
   if (event.request.headers.get('accept')?.includes('text/html')) {
     event.respondWith((async () => {
       const cache = await caches.open(CACHE_NAME);
@@ -65,11 +67,11 @@ self.addEventListener('fetch', event => {
         const timeoutId = setTimeout(() => controller.abort(), 4000);
         const response = await fetch(event.request.url, { signal: controller.signal });
         clearTimeout(timeoutId);
-        // Cache non-redirected OK responses as offline fallback
+        // Cache non-redirected OK responses as offline/deploy fallback
         if (response.ok && !response.redirected) cache.put(event.request, response.clone());
         return response;
       } catch (_) {
-        // Network failed or timed out — serve from cache if available
+        // Network failed or timed out — serve cached version if available
         const cached = await cache.match(event.request);
         if (cached) return cached;
         // No cache — show offline page
@@ -84,6 +86,7 @@ self.addEventListener('fetch', event => {
   }
 
   // Static assets (CSS, JS, images): cache-first
+  // Vite content-hashes filenames so stale cache is never an issue
   event.respondWith(
     caches.match(event.request).then(cached => {
       if (cached) return cached;
