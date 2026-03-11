@@ -123,8 +123,8 @@ function showNotification(message, type = 'info') {
 // Last known sync unix timestamp — used to skip full-page fetches when data hasn't changed
 let _lastSyncTs = 0;
 
-// Auto-reload every 5 minutes — timer cleared on navigation to prevent multi-tab waste
-const _autoReloadTimer = setTimeout(smartReload, 300000);
+// Auto-reload every 5 minutes — skip if tab is hidden to avoid wasted requests
+const _autoReloadTimer = setTimeout(() => { if (!document.hidden) smartReload(); }, 300000);
 window.addEventListener('beforeunload', () => clearTimeout(_autoReloadTimer));
 
 async function smartReload(btn) {
@@ -207,3 +207,118 @@ function updateSyncButtonText() {
 }
 document.addEventListener('DOMContentLoaded', updateSyncButtonText);
 updateSyncButtonText();
+
+// ── Offline indicator ─────────────────────────────────────────────────────────
+(function () {
+  const banner = document.getElementById('offline-banner');
+  if (!banner) return;
+  function setOnlineState(online) {
+    if (online) {
+      banner.classList.add('hidden');
+      document.querySelector('header')?.style.removeProperty('top');
+    } else {
+      banner.classList.remove('hidden');
+      document.querySelector('header')?.style.setProperty('top', '36px');
+    }
+  }
+  setOnlineState(navigator.onLine);
+  window.addEventListener('online',  () => setOnlineState(true));
+  window.addEventListener('offline', () => setOnlineState(false));
+})();
+
+// ── App Badge (count of offline platforms) ────────────────────────────────────
+let deferredInstallPrompt = null;
+
+if ('setAppBadge' in navigator) {
+  function updateAppBadge() {
+    if (document.hidden) return; // skip when tab not visible
+    fetch('/api/monitor/dashboard', { cache: 'no-store' })
+      .then(r => r.ok ? r.json() : null)
+      .then(data => {
+        const offline = data?.data?.kpis?.platforms_offline ?? 0;
+        if (offline > 0) {
+          navigator.setAppBadge(offline).catch(() => {});
+        } else {
+          navigator.clearAppBadge().catch(() => {});
+        }
+      })
+      .catch(() => {});
+  }
+  updateAppBadge();
+  setInterval(updateAppBadge, 5 * 60 * 1000);
+}
+
+// ── PWA install prompt ────────────────────────────────────────────────────────
+function showPWASidebarBtn(show) {
+  const btn = document.getElementById('pwa-sidebar-btn');
+  if (!btn) return;
+  if (show) { btn.classList.remove('hidden'); btn.classList.add('flex'); }
+  else       { btn.classList.add('hidden');    btn.classList.remove('flex'); }
+}
+
+window.addEventListener('beforeinstallprompt', e => {
+  e.preventDefault();
+  deferredInstallPrompt = e;
+  showPWASidebarBtn(true);
+  if (!sessionStorage.getItem('pwa-prompt-shown')) {
+    setTimeout(() => {
+      const prompt = document.getElementById('pwa-startup-prompt');
+      if (prompt && deferredInstallPrompt) {
+        prompt.classList.remove('hidden');
+        sessionStorage.setItem('pwa-prompt-shown', '1');
+      }
+    }, 3000);
+  }
+});
+
+window.addEventListener('appinstalled', () => {
+  deferredInstallPrompt = null;
+  showPWASidebarBtn(false);
+  const prompt = document.getElementById('pwa-startup-prompt');
+  if (prompt) prompt.classList.add('hidden');
+});
+
+function installPWA() {
+  if (!deferredInstallPrompt) return;
+  const prompt = document.getElementById('pwa-startup-prompt');
+  if (prompt) prompt.classList.add('hidden');
+  deferredInstallPrompt.prompt();
+  deferredInstallPrompt.userChoice.then(() => {
+    deferredInstallPrompt = null;
+    showPWASidebarBtn(false);
+  });
+}
+
+function dismissPWAPrompt() {
+  const prompt = document.getElementById('pwa-startup-prompt');
+  if (prompt) prompt.classList.add('hidden');
+}
+
+// ── Service Worker registration ───────────────────────────────────────────────
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js')
+      .then(reg => console.log('[PWA] Service worker registered:', reg.scope))
+      .catch(err => console.log('[PWA] Service worker failed:', err));
+
+    navigator.serviceWorker.addEventListener('message', event => {
+      if (event.data?.type === 'SW_UPDATED') {
+        const banner = document.createElement('div');
+        banner.innerHTML = `
+          <div style="position:fixed;bottom:16px;left:50%;transform:translateX(-50%);z-index:9999;
+            background:#1e293b;color:#f1f5f9;padding:12px 20px;border-radius:12px;
+            box-shadow:0 4px 24px rgba(0,0,0,0.4);display:flex;align-items:center;gap:12px;
+            font-family:sans-serif;font-size:14px;border:1px solid #334155;">
+            <span>⚡ New version available</span>
+            <button onclick="window.location.reload()" style="background:#16a34a;color:#fff;
+              border:none;padding:6px 14px;border-radius:8px;cursor:pointer;font-size:13px;font-weight:600;">
+              Reload
+            </button>
+            <button onclick="this.parentElement.parentElement.remove()" style="background:none;
+              color:#64748b;border:none;cursor:pointer;font-size:18px;line-height:1;">×</button>
+          </div>`;
+        document.body.appendChild(banner);
+      }
+    });
+  });
+}

@@ -3,6 +3,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <title>@yield('title', 'HawkerOps Dashboard')</title>
   <link rel="icon" type="image/png" href="/favicon.png" />
 
@@ -173,8 +175,8 @@
   <div id="pwa-startup-prompt"
        class="hidden fixed bottom-6 right-6 z-50 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl shadow-2xl p-4 w-72 animate-in">
     <div class="flex items-start gap-3">
-      <img src="/images/logo-light.png?v=3" class="h-10 w-10 rounded-xl object-cover dark:hidden flex-shrink-0" alt="HO">
-      <img src="/images/logo-dark.png?v=3"  class="h-10 w-10 rounded-xl object-cover hidden dark:block flex-shrink-0" alt="HO">
+      <img src="/images/logo-light.png?v=3" class="h-10 w-10 rounded-xl object-cover dark:hidden flex-shrink-0" alt="HO" width="40" height="40">
+      <img src="/images/logo-dark.png?v=3"  class="h-10 w-10 rounded-xl object-cover hidden dark:block flex-shrink-0" alt="HO" width="40" height="40">
       <div class="flex-1 min-w-0">
         <div class="font-semibold text-sm text-slate-900 dark:text-slate-100">Install HawkerOps</div>
         <div class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Add to your desktop for quick access</div>
@@ -390,131 +392,8 @@
     </div>
   </div>
 
-  <script src="/js/hawkerops.js?v=2" defer></script>
+  <script src="/js/hawkerops.js?v=3" defer></script>
 
   @yield('extra-scripts')
-
-  {{-- PWA: Offline indicator, App Badge, Install prompt --}}
-  <script>
-    // ── 1. Offline indicator ──────────────────────────────────────────────────
-    (function () {
-      const banner = document.getElementById('offline-banner');
-      function setOnlineState(online) {
-        if (online) {
-          banner.classList.add('hidden');
-        } else {
-          banner.classList.remove('hidden');
-          // Nudge the topbar down so banner doesn't overlap it
-          document.querySelector('header')?.style.setProperty('top', '36px');
-        }
-      }
-      setOnlineState(navigator.onLine);
-      window.addEventListener('online',  () => { setOnlineState(true);  document.querySelector('header')?.style.removeProperty('top'); });
-      window.addEventListener('offline', () => setOnlineState(false));
-    })();
-
-    // ── 2. App Badge (count of offline platforms) ─────────────────────────────
-    let deferredInstallPrompt = null;
-
-    if ('setAppBadge' in navigator) {
-      function updateAppBadge() {
-        fetch('/api/monitor/dashboard', { cache: 'no-store' })
-          .then(r => r.ok ? r.json() : null)
-          .then(data => {
-            const offline = data?.data?.kpis?.platforms_offline ?? 0;
-            if (offline > 0) {
-              navigator.setAppBadge(offline).catch(() => {});
-            } else {
-              navigator.clearAppBadge().catch(() => {});
-            }
-          })
-          .catch(() => {});
-      }
-      updateAppBadge();
-      setInterval(updateAppBadge, 5 * 60 * 1000); // refresh badge every 5 min
-    }
-
-    // ── 3. PWA install prompt ─────────────────────────────────────────────────
-    function showPWASidebarBtn(show) {
-      const btn = document.getElementById('pwa-sidebar-btn');
-      if (!btn) return;
-      if (show) { btn.classList.remove('hidden'); btn.classList.add('flex'); }
-      else       { btn.classList.add('hidden');    btn.classList.remove('flex'); }
-    }
-
-    window.addEventListener('beforeinstallprompt', e => {
-      e.preventDefault();
-      deferredInstallPrompt = e;
-      showPWASidebarBtn(true);
-
-      // Show startup toast once per session (not on every page)
-      if (!sessionStorage.getItem('pwa-prompt-shown')) {
-        setTimeout(() => {
-          const prompt = document.getElementById('pwa-startup-prompt');
-          if (prompt && deferredInstallPrompt) {
-            prompt.classList.remove('hidden');
-            sessionStorage.setItem('pwa-prompt-shown', '1');
-          }
-        }, 3000);
-      }
-    });
-
-    window.addEventListener('appinstalled', () => {
-      deferredInstallPrompt = null;
-      showPWASidebarBtn(false);
-      const prompt = document.getElementById('pwa-startup-prompt');
-      if (prompt) prompt.classList.add('hidden');
-    });
-
-    function installPWA() {
-      if (!deferredInstallPrompt) return;
-      // Hide startup prompt immediately
-      const prompt = document.getElementById('pwa-startup-prompt');
-      if (prompt) prompt.classList.add('hidden');
-      deferredInstallPrompt.prompt();
-      deferredInstallPrompt.userChoice.then(() => {
-        deferredInstallPrompt = null;
-        showPWASidebarBtn(false);
-      });
-    }
-
-    function dismissPWAPrompt() {
-      const prompt = document.getElementById('pwa-startup-prompt');
-      if (prompt) prompt.classList.add('hidden');
-      // Sidebar button stays visible so they can install later
-    }
-  </script>
-
-  {{-- PWA: Register service worker + update banner --}}
-  <script>
-    if ('serviceWorker' in navigator) {
-      window.addEventListener('load', () => {
-        navigator.serviceWorker.register('/sw.js')
-          .then(reg => console.log('[PWA] Service worker registered:', reg.scope))
-          .catch(err => console.log('[PWA] Service worker failed:', err));
-
-        // Show update banner when new SW version activates
-        navigator.serviceWorker.addEventListener('message', event => {
-          if (event.data?.type === 'SW_UPDATED') {
-            const banner = document.createElement('div');
-            banner.innerHTML = `
-              <div style="position:fixed;bottom:16px;left:50%;transform:translateX(-50%);z-index:9999;
-                background:#1e293b;color:#f1f5f9;padding:12px 20px;border-radius:12px;
-                box-shadow:0 4px 24px rgba(0,0,0,0.4);display:flex;align-items:center;gap:12px;
-                font-family:sans-serif;font-size:14px;border:1px solid #334155;">
-                <span>⚡ New version available</span>
-                <button onclick="window.location.reload()" style="background:#16a34a;color:#fff;
-                  border:none;padding:6px 14px;border-radius:8px;cursor:pointer;font-size:13px;font-weight:600;">
-                  Reload
-                </button>
-                <button onclick="this.parentElement.parentElement.remove()" style="background:none;
-                  color:#64748b;border:none;cursor:pointer;font-size:18px;line-height:1;">×</button>
-              </div>`;
-            document.body.appendChild(banner);
-          }
-        });
-      });
-    }
-  </script>
 </body>
 </html>
