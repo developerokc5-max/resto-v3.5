@@ -53,7 +53,7 @@ self.addEventListener('fetch', event => {
   if (url.pathname === '/') return;
 
   // Skip export/download routes (but not /settings/export which is an HTML page)
-  if (url.pathname.startsWith('/export') || url.pathname.includes('/logs/export')) return;
+  if (url.pathname !== '/settings/export' && (url.pathname.startsWith('/export') || url.pathname.endsWith('/export') || url.pathname.includes('/logs/export'))) return;
 
   // HTML pages: network-first with 4s timeout
   // — Always try to get fresh HTML (live data dashboard)

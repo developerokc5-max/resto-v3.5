@@ -880,15 +880,16 @@ Route::get('/store/{shopId}/logs', function ($shopId) {
 // Export Dashboard Overview to CSV
 Route::get('/dashboard/export', function () {
     $shopMap = ShopHelper::getShopMap();
-    $shopIds = array_keys($shopMap);
-    $shopNames = array_values(array_column($shopMap, 'name'));
 
-    // QUERY 1: Get all platform statuses at once
+    // QUERY 1: Drive from platform_status directly — avoids ShopHelper key-type mismatch
+    // (array_merge renumbers integer keys, causing whereIn + groupBy to miss real shop_ids)
     $platformStatuses = DB::table('platform_status')
-        ->whereIn('shop_id', $shopIds)
-        ->select('shop_id', 'platform', 'is_online', 'last_checked_at')
+        ->select('shop_id', 'platform', 'is_online', 'last_checked_at', 'store_name')
         ->get()
         ->groupBy('shop_id');
+
+    // Collect store names from platform_status for offline-items lookup
+    $shopNames = $platformStatuses->map(fn($rows) => $rows->first()->store_name)->filter()->values()->toArray();
 
     // QUERY 2: Get all offline items grouped by shop_name and platform
     $offlineItemsStats = DB::table('items')
@@ -905,10 +906,17 @@ Route::get('/dashboard/export', function () {
 
     $exportData = [];
 
-    foreach ($shopMap as $shopId => $shopInfo) {
+    foreach ($platformStatuses as $shopId => $shopPlatformRows) {
+        // Resolve display name & brand — prefer shopMap, fall back to platform_status store_name
+        $storeName  = $shopPlatformRows->first()->store_name ?? (string) $shopId;
+        $shopInfo   = $shopMap[$shopId] ?? null;
+        $shopInfo   = $shopInfo ?? [
+            'name'  => $storeName,
+            'brand' => str_contains($storeName, ' @ ') ? trim(explode(' @ ', $storeName)[0]) : $storeName,
+        ];
+
         // Get platform statuses for this shop
-        $shopPlatformStatuses = $platformStatuses->get($shopId, collect());
-        $platformStatusMap = $shopPlatformStatuses->keyBy('platform');
+        $platformStatusMap = $shopPlatformRows->keyBy('platform');
 
         // Get offline items for this shop
         $shopOfflineItems = $offlineItemsStats->get($shopInfo['name'], collect());

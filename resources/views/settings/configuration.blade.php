@@ -19,7 +19,7 @@
   </div>
   @endif
 
-  <form action="/settings/configuration" method="POST" id="configForm">
+  <form action="/settings/configuration" method="POST" id="configForm" class="space-y-5">
     @csrf
 
     <!-- Scraper Settings -->
