@@ -108,9 +108,9 @@
       @php
         $offlineCount = $s['platform_offline_count'] ?? 0;
         $platformConfig = [
-          'grab'      => ['name' => 'Grab',      'gradient' => 'from-green-500 to-emerald-600'],
-          'foodpanda' => ['name' => 'foodpanda',  'gradient' => 'from-pink-500 to-rose-600'],
-          'deliveroo' => ['name' => 'Deliveroo',  'gradient' => 'from-cyan-500 to-blue-600'],
+          'grab'      => ['name' => 'Grab',      'gradient' => 'from-green-800 to-green-900'],
+          'foodpanda' => ['name' => 'foodpanda',  'gradient' => 'from-rose-700 to-pink-900'],
+          'deliveroo' => ['name' => 'Deliveroo',  'gradient' => 'from-teal-700 to-cyan-900'],
         ];
       @endphp
 
@@ -187,15 +187,15 @@
                     </div>
                     <div class="flex flex-col items-end gap-1">
                       @if($offlineItems >= 5)
-                        <div class="px-3 py-1.5 bg-red-500 rounded-lg shadow-sm">
+                        <div class="px-3 py-1.5 bg-red-700 rounded-lg shadow-sm">
                           <div class="text-xs font-bold text-white">{{ $offlineItems }}</div>
                         </div>
                       @elseif($offlineItems > 0)
-                        <div class="px-3 py-1.5 bg-amber-400 rounded-lg shadow-sm">
+                        <div class="px-3 py-1.5 bg-amber-600 rounded-lg shadow-sm">
                           <div class="text-xs font-bold text-white">{{ $offlineItems }}</div>
                         </div>
                       @else
-                        <div class="px-3 py-1.5 bg-green-500 rounded-lg shadow-sm">
+                        <div class="px-3 py-1.5 bg-green-700 rounded-lg shadow-sm">
                           <div class="text-xs font-bold text-white">0</div>
                         </div>
                       @endif
