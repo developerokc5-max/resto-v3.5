@@ -172,7 +172,7 @@
                 <div class="group relative {{ $isOnline ? 'bg-white dark:bg-slate-900' : 'bg-slate-50 dark:bg-slate-700' }} border-2 {{ $isOnline ? 'border-slate-200 dark:border-slate-600' : 'border-slate-300 dark:border-slate-500' }} rounded-xl p-3 hover:shadow-md transition-all">
                   <div class="flex items-center justify-between">
                     <div class="flex items-center gap-3 flex-1">
-                      <div class="w-10 h-10 rounded-lg {{ $isOnline ? 'bg-slate-800 dark:bg-slate-600' : 'bg-slate-600 dark:bg-slate-500' }} flex items-center justify-center text-white font-bold text-sm shadow-sm">
+                      <div class="w-10 h-10 rounded-lg bg-gradient-to-br {{ $config['gradient'] }} {{ $isOnline ? 'opacity-100' : 'opacity-50' }} flex items-center justify-center text-white font-bold text-sm shadow-sm">
                         {{ strtoupper(substr($config['name'], 0, 1)) }}
                       </div>
                       <div class="flex-1">
@@ -186,13 +186,17 @@
                       </div>
                     </div>
                     <div class="flex flex-col items-end gap-1">
-                      @if($offlineItems > 0)
-                        <div class="px-3 py-1.5 bg-slate-800 dark:bg-slate-600 rounded-lg shadow-sm">
+                      @if($offlineItems >= 5)
+                        <div class="px-3 py-1.5 bg-red-500 rounded-lg shadow-sm">
+                          <div class="text-xs font-bold text-white">{{ $offlineItems }}</div>
+                        </div>
+                      @elseif($offlineItems > 0)
+                        <div class="px-3 py-1.5 bg-amber-400 rounded-lg shadow-sm">
                           <div class="text-xs font-bold text-white">{{ $offlineItems }}</div>
                         </div>
                       @else
-                        <div class="px-3 py-1.5 bg-slate-100 dark:bg-slate-700 rounded-lg border border-slate-200 dark:border-slate-600">
-                          <div class="text-xs font-bold text-slate-400 dark:text-slate-500">0</div>
+                        <div class="px-3 py-1.5 bg-green-500 rounded-lg shadow-sm">
+                          <div class="text-xs font-bold text-white">0</div>
                         </div>
                       @endif
                     </div>
