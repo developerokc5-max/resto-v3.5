@@ -169,7 +169,7 @@
                   $offlineItems = $status['offline_items'] ?? 0;
                 @endphp
 
-                <div class="group relative {{ $isOnline ? 'bg-white dark:bg-slate-900' : 'bg-slate-50 dark:bg-slate-700' }} border-2 {{ $isOnline ? 'border-slate-200 dark:border-slate-600' : 'border-slate-300 dark:border-slate-500' }} rounded-xl p-3 hover:shadow-md transition-all">
+                <div class="group relative {{ $isOnline ? 'bg-white dark:bg-slate-900' : 'bg-red-50 dark:bg-red-950/20' }} border-2 {{ $isOnline ? 'border-slate-200 dark:border-slate-600' : 'border-red-200 dark:border-red-800/50' }} rounded-xl p-3 hover:shadow-md transition-all">
                   <div class="flex items-center justify-between">
                     <div class="flex items-center gap-3 flex-1">
                       <div class="w-10 h-10 rounded-lg bg-gradient-to-br {{ $config['gradient'] }} {{ $isOnline ? 'opacity-100' : 'opacity-50' }} flex items-center justify-center text-white font-bold text-sm shadow-sm">
