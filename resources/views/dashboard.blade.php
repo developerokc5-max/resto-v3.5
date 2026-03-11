@@ -13,6 +13,14 @@
   .filter-btn:hover {
     transform: translateY(-1px);
   }
+  .offline-row {
+    background-color: #fef2f2;
+    border-color: #fecaca;
+  }
+  .dark .offline-row {
+    background-color: rgba(127, 29, 29, 0.2);
+    border-color: rgba(153, 27, 27, 0.35);
+  }
 </style>
 @endsection
 
@@ -169,7 +177,7 @@
                   $offlineItems = $status['offline_items'] ?? 0;
                 @endphp
 
-                <div class="group relative {{ $isOnline ? 'bg-white dark:bg-slate-900' : 'bg-red-50 dark:bg-red-950/20' }} border-2 {{ $isOnline ? 'border-slate-200 dark:border-slate-600' : 'border-red-200 dark:border-red-800/50' }} rounded-xl p-3 hover:shadow-md transition-all">
+                <div class="group relative {{ $isOnline ? 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-600' : 'offline-row' }} border-2 rounded-xl p-3 hover:shadow-md transition-all">
                   <div class="flex items-center justify-between">
                     <div class="flex items-center gap-3 flex-1">
                       @php
