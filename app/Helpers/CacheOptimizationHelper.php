@@ -32,7 +32,7 @@ class CacheOptimizationHelper
         return Cache::remember('dashboard_kpis_consolidated', self::CACHE_TTL_MODERATE, function () {
             $shopMap = ShopHelper::getShopMap();
 
-            // Single query for store count (using DISTINCT with GROUP BY)
+            // Total distinct stores
             $storeCount = DB::table('restosuite_item_snapshots')
                 ->select('shop_id')
                 ->distinct()
@@ -67,8 +67,10 @@ class CacheOptimizationHelper
                 )
                 ->first();
 
+            $storesOnline = max(0, $storeCount - $alertCount);
+
             return [
-                'stores_online' => (int) $storeCount,
+                'stores_online' => $storesOnline,
                 'items_off' => (int) ($itemsStatus?->items_off ?? 0),
                 'addons_off' => 0,
                 'alerts' => (int) $alertCount,
