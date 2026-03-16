@@ -44,8 +44,8 @@ DATABASE_URL = os.getenv('NEON_DB', '')
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 LOG_FILE = os.path.join(SCRIPT_DIR, "scrape_items_sync_v2.log")
 
-# Number of parallel browsers (3 workers = matches 2-core GitHub Actions CPU)
-NUM_WORKERS = 3
+# Number of parallel browsers (6 workers = ~20 min, uses ~6GB RAM)
+NUM_WORKERS = 7
 
 # Thread-safe logging
 log_lock = Lock()
@@ -713,11 +713,22 @@ def get_all_outlets():
 
 
 def distribute_outlets(outlets, num_workers):
-    """Distribute outlets evenly across workers — round-robin by outlet (not brand)
-    so no single worker gets all outlets of a large brand (e.g. 18 HUMFULL outlets)."""
+    """Distribute outlets evenly across workers"""
+    # Sort outlets by brand to keep brand outlets together
+    outlets_by_brand = {}
+    for brand, outlet in outlets:
+        if brand not in outlets_by_brand:
+            outlets_by_brand[brand] = []
+        outlets_by_brand[brand].append((brand, outlet))
+
+    # Distribute brands round-robin to workers
     worker_assignments = [[] for _ in range(num_workers)]
-    for i, outlet in enumerate(outlets):
-        worker_assignments[i % num_workers].append(outlet)
+    brands_list = list(outlets_by_brand.keys())
+
+    for i, brand in enumerate(brands_list):
+        worker_idx = i % num_workers
+        worker_assignments[worker_idx].extend(outlets_by_brand[brand])
+
     return worker_assignments
 
 
