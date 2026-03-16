@@ -148,7 +148,7 @@ async function smartReload(btn) {
     } catch (_) { /* timestamp check failed — proceed with full fetch anyway */ }
 
     // ── Step 2: Fetch fresh full-page HTML and swap content ──
-    const res = await fetch(window.location.href);
+    const res = await fetch(window.location.href, { cache: 'no-store' });
     if (!res.ok) throw new Error('fetch failed');
 
     const html = await res.text();
