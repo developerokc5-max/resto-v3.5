@@ -124,8 +124,8 @@ function showNotification(message, type = 'info') {
 let _lastSyncTs = 0;
 
 // Auto-reload every 5 minutes — skip if tab is hidden to avoid wasted requests
-const _autoReloadTimer = setTimeout(() => { if (!document.hidden) smartReload(); }, 300000);
-window.addEventListener('beforeunload', () => clearTimeout(_autoReloadTimer));
+const _autoReloadTimer = setInterval(() => { if (!document.hidden) smartReload(); }, 300000);
+window.addEventListener('beforeunload', () => clearInterval(_autoReloadTimer));
 
 async function smartReload(btn) {
   // Visual feedback (only when user explicitly clicks Reload)
