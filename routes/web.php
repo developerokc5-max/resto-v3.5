@@ -866,6 +866,22 @@ Route::get('/store/{shopId}/logs', function ($shopId) {
         ->orderBy('logged_at', 'desc')
         ->get();
 
+    // Batch-load all offline events from item_status_history for this shop
+    // alias item_name as name so the blade can read ->name consistently
+    $allItemHistory = DB::table('item_status_history')
+        ->where('shop_id', $shopId)
+        ->where('is_available', false)
+        ->selectRaw('item_name as name, platform, price, category, image_url, changed_at')
+        ->orderBy('changed_at', 'asc')
+        ->get();
+
+    // Group by SGT date → platform → item name (deduplicate, last occurrence wins)
+    $itemsByDatePlatform = [];
+    foreach ($allItemHistory as $item) {
+        $dateSgt = \Carbon\Carbon::parse($item->changed_at)->setTimezone('Asia/Singapore')->format('Y-m-d');
+        $itemsByDatePlatform[$dateSgt][$item->platform][$item->name] = $item;
+    }
+
     $statusCards = [];
     foreach ($historicalLogs as $index => $log) {
         $loggedAt = \Carbon\Carbon::parse($log->logged_at)->setTimezone('Asia/Singapore');
@@ -874,15 +890,36 @@ Route::get('/store/{shopId}/logs', function ($shopId) {
         // For today's entry, always use current time (check against SGT date)
         $isTodaySgt = $loggedAt->format('Y-m-d') === $nowSgt->format('Y-m-d');
         $displayTime = $isTodaySgt ? $nowSgt : $loggedAt;
+        $dateSgt = $loggedAt->format('Y-m-d');
+
+        // Build per-platform data merging stored status with item_status_history items
+        $mergedPlatformData = [];
+        $cardTotalOffline = 0;
+        foreach (['grab', 'foodpanda', 'deliveroo'] as $platform) {
+            if ($isTodaySgt) {
+                $mergedPlatformData[$platform] = $platformData[$platform];
+            } else {
+                $stored = $platformDataDecoded[$platform] ?? [];
+                $histItems = array_values($itemsByDatePlatform[$dateSgt][$platform] ?? []);
+                $mergedPlatformData[$platform] = [
+                    'name'          => $stored['name'] ?? ucfirst($platform),
+                    'status'        => $stored['status'] ?? 'Unknown',
+                    'last_checked'  => $stored['last_checked'] ?? null,
+                    'offline_items' => $histItems,
+                    'offline_count' => count($histItems),
+                ];
+            }
+            $cardTotalOffline += $mergedPlatformData[$platform]['offline_count'];
+        }
 
         $statusCards[] = [
-            'id' => $historicalLogs->count() - $index, // Reverse numbering (newest = highest number)
-            'timestamp' => $displayTime,
-            'outlet_status' => $log->platforms_online === 3 ? 'All Online' : ($log->platforms_online === 0 ? 'All Offline' : 'Mixed'),
-            'platforms_online' => $log->platforms_online,
-            'total_offline_items' => $log->total_offline_items,
-            'platform_data' => $platformDataDecoded,
-            'is_current' => $index === 0, // First item is most recent
+            'id'                  => $historicalLogs->count() - $index,
+            'timestamp'           => $displayTime,
+            'outlet_status'       => $log->platforms_online === 3 ? 'All Online' : ($log->platforms_online === 0 ? 'All Offline' : 'Mixed'),
+            'platforms_online'    => $log->platforms_online,
+            'total_offline_items' => $isTodaySgt ? $totalOffline : $cardTotalOffline,
+            'platform_data'       => $mergedPlatformData,
+            'is_current'          => $index === 0,
         ];
     }
 
