@@ -58,6 +58,10 @@ self.addEventListener('fetch', event => {
   // Skip export/download routes (but not /settings/export which is an HTML page)
   if (url.pathname !== '/settings/export' && (url.pathname.startsWith('/export') || url.pathname.endsWith('/export') || url.pathname.includes('/logs/export'))) return;
 
+  // Bypass SW cache for explicit no-store requests (e.g. smartReload JS fetch)
+  // Without this, fetch(url, { cache: 'no-store' }) falls into cache-first and gets stale HTML
+  if (event.request.cache === 'no-store') return;
+
   // ── HTML pages: stale-while-revalidate ─────────────────────────────────────
   // Serve the cached version IMMEDIATELY so navigation feels instant,
   // then fetch a fresh copy in the background and update the cache.
