@@ -74,3 +74,12 @@ _archive/temp_files/
 _archive/scrapers/tmpclaude-*
 
 # scripts/render-build.sh (kept render.yaml and render-build.sh for Render.com)
+
+# Presentation screenshots and build scripts (generated files)
+presentation/screenshots/
+presentation/write_script.py
+presentation/take_screenshots.py
+presentation/build_ppt.cjs
+presentation/generate.cjs
+screenshots/
+presentation/
