@@ -2,7 +2,7 @@ name: Auto Scrape - Items
 
 on:
   schedule:
-    - cron: '0 * * * *'  # Every 60 minutes (top of every hour)
+    - cron: '0 */3 * * *'  # Every 3 hours
   workflow_dispatch:      # Allow manual trigger from GitHub UI
 
 jobs:
