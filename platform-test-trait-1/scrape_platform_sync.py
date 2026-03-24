@@ -42,6 +42,36 @@ def log(message):
     except Exception as e:
         print(f"Warning: Could not write to log file: {e}", file=sys.stderr)
 
+def check_skip_scheduled_run():
+    """
+    If this is a scheduled run and a manual scan was triggered within the last
+    1 hour, skip this run to avoid double-scanning and wasting Actions minutes.
+    Manual runs always proceed regardless.
+    """
+    event_name = os.getenv("GITHUB_EVENT_NAME", "workflow_dispatch")
+    if event_name != "schedule":
+        return  # Manual run — always proceed
+
+    try:
+        conn = psycopg2.connect(DATABASE_URL)
+        cur = conn.cursor()
+        cur.execute("""
+            SELECT triggered_at FROM scraper_manual_triggers
+            WHERE scraper_type = 'platform'
+            AND triggered_at > NOW() - INTERVAL '1 hour'
+            ORDER BY triggered_at DESC
+            LIMIT 1
+        """)
+        row = cur.fetchone()
+        cur.close()
+        conn.close()
+
+        if row:
+            log(f"⏭ Skipping scheduled run — manual scan was triggered at {row[0]} (within last 1 hour). Resuming normal schedule next run.")
+            sys.exit(0)
+    except Exception as e:
+        log(f"Warning: Could not check manual trigger table: {e} — proceeding with run")
+
 def login(page):
     """Login to RestoSuite with fresh session"""
     log("Step 1: Logging in...")
@@ -566,4 +596,5 @@ def main():
         log(f"⚠ Alert check failed (non-critical): {e}")
 
 if __name__ == "__main__":
+    check_skip_scheduled_run()
     main()

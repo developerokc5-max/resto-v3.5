@@ -167,9 +167,24 @@ Route::prefix('sync')->group(function () {
         ]);
 
         if ($response->status() === 204) {
+            // Record manual trigger so the next scheduled run skips itself
+            try {
+                \DB::statement("CREATE TABLE IF NOT EXISTS scraper_manual_triggers (
+                    id SERIAL PRIMARY KEY,
+                    scraper_type VARCHAR(20) NOT NULL,
+                    triggered_at TIMESTAMP NOT NULL DEFAULT NOW()
+                )");
+                \DB::table('scraper_manual_triggers')->insert([
+                    'scraper_type' => 'platform',
+                    'triggered_at' => now(),
+                ]);
+            } catch (\Exception $e) {
+                // Non-fatal — don't block the response
+            }
+
             return response()->json([
                 'success'   => true,
-                'message'   => 'Scraper triggered! Data will update in ~3 minutes.',
+                'message'   => 'Scraper triggered! Data will update in ~3 minutes. Next scheduled run will be skipped.',
                 'timestamp' => now()->toIso8601String(),
             ]);
         }
@@ -330,9 +345,24 @@ Route::prefix('sync')->group(function () {
         ]);
 
         if ($response->status() === 204) {
+            // Record manual trigger so the next scheduled run skips itself
+            try {
+                \DB::statement("CREATE TABLE IF NOT EXISTS scraper_manual_triggers (
+                    id SERIAL PRIMARY KEY,
+                    scraper_type VARCHAR(20) NOT NULL,
+                    triggered_at TIMESTAMP NOT NULL DEFAULT NOW()
+                )");
+                \DB::table('scraper_manual_triggers')->insert([
+                    'scraper_type' => 'items',
+                    'triggered_at' => now(),
+                ]);
+            } catch (\Exception $e) {
+                // Non-fatal
+            }
+
             return response()->json([
                 'success'   => true,
-                'message'   => 'Items scraper triggered! Data will update in ~10-15 minutes.',
+                'message'   => 'Items scraper triggered! Data will update in ~10-15 minutes. Next scheduled run will be skipped.',
                 'timestamp' => now()->toIso8601String(),
             ]);
         }
@@ -378,9 +408,24 @@ Route::prefix('v1/items')->group(function () {
         ]);
 
         if ($response->status() === 204) {
+            // Record manual trigger so the next scheduled run skips itself
+            try {
+                \DB::statement("CREATE TABLE IF NOT EXISTS scraper_manual_triggers (
+                    id SERIAL PRIMARY KEY,
+                    scraper_type VARCHAR(20) NOT NULL,
+                    triggered_at TIMESTAMP NOT NULL DEFAULT NOW()
+                )");
+                \DB::table('scraper_manual_triggers')->insert([
+                    'scraper_type' => 'items',
+                    'triggered_at' => now(),
+                ]);
+            } catch (\Exception $e) {
+                // Non-fatal
+            }
+
             return response()->json([
                 'success'   => true,
-                'message'   => 'Items scraper triggered! Data will update in ~10-15 minutes.',
+                'message'   => 'Items scraper triggered! Data will update in ~10-15 minutes. Next scheduled run will be skipped.',
                 'timestamp' => now()->toIso8601String(),
             ]);
         }

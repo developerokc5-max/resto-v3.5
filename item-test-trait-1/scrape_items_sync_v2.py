@@ -62,6 +62,36 @@ def log(msg, worker_id=None):
         with open(LOG_FILE, "a", encoding="utf-8") as f:
             f.write(log_msg + "\n")
 
+def check_skip_scheduled_run():
+    """
+    If this is a scheduled run and a manual scan was triggered within the last
+    2 hours, skip this run to avoid double-scanning and wasting Actions minutes.
+    Manual runs always proceed regardless.
+    """
+    event_name = os.getenv("GITHUB_EVENT_NAME", "workflow_dispatch")
+    if event_name != "schedule":
+        return  # Manual run — always proceed
+
+    try:
+        conn = psycopg2.connect(DATABASE_URL)
+        cur = conn.cursor()
+        cur.execute("""
+            SELECT triggered_at FROM scraper_manual_triggers
+            WHERE scraper_type = 'items'
+            AND triggered_at > NOW() - INTERVAL '2 hours'
+            ORDER BY triggered_at DESC
+            LIMIT 1
+        """)
+        row = cur.fetchone()
+        cur.close()
+        conn.close()
+
+        if row:
+            log(f"⏭ Skipping scheduled run — manual scan was triggered at {row[0]} (within last 2 hours). Resuming normal schedule next run.")
+            sys.exit(0)
+    except Exception as e:
+        log(f"Warning: Could not check manual trigger table: {e} — proceeding with run")
+
 
 def get_db_connection():
     """Get a new database connection (thread-safe)"""
@@ -796,4 +826,5 @@ def main():
 
 
 if __name__ == "__main__":
+    check_skip_scheduled_run()
     main()
