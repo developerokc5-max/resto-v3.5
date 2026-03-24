@@ -48,6 +48,7 @@ jobs:
         run: |
           curl -s -X POST "https://resto-v3-5.onrender.com/api/history/snapshot" \
                -H "Content-Type: application/json" \
+               -H "X-Actions-Secret: ${{ secrets.ACTIONS_SECRET }}" \
                --max-time 60 \
                --retry 3 \
                --retry-delay 10 \
@@ -57,5 +58,6 @@ jobs:
         run: |
           curl -s -X POST "https://resto-v3-5.onrender.com/api/store-logs/snapshot" \
                -H "Content-Type: application/json" \
+               -H "X-Actions-Secret: ${{ secrets.ACTIONS_SECRET }}" \
                --max-time 30 \
                --retry 2 || echo "Store logs snapshot ping failed (non-fatal)"

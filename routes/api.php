@@ -554,6 +554,10 @@ Route::prefix('v1/items')->group(function () {
 
 // Alert check endpoint — called by GitHub Actions after scrape completes
 Route::post('/alerts/check', function () {
+    $secret = env('ACTIONS_SECRET');
+    if ($secret && !hash_equals($secret, (string) request()->header('X-Actions-Secret', ''))) {
+        return response()->json(['error' => 'Unauthorized'], 401);
+    }
     try {
         $alertService = new \App\Services\AlertService();
         $alertService->checkAndAlert();
@@ -576,6 +580,10 @@ Route::post('/alerts/check', function () {
 // History snapshot — called by GitHub Actions after each scrape completes
 // Reads current platform_status + items tables, writes fresh daily_history rows for today
 Route::post('/history/snapshot', function () {
+    $secret = env('ACTIONS_SECRET');
+    if ($secret && !hash_equals($secret, (string) request()->header('X-Actions-Secret', ''))) {
+        return response()->json(['error' => 'Unauthorized'], 401);
+    }
     try {
         // Auto-create daily_history table if migration didn't run (Neon cold-start guard)
         if (!\Illuminate\Support\Facades\Schema::hasTable('daily_history')) {
@@ -726,6 +734,10 @@ Route::post('/history/snapshot', function () {
 // Store logs bulk snapshot — called by GitHub Actions after each scrape
 // Saves today's entry in store_status_logs for EVERY shop automatically
 Route::post('/store-logs/snapshot', function () {
+    $secret = env('ACTIONS_SECRET');
+    if ($secret && !hash_equals($secret, (string) request()->header('X-Actions-Secret', ''))) {
+        return response()->json(['error' => 'Unauthorized'], 401);
+    }
     try {
         $nowSgt          = \Carbon\Carbon::now('Asia/Singapore');
         $todayUtcStart   = $nowSgt->copy()->startOfDay()->setTimezone('UTC');
@@ -1351,6 +1363,10 @@ Route::get('/health', function () {
 // Sends a Resend email summary if any stores have issues.
 // Rate-limited to once per 55 minutes to avoid spam.
 Route::post('/alert/email', function () {
+    $secret = env('ACTIONS_SECRET');
+    if ($secret && !hash_equals($secret, (string) request()->header('X-Actions-Secret', ''))) {
+        return response()->json(['error' => 'Unauthorized'], 401);
+    }
     try {
         $apiKey    = env('RESEND_API_KEY');
         $fromEmail = env('ALERT_FROM_EMAIL', 'HawkerOps <onboarding@resend.dev>');
