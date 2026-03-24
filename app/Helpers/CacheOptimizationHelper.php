@@ -232,7 +232,7 @@ class CacheOptimizationHelper
     public static function getCacheStats()
     {
         return [
-            'ttl_fast' => self::CACHE_TTL_FAST . 's (1 min)',
+            'ttl_fast' => self::CACHE_TTL_FAST . 's (5 min)',
             'ttl_moderate' => self::CACHE_TTL_MODERATE . 's (10 min)',
             'ttl_slow' => self::CACHE_TTL_SLOW . 's (1 hour)',
             'ttl_very_slow' => self::CACHE_TTL_VERY_SLOW . 's (24 hours)',
