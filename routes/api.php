@@ -169,11 +169,6 @@ Route::prefix('sync')->group(function () {
         if ($response->status() === 204) {
             // Record manual trigger so the next scheduled run skips itself
             try {
-                \DB::statement("CREATE TABLE IF NOT EXISTS scraper_manual_triggers (
-                    id SERIAL PRIMARY KEY,
-                    scraper_type VARCHAR(20) NOT NULL,
-                    triggered_at TIMESTAMP NOT NULL DEFAULT NOW()
-                )");
                 \DB::table('scraper_manual_triggers')->insert([
                     'scraper_type' => 'platform',
                     'triggered_at' => now(),
@@ -210,7 +205,7 @@ Route::prefix('sync')->group(function () {
         try {
             // Run the BULLETPROOF items scraper
             $scriptPath = base_path('_archive/scrapers/scrape_items_bulletproof.py');
-            $command = "python \"{$scriptPath}\" 2>&1";
+            $command = "timeout 1800 python \"{$scriptPath}\" 2>&1";
 
             exec($command, $output, $returnCode);
             $rawOutput = implode("\n", $output);
@@ -240,50 +235,57 @@ Route::prefix('sync')->group(function () {
                 ], 500);
             }
 
+            if (!isset($data['stores']) || !is_array($data['stores'])) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Scraper output missing stores data',
+                    'output' => $rawOutput,
+                ], 500);
+            }
+
             // Save to cache
             $cacheFile = storage_path('app/items_data_cache.json');
             file_put_contents($cacheFile, json_encode($data, JSON_PRETTY_PRINT));
 
-            // Clear existing items
-            DB::table('items')->truncate();
-
-            // Import all items into database - OPTIMIZED: batch insert instead of loop
-            $itemsToInsert = [];
+            // Clear and re-import inside a transaction so data is never left empty on failure
             $totalImported = 0;
-            $now = now();
+            DB::transaction(function () use ($data, &$totalImported) {
+                DB::table('items')->truncate();
 
-            foreach ($data['stores'] as $storeName => $items) {
-                foreach ($items as $item) {
-                    // Prepare for each platform (since they may have different availability)
-                    foreach (['grab', 'foodpanda', 'deliveroo'] as $platform) {
-                        $itemsToInsert[] = [
-                            'item_id' => $item['sku'] ?: 'unknown',
-                            'shop_name' => $storeName,
-                            'name' => $item['name'],
-                            'sku' => $item['sku'],
-                            'category' => $item['category'],
-                            'price' => $item['price'],
-                            'image_url' => $item['image_url'],
-                            'is_available' => $item['is_available'],
-                            'platform' => $platform,
-                            'created_at' => $now,
-                            'updated_at' => $now,
-                        ];
-                        $totalImported++;
+                // Import all items into database - OPTIMIZED: batch insert instead of loop
+                $itemsToInsert = [];
+                $now = now();
 
-                        // Insert in batches of 1000 to avoid memory issues
-                        if (count($itemsToInsert) >= 1000) {
-                            DB::table('items')->insert($itemsToInsert);
-                            $itemsToInsert = [];
+                foreach ($data['stores'] as $storeName => $items) {
+                    foreach ($items as $item) {
+                        foreach (['grab', 'foodpanda', 'deliveroo'] as $platform) {
+                            $itemsToInsert[] = [
+                                'item_id' => $item['sku'] ?: 'unknown',
+                                'shop_name' => $storeName,
+                                'name' => $item['name'],
+                                'sku' => $item['sku'],
+                                'category' => $item['category'],
+                                'price' => $item['price'],
+                                'image_url' => $item['image_url'],
+                                'is_available' => $item['is_available'],
+                                'platform' => $platform,
+                                'created_at' => $now,
+                                'updated_at' => $now,
+                            ];
+                            $totalImported++;
+
+                            if (count($itemsToInsert) >= 1000) {
+                                DB::table('items')->insert($itemsToInsert);
+                                $itemsToInsert = [];
+                            }
                         }
                     }
                 }
-            }
 
-            // Insert any remaining items
-            if (!empty($itemsToInsert)) {
-                DB::table('items')->insert($itemsToInsert);
-            }
+                if (!empty($itemsToInsert)) {
+                    DB::table('items')->insert($itemsToInsert);
+                }
+            }); // end DB::transaction
 
             return response()->json([
                 'success' => true,
@@ -347,11 +349,6 @@ Route::prefix('sync')->group(function () {
         if ($response->status() === 204) {
             // Record manual trigger so the next scheduled run skips itself
             try {
-                \DB::statement("CREATE TABLE IF NOT EXISTS scraper_manual_triggers (
-                    id SERIAL PRIMARY KEY,
-                    scraper_type VARCHAR(20) NOT NULL,
-                    triggered_at TIMESTAMP NOT NULL DEFAULT NOW()
-                )");
                 \DB::table('scraper_manual_triggers')->insert([
                     'scraper_type' => 'items',
                     'triggered_at' => now(),
@@ -410,11 +407,6 @@ Route::prefix('v1/items')->group(function () {
         if ($response->status() === 204) {
             // Record manual trigger so the next scheduled run skips itself
             try {
-                \DB::statement("CREATE TABLE IF NOT EXISTS scraper_manual_triggers (
-                    id SERIAL PRIMARY KEY,
-                    scraper_type VARCHAR(20) NOT NULL,
-                    triggered_at TIMESTAMP NOT NULL DEFAULT NOW()
-                )");
                 \DB::table('scraper_manual_triggers')->insert([
                     'scraper_type' => 'items',
                     'triggered_at' => now(),
