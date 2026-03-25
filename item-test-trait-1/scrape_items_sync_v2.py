@@ -824,6 +824,52 @@ def main():
     log(f"Total time: {duration:.1f} seconds ({duration/60:.1f} minutes)")
     log("="*70)
 
+    # Step 4: Remove ghost shops (renamed/deleted outlets no longer in RestoSuite)
+    seen_outlet_names = [outlet for _, outlet in outlets]
+    cleanup_ghost_shops(seen_outlet_names)
+
+
+def cleanup_ghost_shops(seen_outlet_names):
+    """
+    Delete shops that no longer exist in RestoSuite (renamed or removed outlets).
+    Only deletes shops not seen in this scrape run AND stale for >14 days.
+    Cascades to items, item_status_history, store_status_logs, restosuite_item_snapshots.
+    """
+    if not seen_outlet_names:
+        return
+
+    try:
+        conn = psycopg2.connect(DATABASE_URL)
+        cur = conn.cursor()
+
+        placeholders = ','.join(['%s'] * len(seen_outlet_names))
+        cur.execute(f"""
+            SELECT shop_id FROM shops
+            WHERE shop_id NOT IN ({placeholders})
+              AND (last_synced_at IS NULL OR last_synced_at < NOW() - INTERVAL '14 days')
+        """, seen_outlet_names)
+
+        ghost_ids = [row[0] for row in cur.fetchall()]
+
+        if not ghost_ids:
+            log("No ghost shops found.")
+            conn.close()
+            return
+
+        log(f"Found {len(ghost_ids)} ghost shop(s) to remove: {ghost_ids}")
+
+        ghost_placeholders = ','.join(['%s'] * len(ghost_ids))
+        for table in ['items', 'item_status_history', 'store_status_logs', 'restosuite_item_snapshots']:
+            cur.execute(f"DELETE FROM {table} WHERE shop_id IN ({ghost_placeholders})", ghost_ids)
+        cur.execute(f"DELETE FROM shops WHERE shop_id IN ({ghost_placeholders})", ghost_ids)
+
+        conn.commit()
+        log(f"Cleaned up {len(ghost_ids)} ghost shop(s).")
+        conn.close()
+
+    except Exception as e:
+        log(f"WARNING: Ghost shop cleanup failed: {str(e)[:150]}")
+
 
 if __name__ == "__main__":
     check_skip_scheduled_run()
