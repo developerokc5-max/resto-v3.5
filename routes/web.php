@@ -866,22 +866,6 @@ Route::get('/store/{shopId}/logs', function ($shopId) {
         ->orderBy('logged_at', 'desc')
         ->get();
 
-    // Batch-load all offline events from item_status_history for this shop
-    // alias item_name as name so the blade can read ->name consistently
-    $allItemHistory = DB::table('item_status_history')
-        ->where('shop_id', $shopId)
-        ->where('is_available', false)
-        ->selectRaw('item_name as name, platform, price, category, image_url, changed_at')
-        ->orderBy('changed_at', 'asc')
-        ->get();
-
-    // Group by SGT date → platform → item name (deduplicate, last occurrence wins)
-    $itemsByDatePlatform = [];
-    foreach ($allItemHistory as $item) {
-        $dateSgt = \Carbon\Carbon::parse($item->changed_at)->setTimezone('Asia/Singapore')->format('Y-m-d');
-        $itemsByDatePlatform[$dateSgt][$item->platform][$item->name] = $item;
-    }
-
     $statusCards = [];
     foreach ($historicalLogs as $index => $log) {
         $loggedAt = \Carbon\Carbon::parse($log->logged_at)->setTimezone('Asia/Singapore');
@@ -900,13 +884,13 @@ Route::get('/store/{shopId}/logs', function ($shopId) {
                 $mergedPlatformData[$platform] = $platformData[$platform];
             } else {
                 $stored = $platformDataDecoded[$platform] ?? [];
-                $histItems = array_values($itemsByDatePlatform[$dateSgt][$platform] ?? []);
+                $storedItems = $stored['offline_items'] ?? [];
                 $mergedPlatformData[$platform] = [
                     'name'          => $stored['name'] ?? ucfirst($platform),
                     'status'        => $stored['status'] ?? 'Unknown',
                     'last_checked'  => $stored['last_checked'] ?? null,
-                    'offline_items' => $histItems,
-                    'offline_count' => count($histItems),
+                    'offline_items' => $storedItems,
+                    'offline_count' => count($storedItems),
                 ];
             }
             $cardTotalOffline += $mergedPlatformData[$platform]['offline_count'];
