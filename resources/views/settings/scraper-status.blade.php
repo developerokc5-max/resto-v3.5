@@ -58,7 +58,7 @@
           </div>
           <div class="min-w-0">
             <h3 class="text-base md:text-xl font-bold text-slate-900 dark:text-slate-100 leading-tight">Platform Status Scraper</h3>
-            <p class="text-xs md:text-sm text-slate-600 dark:text-slate-400 mt-0.5">Monitors all 3 platforms: Grab, FoodPanda, Deliveroo</p>
+            <p class="text-xs md:text-sm text-slate-600 dark:text-slate-400 mt-0.5">Monitors 2 platforms: Grab, FoodPanda</p>
           </div>
         </div>
         <div class="hidden sm:flex items-center gap-2 flex-shrink-0">
@@ -73,7 +73,7 @@
         </div>
         <div>
           <div class="text-xs text-slate-500 dark:text-slate-400 mb-1">Stores Checked</div>
-          <div class="font-bold text-blue-600 dark:text-blue-400">{{ $scraperStatus['total_stores_checked'] }} (46 outlets × 3 platforms)</div>
+          <div class="font-bold text-blue-600 dark:text-blue-400">{{ $scraperStatus['total_stores_checked'] }} (49 outlets × 2 platforms)</div>
         </div>
         <div>
           <div class="text-xs text-slate-500 dark:text-slate-400 mb-1">Success Rate</div>
@@ -89,9 +89,9 @@
         <div class="text-xs font-semibold text-blue-700 dark:text-blue-400 mb-2">LATEST RUN INFO</div>
         <div class="space-y-1 font-mono text-xs text-slate-700 dark:text-slate-300">
           <div>✓ Last run: {{ $scraperStatus['last_run'] }}</div>
-          <div>✓ Platforms scanned: Grab, FoodPanda, Deliveroo</div>
-          <div>✓ Outlets monitored: 46</div>
-          <div>✓ Database records: 138 status entries</div>
+          <div>✓ Platforms scanned: Grab, FoodPanda</div>
+          <div>✓ Outlets monitored: 49</div>
+          <div>✓ Database records: 98 status entries</div>
         </div>
       </div>
     </div>
@@ -105,7 +105,7 @@
           </div>
           <div class="min-w-0">
             <h3 class="text-base md:text-xl font-bold text-slate-900 dark:text-slate-100 leading-tight">Items Scraper (Multi-Platform)</h3>
-            <p class="text-xs md:text-sm text-slate-600 dark:text-slate-400 mt-0.5">Extracts menu items from Grab, FoodPanda, and Deliveroo</p>
+            <p class="text-xs md:text-sm text-slate-600 dark:text-slate-400 mt-0.5">Extracts menu items from Grab and FoodPanda</p>
           </div>
         </div>
         <div class="hidden sm:flex items-center gap-2 flex-shrink-0">
@@ -138,8 +138,8 @@
           <div>✓ Last run: {{ $scraperStatus['last_run'] }}</div>
           <div>✓ Total items collected: 7,455 (across all platforms)</div>
           <div>✓ Outlets processed: 46</div>
-          <div>✓ Data structure: 7,455 items × 3 platforms (Grab, FoodPanda, Deliveroo)</div>
-          <div class="text-purple-600 dark:text-purple-400 font-semibold mt-2">→ Each menu item stored 3 times (once per platform)</div>
+          <div>✓ Data structure: 7,455 items × 2 platforms (Grab, FoodPanda)</div>
+          <div class="text-purple-600 dark:text-purple-400 font-semibold mt-2">→ Each menu item stored 2 times (once per platform)</div>
         </div>
       </div>
     </div>

@@ -361,17 +361,17 @@
             <div class="text-slate-600 dark:text-slate-400 text-xs leading-relaxed space-y-1">
               <p><strong>🟢 Green:</strong> All 3 platforms online</p>
               <p><strong>🟡 Orange:</strong> 1-2 platforms offline</p>
-              <p><strong>🔴 Red:</strong> All 3 platforms offline</p>
+              <p><strong>🔴 Red:</strong> All 2 platforms offline</p>
             </div>
           </div>
           <div class="bg-yellow-50 dark:bg-yellow-900/30 border-l-4 border-yellow-500 p-4 rounded-lg mb-4">
             <div class="font-semibold text-slate-900 dark:text-slate-100 mb-2">🔢 Item Information</div>
-            <p class="text-slate-600 dark:text-slate-400 text-xs leading-relaxed">Each menu item appears 3 times (Grab, FoodPanda, Deliveroo).</p>
+            <p class="text-slate-600 dark:text-slate-400 text-xs leading-relaxed">Each menu item appears across Grab and FoodPanda.</p>
           </div>
           <div class="bg-red-50 dark:bg-red-900/30 border-l-4 border-red-500 p-4 rounded-lg mb-4">
             <div class="font-semibold text-slate-900 dark:text-slate-100 mb-2">🌐 Platforms Monitored</div>
             <div class="text-slate-600 dark:text-slate-400 text-xs leading-relaxed space-y-1">
-              <p><strong>🟢 Grab</strong> · <strong>🩷 FoodPanda</strong> · <strong>🔵 Deliveroo</strong></p>
+              <p><strong>🟢 Grab</strong> · <strong>🩷 FoodPanda</strong></p>
             </div>
           </div>
           <div class="bg-slate-50 dark:bg-slate-800 border-l-4 border-slate-500 p-4 rounded-lg mb-4">

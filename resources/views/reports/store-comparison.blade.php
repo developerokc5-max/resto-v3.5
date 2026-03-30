@@ -93,7 +93,6 @@
         $platforms = [
           'Grab'      => $store['grab_online'],
           'Foodpanda' => $store['foodpanda_online'],
-          'Deliveroo' => $store['deliveroo_online'],
         ];
       @endphp
       @foreach($platforms as $platform => $online)
@@ -160,7 +159,6 @@
           <th class="text-center px-4 py-3 font-semibold text-slate-700 dark:text-slate-300">Status</th>
           <th class="text-center px-4 py-3 font-semibold text-slate-700 dark:text-slate-300">Grab</th>
           <th class="text-center px-4 py-3 font-semibold text-slate-700 dark:text-slate-300">Foodpanda</th>
-          <th class="text-center px-4 py-3 font-semibold text-slate-700 dark:text-slate-300">Deliveroo</th>
           <th class="text-center px-4 py-3 font-semibold text-slate-700 dark:text-slate-300">Items</th>
           <th class="text-center px-4 py-3 font-semibold text-slate-700 dark:text-slate-300">Offline</th>
           <th class="text-center px-4 py-3 font-semibold text-slate-700 dark:text-slate-300">Avail %</th>
@@ -187,11 +185,6 @@
           <td class="px-4 py-3 text-center">
             <span class="px-2 py-0.5 rounded text-xs font-bold {{ $store['foodpanda_online'] ? 'bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-400' : 'bg-red-100 dark:bg-red-900/40 text-red-600 dark:text-red-400' }}">
               {{ $store['foodpanda_online'] ? 'ON' : 'OFF' }}
-            </span>
-          </td>
-          <td class="px-4 py-3 text-center">
-            <span class="px-2 py-0.5 rounded text-xs font-bold {{ $store['deliveroo_online'] ? 'bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-400' : 'bg-red-100 dark:bg-red-900/40 text-red-600 dark:text-red-400' }}">
-              {{ $store['deliveroo_online'] ? 'ON' : 'OFF' }}
             </span>
           </td>
           <td class="px-4 py-3 text-center text-slate-700 dark:text-slate-300">{{ $store['total_items'] }}</td>

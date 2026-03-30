@@ -194,7 +194,7 @@
     .pill-dot { width: 6px; height: 6px; border-radius: 50%; }
     .pill-grab     { background: var(--pill-grab-bg);  border: 1px solid var(--pill-grab-bdr);  color: var(--pill-grab-c); }
     .pill-panda    { background: var(--pill-panda-bg); border: 1px solid var(--pill-panda-bdr); color: var(--pill-panda-c); }
-    .pill-deliveroo{ background: var(--pill-dlv-bg);   border: 1px solid var(--pill-dlv-bdr);   color: var(--pill-dlv-c); }
+
 
     .divider {
       height: 1px; background: var(--div-hr);
@@ -311,9 +311,6 @@
         </span>
         <span class="pill pill-panda">
           <span class="pill-dot" style="background:#f472b6"></span>FoodPanda
-        </span>
-        <span class="pill pill-deliveroo">
-          <span class="pill-dot" style="background:#38bdf8"></span>Deliveroo
         </span>
       </div>
 

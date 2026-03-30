@@ -85,7 +85,6 @@
                 $platformConfig = [
                     'grab'      => ['name' => 'Grab',      'color' => 'bg-green-500', 'textColor' => 'text-green-600 dark:text-green-400', 'lightBg' => 'bg-green-50 dark:bg-green-900/20'],
                     'foodpanda' => ['name' => 'foodpanda', 'color' => 'bg-pink-500',  'textColor' => 'text-pink-600 dark:text-pink-400',   'lightBg' => 'bg-pink-50 dark:bg-pink-900/20'],
-                    'deliveroo' => ['name' => 'Deliveroo', 'color' => 'bg-cyan-500',  'textColor' => 'text-cyan-600 dark:text-cyan-400',   'lightBg' => 'bg-cyan-50 dark:bg-cyan-900/20'],
                 ];
             @endphp
 
@@ -128,7 +127,7 @@
 
                 <!-- Platform Rows -->
                 <div class="divide-y divide-slate-200 dark:divide-slate-800">
-                    @foreach(['grab', 'foodpanda', 'deliveroo'] as $platform)
+                    @foreach(['grab', 'foodpanda'] as $platform)
                         @php
                             $data     = $card['platform_data'][$platform] ?? [];
                             $hasItems = ($data['offline_count'] ?? 0) > 0;

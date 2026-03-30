@@ -10,12 +10,11 @@ use Illuminate\Support\Facades\Log;
 class AlertService
 {
     // Platform display config
-    private const PLATFORMS = ['grab', 'foodpanda', 'deliveroo'];
+    private const PLATFORMS = ['grab', 'foodpanda'];
 
     private const PLATFORM_LABELS = [
         'grab'      => 'Grab',
         'foodpanda' => 'FoodPanda',
-        'deliveroo' => 'Deliveroo',
     ];
 
     /**
@@ -163,7 +162,6 @@ class AlertService
         $platformColors = [
             'grab'      => '#00b14f',
             'foodpanda' => '#d70f64',
-            'deliveroo' => '#00ccbc',
         ];
 
         $rows = '';

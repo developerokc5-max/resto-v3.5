@@ -114,13 +114,6 @@
                         'bg' => 'bg-pink-50 dark:bg-pink-900/20',
                         'badge' => 'bg-pink-100 dark:bg-pink-900/30 text-pink-700 dark:text-pink-400'
                     ],
-                    'deliveroo' => [
-                        'name' => 'Deliveroo',
-                        'border' => 'border-cyan-500',
-                        'text' => 'text-cyan-700 dark:text-cyan-400',
-                        'bg' => 'bg-cyan-50 dark:bg-cyan-900/20',
-                        'badge' => 'bg-cyan-100 dark:bg-cyan-900/30 text-cyan-700 dark:text-cyan-400'
-                    ]
                 ];
             @endphp
 
@@ -154,7 +147,7 @@
                                 </span>
                             @else
                                 <span class="px-3 py-1 bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 rounded-full text-xs font-semibold whitespace-nowrap">
-                                    {{ $store['online_count'] }}/3 Online
+                                    {{ $store['online_count'] }}/2 Online
                                 </span>
                             @endif
                         </div>
@@ -162,7 +155,7 @@
 
                     <!-- Platform Status Cards -->
                     <div class="p-4 space-y-3">
-                        @foreach(['grab', 'foodpanda', 'deliveroo'] as $platform)
+                        @foreach(['grab', 'foodpanda'] as $platform)
                             @php
                                 $config = $platformConfigs[$platform];
                                 $platformData = $store['platforms'][$platform] ?? null;

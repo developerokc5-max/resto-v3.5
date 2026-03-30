@@ -355,23 +355,20 @@ def scan_store_toggles(page):
 
 def scan_all_platforms(page, stores_data):
     """
-    Scan all 3 platforms (Grab, deliveroo, foodPanda) for each store
+    Scan 2 platforms (Grab, foodPanda) for each store — Deliveroo removed (closed in SG)
     """
     log("\nStep 6: Scanning all platforms...")
 
-    platforms = ["Grab", "deliveroo", "foodPanda"]
+    platforms = ["Grab", "foodPanda"]
     all_platform_data = {
         "grab": {},
         "foodpanda": {},
-        "deliveroo": {}
     }
 
-    # Per-platform wait times — foodPanda (3rd tab) needs 7s to fully render,
-    # Grab and deliveroo are faster and don't need the extra wait
+    # Per-platform wait times — foodPanda needs 7s to fully render
     platform_waits = {
-        "Grab":       3000,
-        "deliveroo":  3000,
-        "foodPanda":  7000,
+        "Grab":      3000,
+        "foodPanda": 7000,
     }
 
     for platform in platforms:
@@ -410,7 +407,6 @@ def main():
         "message": "",
         "grab": {},
         "foodpanda": {},
-        "deliveroo": {},
         "shops": {},
         "timestamp": time.strftime("%Y-%m-%d %H:%M:%S")
     }
@@ -449,20 +445,17 @@ def main():
             # Build result
             result["grab"] = all_data["grab"]
             result["foodpanda"] = all_data["foodpanda"]
-            result["deliveroo"] = all_data["deliveroo"]
 
             # Build shops summary
             all_location_ids = set()
             all_location_ids.update(all_data["grab"].keys())
             all_location_ids.update(all_data["foodpanda"].keys())
-            all_location_ids.update(all_data["deliveroo"].keys())
 
             for loc_id in all_location_ids:
                 grab_data = all_data["grab"].get(loc_id, {})
                 foodpanda_data = all_data["foodpanda"].get(loc_id, {})
-                deliveroo_data = all_data["deliveroo"].get(loc_id, {})
 
-                name = grab_data.get("location_name") or foodpanda_data.get("location_name") or deliveroo_data.get("location_name") or "Unknown"
+                name = grab_data.get("location_name") or foodpanda_data.get("location_name") or "Unknown"
 
                 result["shops"][loc_id] = {
                     "name": name,
@@ -478,16 +471,11 @@ def main():
                             "status": foodpanda_data.get("status", "OFF"),
                             "items_synced": 0
                         },
-                        "deliveroo": {
-                            "online": deliveroo_data.get("is_online", False),
-                            "status": deliveroo_data.get("status", "OFF"),
-                            "items_synced": 0
-                        }
                     }
                 }
 
             result["success"] = True
-            result["message"] = f"Successfully scanned {len(result['shops'])} stores across 3 platforms"
+            result["message"] = f"Successfully scanned {len(result['shops'])} stores across 2 platforms"
 
             log("\n" + "="*60)
             log("SCAN COMPLETE!")
@@ -495,7 +483,6 @@ def main():
             log(f"Total stores: {len(result['shops'])}")
             log(f"Grab stores: {len(result['grab'])}")
             log(f"FoodPanda stores: {len(result['foodpanda'])}")
-            log(f"Deliveroo stores: {len(result['deliveroo'])}")
 
             # Save to database
             log("\n" + "="*60)
@@ -537,7 +524,7 @@ def main():
                 total_saved = 0
 
                 for shop_id, shop_data in result['shops'].items():
-                    for platform_name in ['grab', 'foodpanda', 'deliveroo']:
+                    for platform_name in ['grab', 'foodpanda']:
                         platform_data = shop_data['platforms'][platform_name]
 
                         try:

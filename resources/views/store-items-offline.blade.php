@@ -44,12 +44,9 @@
     @php
         $grabCount = count($offlineItemsByPlatform['grab'] ?? []);
         $fpCount   = count($offlineItemsByPlatform['foodpanda'] ?? []);
-        $delCount  = count($offlineItemsByPlatform['deliveroo'] ?? []);
-
         $platformMeta = [
             'grab'      => ['name' => 'Grab',      'color' => 'bg-green-500', 'ring' => 'ring-green-500/20', 'badge' => 'bg-green-50 dark:bg-green-900/30 text-green-700 dark:text-green-400', 'cat' => 'bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400',  'count' => $grabCount],
             'foodpanda' => ['name' => 'foodpanda', 'color' => 'bg-pink-500',  'ring' => 'ring-pink-500/20',  'badge' => 'bg-pink-50 dark:bg-pink-900/30 text-pink-700 dark:text-pink-400',   'cat' => 'bg-pink-50 dark:bg-pink-900/20 text-pink-600 dark:text-pink-400',   'count' => $fpCount],
-            'deliveroo' => ['name' => 'Deliveroo', 'color' => 'bg-cyan-500',  'ring' => 'ring-cyan-500/20',  'badge' => 'bg-cyan-50 dark:bg-cyan-900/30 text-cyan-700 dark:text-cyan-400',   'cat' => 'bg-cyan-50 dark:bg-cyan-900/20 text-cyan-600 dark:text-cyan-400',   'count' => $delCount],
         ];
     @endphp
 
@@ -82,7 +79,7 @@
             </div>
 
             <!-- Platform count pills -->
-            <div class="grid grid-cols-3 bg-slate-50 dark:bg-slate-800/50 border-t border-slate-200 dark:border-slate-700">
+            <div class="grid grid-cols-2 bg-slate-50 dark:bg-slate-800/50 border-t border-slate-200 dark:border-slate-700">
                 @foreach($platformMeta as $p => $meta)
                     <div class="px-5 py-4 {{ !$loop->last ? 'border-r border-slate-200 dark:border-slate-700' : '' }} flex items-center gap-3">
                         <div class="w-7 h-7 {{ $meta['color'] }} rounded-lg flex items-center justify-center flex-shrink-0">
@@ -100,7 +97,7 @@
         </div>
 
         <!-- Platform Sections -->
-        @foreach(['grab', 'foodpanda', 'deliveroo'] as $platform)
+        @foreach(['grab', 'foodpanda'] as $platform)
             @php
                 $meta      = $platformMeta[$platform];
                 $items     = $offlineItemsByPlatform[$platform] ?? [];

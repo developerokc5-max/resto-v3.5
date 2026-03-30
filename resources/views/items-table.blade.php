@@ -64,7 +64,7 @@
       </select>
       <select id="statusFilter" class="w-full px-4 py-2 border border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-100 rounded-xl focus:ring-2 focus:ring-slate-900 focus:border-transparent">
         <option value="">All Items</option>
-        <option value="online"    {{ request('status') == 'online'    ? 'selected' : '' }}>Available — all 3 platforms</option>
+        <option value="online"    {{ request('status') == 'online'    ? 'selected' : '' }}>Available — all 2 platforms</option>
         <option value="has_issue" {{ request('status') == 'has_issue' ? 'selected' : '' }}>Has Issues — missing 1+ platform</option>
         <option value="offline"   {{ request('status') == 'offline'   ? 'selected' : '' }}>Unavailable — 0 platforms</option>
       </select>
@@ -81,13 +81,12 @@
         $oc = 0;
         if ($item['platforms']['grab']) $oc++;
         if ($item['platforms']['foodpanda']) $oc++;
-        if ($item['platforms']['deliveroo']) $oc++;
       @endphp
       <div class="px-4 py-3 item-row"
            data-name="{{strtolower($item['name'])}}"
            data-restaurant="{{$item['shop_name']}}"
            data-category="{{$item['category']}}"
-           data-status="{{ $oc === 3 ? 'online' : ($oc > 0 ? 'partial' : 'offline') }}">
+           data-status="{{ $oc === 2 ? 'online' : ($oc > 0 ? 'partial' : 'offline') }}">
         <div class="flex items-center gap-3">
           @if($item['image_url'])
             <img src="{{$item['image_url']}}" alt="{{$item['name']}}"
@@ -109,15 +108,14 @@
           </div>
           <div class="flex-shrink-0 flex flex-col items-end gap-1">
             <span class="text-xs font-medium px-2 py-0.5 rounded-full
-              {{ $oc === 3 ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400'
+              {{ $oc === 2 ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400'
                  : ($oc > 0 ? 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400'
                  : 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400') }}">
-              {{$oc}}/3
+              {{$oc}}/2
             </span>
             <div class="flex gap-1">
               <span class="text-[9px] px-1.5 py-0.5 rounded font-bold {{ $item['platforms']['grab'] ? 'bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-400' : 'bg-red-100 dark:bg-red-900/40 text-red-600 dark:text-red-400' }}">G</span>
               <span class="text-[9px] px-1.5 py-0.5 rounded font-bold {{ $item['platforms']['foodpanda'] ? 'bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-400' : 'bg-red-100 dark:bg-red-900/40 text-red-600 dark:text-red-400' }}">F</span>
-              <span class="text-[9px] px-1.5 py-0.5 rounded font-bold {{ $item['platforms']['deliveroo'] ? 'bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-400' : 'bg-red-100 dark:bg-red-900/40 text-red-600 dark:text-red-400' }}">D</span>
             </div>
           </div>
         </div>
@@ -136,18 +134,17 @@
             <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase">Price</th>
             <th class="px-6 py-3 text-center text-xs font-medium text-slate-500 dark:text-slate-400 uppercase">Grab</th>
             <th class="px-6 py-3 text-center text-xs font-medium text-slate-500 dark:text-slate-400 uppercase">FoodPanda</th>
-            <th class="px-6 py-3 text-center text-xs font-medium text-slate-500 dark:text-slate-400 uppercase">Deliveroo</th>
             <th class="px-6 py-3 text-center text-xs font-medium text-slate-500 dark:text-slate-400 uppercase">Status</th>
           </tr>
         </thead>
         <tbody id="itemsTable" class="divide-y divide-slate-100 dark:divide-slate-700">
           @foreach($items as $item)
-          @php $onlineCount = (int)$item['platforms']['grab'] + (int)$item['platforms']['foodpanda'] + (int)$item['platforms']['deliveroo']; @endphp
+          @php $onlineCount = (int)$item['platforms']['grab'] + (int)$item['platforms']['foodpanda']; @endphp
           <tr class="hover:bg-slate-50 dark:hover:bg-slate-700 transition item-row"
               data-name="{{strtolower($item['name'])}}"
               data-restaurant="{{$item['shop_name']}}"
               data-category="{{$item['category']}}"
-              data-status="{{ $onlineCount === 3 ? 'online' : ($onlineCount > 0 ? 'partial' : 'offline') }}">
+              data-status="{{ $onlineCount === 2 ? 'online' : ($onlineCount > 0 ? 'partial' : 'offline') }}">
             <td class="px-6 py-4">
               <div class="flex items-center gap-3">
                 @if($item['image_url'])
@@ -193,30 +190,13 @@
               @endif
             </td>
             <td class="px-6 py-4 text-center">
-              @if($item['platforms']['deliveroo'])
-                <span class="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 border border-green-200 dark:border-green-700">
-                  <i class="fas fa-check-circle"></i> ONLINE
-                </span>
-              @else
-                <span class="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 border border-red-200 dark:border-red-700">
-                  <i class="fas fa-times-circle"></i> OFFLINE
-                </span>
-              @endif
-            </td>
-            <td class="px-6 py-4 text-center">
-              @php
-                $onlineCount = 0;
-                if ($item['platforms']['grab']) $onlineCount++;
-                if ($item['platforms']['foodpanda']) $onlineCount++;
-                if ($item['platforms']['deliveroo']) $onlineCount++;
-              @endphp
               <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
-                {{ $onlineCount === 3
+                {{ $onlineCount === 2
                     ? 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-400'
                     : ($onlineCount > 0
                         ? 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-400'
                         : 'bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-400') }}">
-                {{$onlineCount}}/3 platforms
+                {{$onlineCount}}/2 platforms
               </span>
             </td>
           </tr>
@@ -364,7 +344,7 @@
 💡 Features:
    • Search by name/restaurant/category
    • Filter by restaurant or category
-   • Platform status (Grab/FoodPanda/Deliveroo)
+   • Platform status (Grab/FoodPanda)
    • Image preview for 99.8% of items
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`;

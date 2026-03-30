@@ -112,7 +112,6 @@ class PlatformStatus extends Model
         return [
             'grab' => $statuses->firstWhere('platform', 'grab'),
             'foodpanda' => $statuses->firstWhere('platform', 'foodpanda'),
-            'deliveroo' => $statuses->firstWhere('platform', 'deliveroo'),
         ];
     }
 
@@ -129,7 +128,7 @@ class PlatformStatus extends Model
 
     public static function getStatsByPlatform(): array
     {
-        $platforms = ['grab', 'foodpanda', 'deliveroo'];
+        $platforms = ['grab', 'foodpanda'];
         $stats = [];
 
         foreach ($platforms as $platform) {

@@ -3,7 +3,7 @@
 @section('title', 'Platform Status - HawkerOps')
 
 @section('page-title', 'Platform Status')
-@section('page-description', 'Monitor Grab, FoodPanda & Deliveroo availability')
+@section('page-description', 'Monitor Grab & FoodPanda availability')
 
 @section('top-actions')
   <div class="flex items-center gap-2">
@@ -59,7 +59,7 @@
 
   <!-- Platform Stats -->
   <section class="grid grid-cols-1 md:grid-cols-3 gap-4">
-    @foreach(['grab' => 'Grab', 'foodpanda' => 'FoodPanda', 'deliveroo' => 'Deliveroo'] as $key => $name)
+    @foreach(['grab' => 'Grab', 'foodpanda' => 'FoodPanda'] as $key => $name)
       @php $stat = $platformStats[$key] ?? ['total' => 0, 'online' => 0, 'offline' => 0, 'percentage' => 0]; @endphp
       <div class="bg-white dark:bg-slate-800 border dark:border-slate-700 rounded-2xl p-5 shadow-sm">
         <div class="flex items-center justify-between mb-4">
@@ -111,9 +111,6 @@
             <th class="w-1/5 md:w-1/6 px-2 md:px-5 py-3 text-center text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">
               <span class="md:hidden">Panda</span><span class="hidden md:inline">FoodPanda</span>
             </th>
-            <th class="w-1/5 md:w-1/6 px-2 md:px-5 py-3 text-center text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">
-              <span class="md:hidden">Deliveroo</span><span class="hidden md:inline">Deliveroo</span>
-            </th>
             <th class="hidden md:table-cell md:w-1/6 px-5 py-3 text-right text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">Status</th>
           </tr>
         </thead>
@@ -125,7 +122,7 @@
                 <div class="text-[10px] md:text-xs text-slate-500 dark:text-slate-400">{{ $shop['brand'] }}</div>
               </td>
 
-              @foreach(['grab', 'foodpanda', 'deliveroo'] as $platform)
+              @foreach(['grab', 'foodpanda'] as $platform)
                 <td class="px-2 md:px-5 py-3 md:py-4 text-center">
                   @if(isset($shop['platforms'][$platform]))
                     @php $p = $shop['platforms'][$platform]; @endphp
@@ -145,14 +142,14 @@
               <td class="hidden md:table-cell px-5 py-4 text-right">
                 @php
                   $onlineCount = 0;
-                  foreach(['grab', 'foodpanda', 'deliveroo'] as $platform) {
+                  foreach(['grab', 'foodpanda'] as $platform) {
                     if(isset($shop['platforms'][$platform]) && $shop['platforms'][$platform]['is_online']) {
                       $onlineCount++;
                     }
                   }
                 @endphp
-                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium {{ $onlineCount === 3 ? 'bg-green-100 dark:bg-green-900/40 text-green-800 dark:text-green-300' : ($onlineCount > 0 ? 'bg-yellow-100 dark:bg-yellow-900/40 text-yellow-800 dark:text-yellow-300' : 'bg-red-100 dark:bg-red-900/40 text-red-800 dark:text-red-300') }}">
-                  {{ $onlineCount }}/3 platforms
+                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium {{ $onlineCount === 2 ? 'bg-green-100 dark:bg-green-900/40 text-green-800 dark:text-green-300' : ($onlineCount > 0 ? 'bg-yellow-100 dark:bg-yellow-900/40 text-yellow-800 dark:text-yellow-300' : 'bg-red-100 dark:bg-red-900/40 text-red-800 dark:text-red-300') }}">
+                  {{ $onlineCount }}/2 platforms
                 </span>
               </td>
             </tr>
@@ -207,8 +204,6 @@
     const grabTotal = {{ $platformStats['grab']['total'] ?? 0 }};
     const foodpandaOnline = {{ $platformStats['foodpanda']['online'] ?? 0 }};
     const foodpandaTotal = {{ $platformStats['foodpanda']['total'] ?? 0 }};
-    const deliverooOnline = {{ $platformStats['deliveroo']['online'] ?? 0 }};
-    const deliverooTotal = {{ $platformStats['deliveroo']['total'] ?? 0 }};
     const shopsMonitored = {{ count($shops ?? []) }};
 
     const info = `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -231,9 +226,6 @@
 
    FoodPanda:
    └─ ${foodpandaOnline}/${foodpandaTotal} online (${(foodpandaOnline/foodpandaTotal*100).toFixed(1)}%)
-
-   Deliveroo:
-   └─ ${deliverooOnline}/${deliverooTotal} online (${(deliverooOnline/deliverooTotal*100).toFixed(1)}%)
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`;
 

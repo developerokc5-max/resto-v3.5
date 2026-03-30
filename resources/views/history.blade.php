@@ -58,9 +58,6 @@
     $fpOff = collect($day['stores'])->filter(fn($s) =>
       is_array($s->platform_data) && ($s->platform_data['foodpanda']['status'] ?? '') === 'Offline'
     )->count();
-    $delOff = collect($day['stores'])->filter(fn($s) =>
-      is_array($s->platform_data) && ($s->platform_data['deliveroo']['status'] ?? '') === 'Offline'
-    )->count();
   @endphp
 
   <a href="/history/{{ $day['date'] }}" class="block mb-5 group">
@@ -114,10 +111,10 @@
         </div>
 
         {{-- Platform breakdown --}}
-        <div class="grid grid-cols-3 gap-2">
-          @foreach(['grab' => 'Grab', 'foodpanda' => 'FoodPanda', 'deliveroo' => 'Deliveroo'] as $key => $label)
+        <div class="grid grid-cols-2 gap-2">
+          @foreach(['grab' => 'Grab', 'foodpanda' => 'FoodPanda'] as $key => $label)
             @php
-              $off = match($key) { 'grab' => $grabOff, 'foodpanda' => $fpOff, 'deliveroo' => $delOff };
+              $off = match($key) { 'grab' => $grabOff, 'foodpanda' => $fpOff };
             @endphp
             <div class="flex items-center justify-between px-3 py-2 rounded-xl border
               {{ $off > 0

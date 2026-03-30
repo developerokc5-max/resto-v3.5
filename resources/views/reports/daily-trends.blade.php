@@ -70,7 +70,6 @@
       <div class="flex items-center gap-3 text-xs text-slate-500 dark:text-slate-400 mt-1">
         <span class="flex items-center gap-1.5"><span class="inline-block w-3 h-0.5 bg-green-600 rounded"></span>Grab</span>
         <span class="flex items-center gap-1.5"><span class="inline-block w-3 h-0.5 bg-pink-500 rounded"></span>FoodPanda</span>
-        <span class="flex items-center gap-1.5"><span class="inline-block w-3 h-0.5 bg-sky-500 rounded"></span>Deliveroo</span>
       </div>
     </div>
     @if($platformUptimeData->isEmpty())
@@ -125,7 +124,6 @@
       const rawLabels     = @json($platformUptimeData->pluck('snapshot_date'));
       const grabData      = @json($platformUptimeData->pluck('grab_uptime'));
       const foodpandaData = @json($platformUptimeData->pluck('foodpanda_uptime'));
-      const deliverooData = @json($platformUptimeData->pluck('deliveroo_uptime'));
 
       const mkDataset = (label, data, color) => ({
         label,
@@ -147,7 +145,6 @@
           datasets: [
             mkDataset('Grab',      grabData,      '#16a34a'),
             mkDataset('FoodPanda', foodpandaData, '#ec4899'),
-            mkDataset('Deliveroo', deliverooData, '#0ea5e9'),
           ],
         },
         options: {

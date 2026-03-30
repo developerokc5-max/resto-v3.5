@@ -177,7 +177,6 @@
           $icon = match(strtolower($platform['name'])) {
             'grab'      => '🟢',
             'foodpanda' => '🐼',
-            'deliveroo' => '🦘',
             default     => '📦',
           };
         @endphp
@@ -227,7 +226,7 @@
           <span class="text-xl">🌐</span>
           <div>
             <p class="text-sm font-semibold text-slate-700 dark:text-slate-300 group-hover:text-slate-900 dark:group-hover:text-white">Platforms</p>
-            <p class="text-xs text-slate-400 dark:text-slate-500">Grab, Foodpanda, Deliveroo</p>
+            <p class="text-xs text-slate-400 dark:text-slate-500">Grab, FoodPanda</p>
           </div>
         </a>
         <a href="/items" class="flex items-center gap-3 p-2.5 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-700 transition group">

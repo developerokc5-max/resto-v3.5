@@ -118,7 +118,6 @@
         $platformConfig = [
           'grab'      => ['name' => 'Grab',      'gradient' => 'from-green-800 to-green-900'],
           'foodpanda' => ['name' => 'foodpanda',  'gradient' => 'from-rose-700 to-pink-900'],
-          'deliveroo' => ['name' => 'Deliveroo',  'gradient' => 'from-teal-700 to-cyan-900'],
         ];
       @endphp
 
@@ -166,7 +165,7 @@
         <div class="p-5 flex-grow flex flex-col justify-between">
           @if(isset($s['platforms']))
           <div class="space-y-3 mb-4 min-h-[240px]">
-            @php $platformOrder = ['grab', 'foodpanda', 'deliveroo']; $sortedPlatforms = []; foreach ($platformOrder as $_pk) { if (isset($s['platforms'][$_pk])) $sortedPlatforms[$_pk] = $s['platforms'][$_pk]; } foreach ($s['platforms'] as $_pk => $_pv) { if (!isset($sortedPlatforms[$_pk])) $sortedPlatforms[$_pk] = $_pv; } @endphp
+            @php $platformOrder = ['grab', 'foodpanda']; $sortedPlatforms = []; foreach ($platformOrder as $_pk) { if (isset($s['platforms'][$_pk])) $sortedPlatforms[$_pk] = $s['platforms'][$_pk]; } foreach ($s['platforms'] as $_pk => $_pv) { if (!isset($sortedPlatforms[$_pk])) $sortedPlatforms[$_pk] = $_pv; } @endphp
             @foreach($sortedPlatforms as $platform => $status)
               @if($status['online'] !== null)
                 @php

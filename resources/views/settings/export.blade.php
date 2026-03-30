@@ -149,10 +149,6 @@
               <input type="checkbox" name="platforms[]" value="FoodPanda" class="form-checkbox h-5 w-5 text-slate-900 rounded" checked>
               <span class="text-sm font-medium text-slate-900 dark:text-slate-100">FoodPanda</span>
             </label>
-            <label class="flex items-center gap-2 px-4 py-3 border-2 border-slate-300 dark:border-slate-600 rounded-xl cursor-pointer hover:border-slate-400 dark:hover:border-slate-500 transition">
-              <input type="checkbox" name="platforms[]" value="Deliveroo" class="form-checkbox h-5 w-5 text-slate-900 rounded" checked>
-              <span class="text-sm font-medium text-slate-900 dark:text-slate-100">Deliveroo</span>
-            </label>
           </div>
         </div>
 

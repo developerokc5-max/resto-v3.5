@@ -82,7 +82,7 @@
 
           <div class="bg-yellow-50 dark:bg-yellow-900/30 border-l-4 border-yellow-500 p-4 rounded-lg mb-4">
             <div class="font-semibold text-slate-900 dark:text-slate-100 mb-2">🔢 Item Information</div>
-            <p class="text-slate-600 dark:text-slate-400 text-xs leading-relaxed">Each menu item appears 3 times (Grab, FoodPanda, Deliveroo). Total item count shows unique items. Offline count shows items unavailable per platform.</p>
+            <p class="text-slate-600 dark:text-slate-400 text-xs leading-relaxed">Each menu item appears across Grab and FoodPanda. Total item count shows unique items. Offline count shows items unavailable per platform.</p>
           </div>
 
           <div class="bg-red-50 dark:bg-red-900/30 border-l-4 border-red-500 p-4 rounded-lg mb-4">
@@ -90,7 +90,6 @@
             <div class="text-slate-600 dark:text-slate-400 text-xs leading-relaxed space-y-1">
               <p><strong>🟢 Grab:</strong> Green indicators, food delivery service</p>
               <p><strong>🩷 FoodPanda:</strong> Pink indicators, delivery platform</p>
-              <p><strong>🔵 Deliveroo:</strong> Cyan indicators, premium delivery</p>
             </div>
           </div>
 
@@ -106,7 +105,7 @@
 
           <div class="bg-teal-50 dark:bg-teal-900/30 border-l-4 border-teal-500 p-4 rounded-lg mb-4">
             <div class="font-semibold text-slate-900 dark:text-slate-100 mb-2">📍 Timezone & Location</div>
-            <p class="text-slate-600 dark:text-slate-400 text-xs leading-relaxed"><strong>Timezone:</strong> All timestamps in Singapore Time (SGT, UTC+8). <strong>Coverage:</strong> 46 restaurant outlets across Singapore monitored in real-time.</p>
+            <p class="text-slate-600 dark:text-slate-400 text-xs leading-relaxed"><strong>Timezone:</strong> All timestamps in Singapore Time (SGT, UTC+8). <strong>Coverage:</strong> 49 restaurant outlets across Singapore monitored in real-time.</p>
           </div>
 
           <div class="bg-green-50 dark:bg-green-900/30 border-l-4 border-green-500 p-4 rounded-lg">
@@ -152,8 +151,8 @@
 
       <div class="px-4 md:px-8 py-4 md:py-6 space-y-6 max-w-[1600px] mx-auto">
         <!-- Platform Status Cards -->
-        <section class="grid grid-cols-1 md:grid-cols-3 gap-4">
-          @foreach(['grab' => 'Grab', 'foodpanda' => 'FoodPanda', 'deliveroo' => 'Deliveroo'] as $platform => $name)
+        <section class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          @foreach(['grab' => 'Grab', 'foodpanda' => 'FoodPanda'] as $platform => $name)
             @php
               $status = $platformStatus->get($platform);
               $isOnline = $status ? $status->is_online : false;
@@ -256,7 +255,7 @@
 
                   <!-- Platform Status -->
                   <div class="flex gap-1">
-                    @foreach(['grab', 'foodpanda', 'deliveroo'] as $platform)
+                    @foreach(['grab', 'foodpanda'] as $platform)
                       @if(isset($item['platforms'][$platform]))
                         @php
                           $platformData = $item['platforms'][$platform];
@@ -287,7 +286,6 @@
                   <th class="px-3 md:px-6 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase">Status</th>
                   <th class="px-2 md:px-6 py-3 text-center text-xs font-medium text-slate-500 dark:text-slate-400 uppercase">Grab</th>
                   <th class="px-2 md:px-6 py-3 text-center text-xs font-medium text-slate-500 dark:text-slate-400 uppercase"><span class="md:hidden">Panda</span><span class="hidden md:inline">FoodPanda</span></th>
-                  <th class="px-2 md:px-6 py-3 text-center text-xs font-medium text-slate-500 dark:text-slate-400 uppercase"><span class="md:hidden">Delvro</span><span class="hidden md:inline">Deliveroo</span></th>
                 </tr>
               </thead>
               <tbody class="divide-y divide-slate-200 dark:divide-slate-700">
@@ -316,7 +314,7 @@
                         </span>
                       @endif
                     </td>
-                    @foreach(['grab', 'foodpanda', 'deliveroo'] as $platform)
+                    @foreach(['grab', 'foodpanda'] as $platform)
                       <td class="px-2 md:px-6 py-3 md:py-4 text-center">
                         @if(isset($item['platforms'][$platform]))
                           @if($item['platforms'][$platform]['is_available'])

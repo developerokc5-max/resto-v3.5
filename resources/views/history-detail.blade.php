@@ -46,24 +46,21 @@
   $storesWithIssues = $issueStores->count();
   $totalOffline     = (int) $stores->sum('total_offline_items');
 
-  $platformLabels = ['grab' => 'Grab', 'foodpanda' => 'FoodPanda', 'deliveroo' => 'Deliveroo'];
+  $platformLabels = ['grab' => 'Grab', 'foodpanda' => 'FoodPanda'];
 
   // Online = platform colour, Offline = red — used in header badges
   $platformOnlineClass = [
     'grab'      => 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 ring-1 ring-green-200 dark:ring-green-700',
     'foodpanda' => 'bg-pink-100 dark:bg-pink-900/30 text-pink-700 dark:text-pink-400 ring-1 ring-pink-200 dark:ring-pink-700',
-    'deliveroo' => 'bg-cyan-100 dark:bg-cyan-900/30 text-cyan-700 dark:text-cyan-400 ring-1 ring-cyan-200 dark:ring-cyan-700',
   ];
   $platformDotClass = [
     'grab'      => 'bg-green-500',
     'foodpanda' => 'bg-pink-500',
-    'deliveroo' => 'bg-cyan-500',
   ];
   // Used on item rows (which platform the item is offline on)
   $platformBadgeClass = [
     'grab'      => 'bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-400 ring-1 ring-green-200 dark:ring-green-800',
     'foodpanda' => 'bg-pink-100 dark:bg-pink-900/40 text-pink-700 dark:text-pink-400 ring-1 ring-pink-200 dark:ring-pink-800',
-    'deliveroo' => 'bg-cyan-100 dark:bg-cyan-900/40 text-cyan-700 dark:text-cyan-400 ring-1 ring-cyan-200 dark:ring-cyan-800',
   ];
 @endphp
 
@@ -170,7 +167,7 @@
 
           // Merge & deduplicate items across platforms
           $mergedItems = [];
-          foreach (['grab', 'foodpanda', 'deliveroo'] as $platform) {
+          foreach (['grab', 'foodpanda'] as $platform) {
             foreach ($pd[$platform]['offline_items'] ?? [] as $item) {
               $key = $item['name'];
               if (!isset($mergedItems[$key])) {
@@ -205,7 +202,7 @@
                 <p class="font-bold text-slate-900 dark:text-slate-100 text-sm leading-snug">{{ $store->shop_name }}</p>
               </div>
               <div class="flex items-center gap-2 flex-wrap mt-2 ml-4">
-                @foreach(['grab', 'foodpanda', 'deliveroo'] as $platform)
+                @foreach(['grab', 'foodpanda'] as $platform)
                   @if(isset($pd[$platform]))
                     @php $online = ($pd[$platform]['status'] ?? '') === 'Online'; @endphp
                     <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold
@@ -317,7 +314,7 @@
             {{ $store->shop_name }}
           </span>
           <div class="flex items-center gap-1.5 shrink-0 flex-wrap">
-            @foreach(['grab', 'foodpanda', 'deliveroo'] as $platform)
+            @foreach(['grab', 'foodpanda'] as $platform)
               @if(isset($pd[$platform]))
                 @php $online = ($pd[$platform]['status'] ?? '') === 'Online'; @endphp
                 <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold
@@ -378,11 +375,11 @@
               {{ $store->shop_name }}
             </span>
             <div class="flex items-center gap-1 shrink-0">
-              @foreach(['grab', 'foodpanda', 'deliveroo'] as $p2)
+              @foreach(['grab', 'foodpanda'] as $p2)
                 @if(isset($pd2[$p2]))
                   <span class="inline-flex items-center px-1.5 py-0.5 rounded-md text-[10px] font-bold {{ $platformBadgeClass[$p2] }}">
                     <span class="hidden sm:inline">{{ $platformLabels[$p2] }}</span>
-                    <span class="sm:hidden">{{ $p2 === 'grab' ? 'G' : ($p2 === 'foodpanda' ? 'P' : 'D') }}</span>
+                    <span class="sm:hidden">{{ $p2 === 'grab' ? 'G' : 'P' }}</span>
                     ✓
                   </span>
                 @endif

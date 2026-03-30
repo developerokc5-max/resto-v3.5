@@ -418,7 +418,6 @@ def process_all_platforms_for_outlet(page, outlet_name, worker_id):
 
     platforms = [
         ("Grab", "grab"),
-        ("Deliveroo", "deliveroo"),
         ("foodPanda", "foodPanda")
     ]
 

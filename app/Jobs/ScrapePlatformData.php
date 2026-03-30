@@ -64,7 +64,6 @@ class ScrapePlatformData implements ShouldQueue
 
             Log::info('Platform data cached successfully', [
                 'grab' => count($data['grab'] ?? []),
-                'deliveroo' => count($data['deliveroo'] ?? []),
                 'foodpanda' => count($data['foodpanda'] ?? []),
             ]);
 

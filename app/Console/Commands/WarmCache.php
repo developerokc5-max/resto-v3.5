@@ -80,7 +80,7 @@ class WarmCache extends Command
 
                     $onlineCount  = 0;
                     $offlineCount = 0;
-                    foreach (['grab', 'foodpanda', 'deliveroo'] as $platform) {
+                    foreach (['grab', 'foodpanda'] as $platform) {
                         if ($platformStatus->has($platform)) {
                             if ($platformStatus->get($platform)->is_online) {
                                 $onlineCount++;
@@ -180,7 +180,7 @@ class WarmCache extends Command
                 ];
 
                 $platformStats = [];
-                foreach (['grab', 'foodpanda', 'deliveroo'] as $platform) {
+                foreach (['grab', 'foodpanda'] as $platform) {
                     $pd     = $platformStatuses->where('platform', $platform);
                     $total  = $pd->count();
                     $online = $pd->where('is_online', true)->count();
@@ -259,7 +259,7 @@ class WarmCache extends Command
                     ->get()
                     ->keyBy('platform');
                 $platformData = [];
-                foreach (['grab', 'foodpanda', 'deliveroo'] as $platform) {
+                foreach (['grab', 'foodpanda'] as $platform) {
                     $statusData   = $platformStatuses->get($platform);
                     $totalStores  = $statusData->total_stores ?? 0;
                     $onlineStores = $statusData->online_stores ?? 0;
