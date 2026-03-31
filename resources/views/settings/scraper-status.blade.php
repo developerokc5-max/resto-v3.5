@@ -73,7 +73,7 @@
         </div>
         <div>
           <div class="text-xs text-slate-500 dark:text-slate-400 mb-1">Stores Checked</div>
-          <div class="font-bold text-blue-600 dark:text-blue-400">{{ $scraperStatus['total_stores_checked'] }} (49 outlets × 2 platforms)</div>
+          <div class="font-bold text-blue-600 dark:text-blue-400">{{ $scraperStatus['total_stores_checked'] }} (50 outlets × 2 platforms)</div>
         </div>
         <div>
           <div class="text-xs text-slate-500 dark:text-slate-400 mb-1">Success Rate</div>
@@ -90,7 +90,7 @@
         <div class="space-y-1 font-mono text-xs text-slate-700 dark:text-slate-300">
           <div>✓ Last run: {{ $scraperStatus['last_run'] }}</div>
           <div>✓ Platforms scanned: Grab, FoodPanda</div>
-          <div>✓ Outlets monitored: 49</div>
+          <div>✓ Outlets monitored: 50</div>
           <div>✓ Database records: 98 status entries</div>
         </div>
       </div>

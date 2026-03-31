@@ -16,6 +16,11 @@ class ShopHelper
     public static function getShopMap(): array
     {
         return Cache::remember('shop_map', 300, function () {
+            // Brand overrides for outlets whose names don't follow the "Brand @ Location" pattern
+            $brandOverrides = [
+                '403936614' => 'Telur Thai',
+            ];
+
             // Source 1: platform_status table — numeric shop IDs → store_name
             $platformMap = DB::table('platform_status')
                 ->select('shop_id', 'store_name')
@@ -23,9 +28,10 @@ class ShopHelper
                 ->groupBy('shop_id', 'store_name')
                 ->get()
                 ->keyBy('shop_id')
-                ->map(function ($row) {
+                ->map(function ($row) use ($brandOverrides) {
                     $name  = $row->store_name;
-                    $brand = str_contains($name, ' @ ') ? trim(explode(' @ ', $name)[0]) : $name;
+                    $brand = $brandOverrides[(string) $row->shop_id]
+                        ?? (str_contains($name, ' @ ') ? trim(explode(' @ ', $name)[0]) : $name);
                     return ['name' => $name, 'brand' => $brand];
                 })
                 ->toArray();
