@@ -2,7 +2,7 @@
 
 @section('title', 'HawkerOps Dashboard')
 @section('page-title', 'Overview')
-@section('page-description', 'Hybrid monitoring: RestoSuite API + Platform scraping')
+@section('page-description', 'Grab & FoodPanda platform monitoring across all outlets')
 
 @section('extra-head')
 <style>
