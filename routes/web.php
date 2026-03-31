@@ -145,6 +145,8 @@ Route::get('/dashboard', function () {
                 ];
             }
 
+            if (!in_array($status->platform, ['grab', 'foodpanda'])) continue;
+
             // Get offline items count for this shop + platform
             $offlineKey = $status->store_name . '|' . $status->platform;
             $offlineCount = $offlineItemsCounts->get($offlineKey)?->offline_count ?? 0;
