@@ -50,21 +50,21 @@ Route::get('/dashboard', function () {
 
     $stores = [];
 
+    // Top-2 offline item names per shop+platform — used for inline dropdown on dashboard
+    $offlineItemNames = DB::table('items')
+        ->select('shop_name', 'platform', 'name')
+        ->where('is_available', false)
+        ->whereIn('platform', ['grab', 'foodpanda'])
+        ->orderBy('shop_name')->orderBy('platform')->orderBy('name')
+        ->get()
+        ->groupBy(fn($r) => $r->shop_name . '|' . $r->platform)
+        ->map(fn($rows) => $rows->take(2)->pluck('name')->toArray());
+
     if ($storeStats->count() > 0) {
         // We have RestoSuite API data - use it as primary source
 
         // CONSOLIDATED CACHE: Get offline items per shop/platform in single operation
         $offlineItemsCounts = CacheOptimizationHelper::getOfflineItemsPerShopPlatform();
-
-        // Get offline item names (top 2 per shop+platform) for inline dropdown
-        $offlineItemNames = DB::table('items')
-            ->select('shop_name', 'platform', 'name')
-            ->where('is_available', false)
-            ->whereIn('platform', ['grab', 'foodpanda'])
-            ->orderBy('shop_name')->orderBy('platform')->orderBy('name')
-            ->get()
-            ->groupBy(fn($r) => $r->shop_name . '|' . $r->platform)
-            ->map(fn($rows) => $rows->take(2)->pluck('name')->toArray());
 
         // CONSOLIDATED CACHE: Get all recent changes in single operation
         $allRecentChanges = CacheOptimizationHelper::getRecentChangesPerShop(1);
@@ -168,6 +168,7 @@ Route::get('/dashboard', function () {
                 'items_synced' => $status->items_synced ?? 0,
                 'last_checked' => $status->last_checked_at,
                 'offline_items' => (int) $offlineCount,
+                'offline_item_names' => $offlineItemNames->get($status->store_name . '|' . $status->platform, []),
             ];
         }
 
