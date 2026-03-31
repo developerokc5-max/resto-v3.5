@@ -96,11 +96,8 @@
         </svg>
       </button>
       <div id="partial-menu" class="hidden absolute top-full mt-2 w-56 bg-white dark:bg-slate-800 border-2 border-amber-200 dark:border-amber-700 rounded-lg shadow-xl z-50">
-        <button onclick="filterStores('1_offline'); togglePartialDropdown();" class="w-full text-left px-4 py-3 hover:bg-amber-50 dark:hover:bg-amber-900/30 transition text-sm font-medium text-slate-700 dark:text-slate-300 border-b border-slate-100 dark:border-slate-700">
-          <span class="text-amber-600 dark:text-amber-400 font-semibold">1/3 Offline</span> - 2 Platforms Online
-        </button>
-        <button onclick="filterStores('2_offline'); togglePartialDropdown();" class="w-full text-left px-4 py-3 hover:bg-amber-50 dark:hover:bg-amber-900/30 transition text-sm font-medium text-slate-700 dark:text-slate-300">
-          <span class="text-amber-700 dark:text-amber-400 font-semibold">2/3 Offline</span> - 1 Platform Online
+        <button onclick="filterStores('1_offline'); togglePartialDropdown();" class="w-full text-left px-4 py-3 hover:bg-amber-50 dark:hover:bg-amber-900/30 transition text-sm font-medium text-slate-700 dark:text-slate-300">
+          <span class="text-amber-600 dark:text-amber-400 font-semibold">1/2 Offline</span> - 1 Platform Online
         </button>
       </div>
     </div>
@@ -155,7 +152,7 @@
                 <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
                 </svg>
-                <span class="text-xs font-bold text-white whitespace-nowrap">{{ $offlineCount }}/3 Offline</span>
+                <span class="text-xs font-bold text-white whitespace-nowrap">{{ $offlineCount }}/2 Offline</span>
               </div>
             @endif
           </div>
@@ -295,10 +292,10 @@
 
     if (status === '1_offline') {
       document.getElementById('filter-partial').classList.add('active');
-      partialLabel.textContent = '1/3 Offline';
+      partialLabel.textContent = '1/2 Offline';
     } else if (status === '2_offline') {
       document.getElementById('filter-partial').classList.add('active');
-      partialLabel.textContent = '2/3 Offline';
+      partialLabel.textContent = '2/2 Offline';
     } else {
       document.getElementById('filter-' + status)?.classList.add('active');
       partialLabel.textContent = 'Partial Offline';
