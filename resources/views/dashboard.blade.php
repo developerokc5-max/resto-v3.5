@@ -210,8 +210,8 @@
                         <div class="text-xs font-bold text-white">{{ $offlineItems }}</div>
                       </div>
                       @if($hasDropdown)
-                        <svg id="{{ $dropdownId }}-chevron" class="w-4 h-4 text-slate-400 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                        <svg id="{{ $dropdownId }}-chevron" class="w-5 h-5 text-slate-500 dark:text-slate-300 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 9l-7 7-7-7"/>
                         </svg>
                       @endif
                     </div>
