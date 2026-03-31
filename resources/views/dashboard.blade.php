@@ -172,7 +172,7 @@
                   $lastCheckedText = $lastChecked ? \Carbon\Carbon::parse($lastChecked)->diffForHumans() : 'Never';
                   $offlineItems = $status['offline_items'] ?? 0;
                   $offlineItemNames = $status['offline_item_names'] ?? [];
-                  $hasDropdown = $offlineItems >= 1 && $offlineItems <= 2 && count($offlineItemNames) > 0;
+                  $hasDropdown = $offlineItems >= 1 && count($offlineItemNames) > 0;
                   $dropdownId = 'drop-' . $s['shop_id'] . '-' . $platform;
                 @endphp
 
@@ -224,6 +224,12 @@
                           <span class="truncate">{{ $itemName }}</span>
                         </div>
                       @endforeach
+                      @if($offlineItems > 2)
+                        <a href="/store/{{ $s['shop_id'] }}/items?status=unavailable" onclick="event.stopPropagation()" class="flex items-center gap-1 text-xs text-blue-500 dark:text-blue-400 hover:underline pt-0.5 pb-0.5">
+                          <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"/></svg>
+                          View all {{ $offlineItems }} offline items
+                        </a>
+                      @endif
                     </div>
                   @endif
                 </div>
