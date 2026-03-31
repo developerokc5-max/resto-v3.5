@@ -256,7 +256,7 @@ Route::get('/stores', function () {
 
             $onlineCount = 0;
             $offlineCount = 0;
-            foreach (['grab', 'foodpanda', 'deliveroo'] as $platform) {
+            foreach (['grab', 'foodpanda'] as $platform) {
                 if ($platformStatus->has($platform)) {
                     if ($platformStatus->get($platform)->is_online) {
                         $onlineCount++;
@@ -266,7 +266,7 @@ Route::get('/stores', function () {
                 }
             }
 
-            if ($onlineCount === 3) {
+            if ($onlineCount === 2) {
                 $status = 'all_online';
                 $statusText = 'All Platforms Online';
             } elseif ($onlineCount === 0) {
@@ -274,7 +274,7 @@ Route::get('/stores', function () {
                 $statusText = 'All Platforms Offline';
             } else {
                 $status = 'partial_offline';
-                $statusText = "{$offlineCount}/3 Offline";
+                $statusText = "{$offlineCount}/2 Offline";
             }
 
             $shopInfo = $shopMap[$shop->shop_id] ?? ['name' => $shop->shop_name, 'brand' => $shop->organization_name ?? $shop->shop_name ?? 'Unknown'];
