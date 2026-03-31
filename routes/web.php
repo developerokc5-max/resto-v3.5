@@ -56,6 +56,16 @@ Route::get('/dashboard', function () {
         // CONSOLIDATED CACHE: Get offline items per shop/platform in single operation
         $offlineItemsCounts = CacheOptimizationHelper::getOfflineItemsPerShopPlatform();
 
+        // Get offline item names (top 2 per shop+platform) for inline dropdown
+        $offlineItemNames = DB::table('items')
+            ->select('shop_name', 'platform', 'name')
+            ->where('is_available', false)
+            ->whereIn('platform', ['grab', 'foodpanda'])
+            ->orderBy('shop_name')->orderBy('platform')->orderBy('name')
+            ->get()
+            ->groupBy(fn($r) => $r->shop_name . '|' . $r->platform)
+            ->map(fn($rows) => $rows->take(2)->pluck('name')->toArray());
+
         // CONSOLIDATED CACHE: Get all recent changes in single operation
         $allRecentChanges = CacheOptimizationHelper::getRecentChangesPerShop(1);
 
@@ -111,12 +121,14 @@ Route::get('/dashboard', function () {
                         'items_synced' => $platformStatus->get('grab')?->items_synced ?? 0,
                         'last_checked' => $platformStatus->get('grab')?->last_checked_at ?? null,
                         'offline_items' => (int) $grabOffline,
+                        'offline_item_names' => $offlineItemNames->get($shopInfo['name'] . '|grab', []),
                     ],
                     'foodpanda' => [
                         'online' => $platformStatus->get('foodpanda')?->is_online ?? null,
                         'items_synced' => $platformStatus->get('foodpanda')?->items_synced ?? 0,
                         'last_checked' => $platformStatus->get('foodpanda')?->last_checked_at ?? null,
                         'offline_items' => (int) $foodpandaOffline,
+                        'offline_item_names' => $offlineItemNames->get($shopInfo['name'] . '|foodpanda', []),
                     ],
                 ],
             ];

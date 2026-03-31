@@ -174,10 +174,14 @@
                   $lastChecked = $status['last_checked'] ?? null;
                   $lastCheckedText = $lastChecked ? \Carbon\Carbon::parse($lastChecked)->diffForHumans() : 'Never';
                   $offlineItems = $status['offline_items'] ?? 0;
+                  $offlineItemNames = $status['offline_item_names'] ?? [];
+                  $hasDropdown = $offlineItems >= 1 && $offlineItems <= 2 && count($offlineItemNames) > 0;
+                  $dropdownId = 'drop-' . $s['shop_id'] . '-' . $platform;
                 @endphp
 
-                <div class="group relative {{ $isOnline ? 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-600' : 'offline-row' }} border-2 rounded-xl p-3 hover:shadow-md transition-all">
-                  <div class="flex items-center justify-between">
+                <div class="{{ $isOnline ? 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-600' : 'offline-row' }} border-2 rounded-xl overflow-hidden transition-all {{ $hasDropdown ? 'cursor-pointer select-none' : '' }}"
+                  @if($hasDropdown) onclick="toggleDrop('{{ $dropdownId }}')" @endif>
+                  <div class="flex items-center justify-between p-3">
                     <div class="flex items-center gap-3 flex-1">
                       @php
                         $iconBg = match($platform) {
@@ -186,7 +190,7 @@
                           default     => 'background:linear-gradient(to bottom right,#0f766e,#164e63)',
                         };
                       @endphp
-                      <div style="{{ $iconBg }}" class="w-10 h-10 rounded-lg {{ $isOnline ? '' : 'opacity-50' }} flex items-center justify-center text-white font-bold text-sm shadow-sm">
+                      <div style="{{ $iconBg }}" class="w-10 h-10 rounded-lg {{ $isOnline ? '' : 'opacity-50' }} flex items-center justify-center text-white font-bold text-sm shadow-sm flex-shrink-0">
                         {{ strtoupper(substr($config['name'], 0, 1)) }}
                       </div>
                       <div class="flex-1">
@@ -199,7 +203,7 @@
                         </div>
                       </div>
                     </div>
-                    <div class="flex flex-col items-end gap-1">
+                    <div class="flex items-center gap-2">
                       @php
                         $badgeBg = $offlineItems >= 5
                           ? 'background:#b91c1c'
@@ -208,8 +212,23 @@
                       <div style="{{ $badgeBg }}" class="px-3 py-1.5 rounded-lg shadow-sm">
                         <div class="text-xs font-bold text-white">{{ $offlineItems }}</div>
                       </div>
+                      @if($hasDropdown)
+                        <svg id="{{ $dropdownId }}-chevron" class="w-4 h-4 text-slate-400 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                        </svg>
+                      @endif
                     </div>
                   </div>
+                  @if($hasDropdown)
+                    <div id="{{ $dropdownId }}" class="hidden border-t border-slate-100 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/60 px-4 py-2 space-y-1">
+                      @foreach($offlineItemNames as $itemName)
+                        <div class="flex items-center gap-2 text-xs text-slate-600 dark:text-slate-300 py-0.5">
+                          <span class="w-1.5 h-1.5 rounded-full bg-red-400 flex-shrink-0"></span>
+                          <span class="truncate">{{ $itemName }}</span>
+                        </div>
+                      @endforeach
+                    </div>
+                  @endif
                 </div>
               @endif
             @endforeach
@@ -313,6 +332,15 @@
   function debouncedSearch() {
     clearTimeout(_searchTimer);
     _searchTimer = setTimeout(searchCards, 200);
+  }
+
+  function toggleDrop(id) {
+    const panel = document.getElementById(id);
+    const chevron = document.getElementById(id + '-chevron');
+    if (!panel) return;
+    const isHidden = panel.classList.contains('hidden');
+    panel.classList.toggle('hidden', !isHidden);
+    if (chevron) chevron.style.transform = isHidden ? 'rotate(180deg)' : '';
   }
 </script>
 @endsection
