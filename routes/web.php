@@ -76,15 +76,14 @@ Route::get('/dashboard', function () {
             // Get offline items count for each platform
             $grabOffline = $offlineItemsCounts->get($shopInfo['name'] . '|grab')?->offline_count ?? 0;
             $foodpandaOffline = $offlineItemsCounts->get($shopInfo['name'] . '|foodpanda')?->offline_count ?? 0;
-            $deliverooOffline = $offlineItemsCounts->get($shopInfo['name'] . '|deliveroo')?->offline_count ?? 0;
 
             $platformOfflineCount = 0;
-            foreach (['grab', 'foodpanda', 'deliveroo'] as $_p) {
+            foreach (['grab', 'foodpanda'] as $_p) {
                 $isOnline = $platformStatus->get($_p)?->is_online ?? null;
                 if ($isOnline === false) $platformOfflineCount++;
             }
-            $platformOnlineCount = 3 - $platformOfflineCount;
-            if ($platformOnlineCount === 3) {
+            $platformOnlineCount = 2 - $platformOfflineCount;
+            if ($platformOnlineCount === 2) {
                 $overallStatus = 'all_online';
             } elseif ($platformOnlineCount === 0) {
                 $overallStatus = 'all_offline';
@@ -118,12 +117,6 @@ Route::get('/dashboard', function () {
                         'items_synced' => $platformStatus->get('foodpanda')?->items_synced ?? 0,
                         'last_checked' => $platformStatus->get('foodpanda')?->last_checked_at ?? null,
                         'offline_items' => (int) $foodpandaOffline,
-                    ],
-                    'deliveroo' => [
-                        'online' => $platformStatus->get('deliveroo')?->is_online ?? null,
-                        'items_synced' => $platformStatus->get('deliveroo')?->items_synced ?? 0,
-                        'last_checked' => $platformStatus->get('deliveroo')?->last_checked_at ?? null,
-                        'offline_items' => (int) $deliverooOffline,
                     ],
                 ],
             ];
@@ -167,14 +160,14 @@ Route::get('/dashboard', function () {
         // Convert to stores array format
         foreach ($shopsPlatforms as $shopId => $shopData) {
             $offlineCount = 0;
-            foreach (['grab', 'foodpanda', 'deliveroo'] as $platform) {
+            foreach (['grab', 'foodpanda'] as $platform) {
                 if (isset($shopData['platforms'][$platform]) && !$shopData['platforms'][$platform]['online']) {
                     $offlineCount++;
                 }
             }
 
-            $onlineCount = 3 - $offlineCount;
-            if ($onlineCount === 3) {
+            $onlineCount = 2 - $offlineCount;
+            if ($onlineCount === 2) {
                 $overallStatus = 'all_online';
             } elseif ($onlineCount === 0) {
                 $overallStatus = 'all_offline';
