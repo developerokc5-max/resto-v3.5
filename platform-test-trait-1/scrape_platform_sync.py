@@ -42,6 +42,37 @@ def log(message):
     except Exception as e:
         print(f"Warning: Could not write to log file: {e}", file=sys.stderr)
 
+def ensure_schema():
+    """
+    Ensure all DB columns and tables this scraper needs exist.
+    Safe to run every time — uses IF NOT EXISTS so it never conflicts with Laravel migrations.
+    """
+    try:
+        conn = psycopg2.connect(DATABASE_URL)
+        cur = conn.cursor()
+        cur.execute("""
+            ALTER TABLE shops
+            ADD COLUMN IF NOT EXISTS brand VARCHAR(255)
+        """)
+        cur.execute("""
+            ALTER TABLE shops
+            ADD COLUMN IF NOT EXISTS maintenance_mode BOOLEAN NOT NULL DEFAULT FALSE
+        """)
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS scraper_manual_triggers (
+                id SERIAL PRIMARY KEY,
+                scraper_type VARCHAR(20) NOT NULL,
+                triggered_at TIMESTAMP NOT NULL DEFAULT NOW()
+            )
+        """)
+        conn.commit()
+        cur.close()
+        conn.close()
+        log("Schema OK")
+    except Exception as e:
+        log(f"Warning: ensure_schema failed: {e}")
+
+
 def check_skip_scheduled_run():
     """
     If this is a scheduled run and a manual scan was triggered within the last
@@ -583,5 +614,6 @@ def main():
         log(f"⚠ Alert check failed (non-critical): {e}")
 
 if __name__ == "__main__":
+    ensure_schema()
     check_skip_scheduled_run()
     main()

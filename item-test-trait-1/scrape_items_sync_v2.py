@@ -62,6 +62,43 @@ def log(msg, worker_id=None):
         with open(LOG_FILE, "a", encoding="utf-8") as f:
             f.write(log_msg + "\n")
 
+def ensure_schema():
+    """
+    Ensure all DB columns and tables this scraper needs exist.
+    Uses IF NOT EXISTS / ADD COLUMN IF NOT EXISTS so it is always safe to run
+    and never fails if a Laravel migration already applied the change.
+    """
+    conn = get_db_connection()
+    cur = conn.cursor()
+    try:
+        # brand column on shops (added in Laravel migration 2026_04_01_000000)
+        cur.execute("""
+            ALTER TABLE shops
+            ADD COLUMN IF NOT EXISTS brand VARCHAR(255)
+        """)
+        # maintenance_mode column on shops (added in Laravel migration 2026_04_01_000001)
+        cur.execute("""
+            ALTER TABLE shops
+            ADD COLUMN IF NOT EXISTS maintenance_mode BOOLEAN NOT NULL DEFAULT FALSE
+        """)
+        # scraper_manual_triggers table (added in Laravel migration 2026_03_25_000000)
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS scraper_manual_triggers (
+                id SERIAL PRIMARY KEY,
+                scraper_type VARCHAR(20) NOT NULL,
+                triggered_at TIMESTAMP NOT NULL DEFAULT NOW()
+            )
+        """)
+        conn.commit()
+        log("Schema OK")
+    except Exception as e:
+        conn.rollback()
+        log(f"Warning: ensure_schema failed: {e}")
+    finally:
+        cur.close()
+        conn.close()
+
+
 def check_skip_scheduled_run():
     """
     If this is a scheduled run and a manual scan was triggered within the last
@@ -875,5 +912,6 @@ def cleanup_ghost_shops(seen_outlet_names):
 
 
 if __name__ == "__main__":
+    ensure_schema()
     check_skip_scheduled_run()
     main()
