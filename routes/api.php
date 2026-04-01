@@ -28,6 +28,37 @@ Route::get('/last-sync', function () {
     return response()->json(['timestamp' => $ts]);
 });
 
+// Clear page cache — called by Reload button before fetching fresh HTML
+Route::post('/cache/clear', function () {
+    $keys = [
+        'shop_map',
+        'stores_page_data',
+        'platforms_page_data',
+        'offline_items_page',
+        'shops_name_list',
+        'items_categories',
+        'dashboard_kpis_consolidated',
+        'alert_metrics_consolidated',
+        'store_stats_consolidated',
+        'offline_items_by_shop_platform',
+        'all_platform_statuses',
+        'alerts_db_data',
+        'reports_daily_trends',
+        'reports_platform_reliability',
+        'reports_item_performance_v2',
+        'store_comparison_db',
+        'scraper_status_db',
+        'scraper_logs_recent',
+        'last_sync_unix',
+    ];
+
+    foreach ($keys as $key) {
+        Cache::forget($key);
+    }
+
+    return response()->json(['ok' => true]);
+});
+
 // ========================================
 // PROTECTED MOBILE APP MONITORING API
 // ========================================

@@ -132,7 +132,12 @@ async function smartReload(btn) {
   if (btn) { btn.disabled = true; btn.style.opacity = '0.6'; }
 
   try {
-    // ── Step 1: Lightweight timestamp check (~50ms vs ~500ms for full HTML) ──
+    // ── Step 1: Clear server cache when user explicitly clicks Reload ──
+    if (btn) {
+      try { await fetch('/api/cache/clear', { method: 'POST', cache: 'no-store' }); } catch (_) {}
+    }
+
+    // ── Step 2: Lightweight timestamp check (~50ms vs ~500ms for full HTML) ──
     // Skip the expensive full-page fetch on auto-refresh when data hasn't changed.
     // Always fetch fresh content when the user explicitly clicks Reload (btn is set).
     try {
