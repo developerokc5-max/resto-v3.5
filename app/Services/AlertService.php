@@ -44,10 +44,14 @@ class AlertService
         $appUrl      = rtrim(env('APP_URL', 'https://resto-v3-5.onrender.com'), '/');
 
         // Pre-load maintenance mode shops — skip alerting for these
-        $maintenanceShops = DB::table('shops')
-            ->where('maintenance_mode', true)
-            ->pluck('shop_id')
-            ->flip();
+        try {
+            $maintenanceShops = DB::table('shops')
+                ->where('maintenance_mode', true)
+                ->pluck('shop_id')
+                ->flip();
+        } catch (\Exception $e) {
+            $maintenanceShops = collect();
+        }
 
         foreach ($currentStatuses as $shopId => $platforms) {
             // Skip shops in maintenance mode

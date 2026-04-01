@@ -80,9 +80,13 @@ Route::get('/dashboard', function () {
             ->keyBy('shop_id');
     });
 
-    // Maintenance mode shops
+    // Maintenance mode shops (safe — column may not exist yet if migration pending)
     $maintenanceShops = Cache::remember('dashboard_maintenance_shops', 300, function () {
-        return DB::table('shops')->where('maintenance_mode', true)->pluck('shop_id')->flip();
+        try {
+            return DB::table('shops')->where('maintenance_mode', true)->pluck('shop_id')->flip();
+        } catch (\Exception $e) {
+            return collect();
+        }
     });
 
     if ($storeStats->count() > 0) {
@@ -417,7 +421,7 @@ Route::get('/store/{shop_id}', function ($shop_id) {
         'shopInfo'        => $shopInfo,
         'items'           => $storeData['groupedItems'],
         'platformStatus'  => $storeData['platformStatus'],
-        'maintenanceMode' => (bool) ($shop->maintenance_mode ?? false),
+        'maintenanceMode' => property_exists($shop, 'maintenance_mode') ? (bool) $shop->maintenance_mode : false,
     ]);
 });
 
