@@ -45,7 +45,7 @@ SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 LOG_FILE = os.path.join(SCRIPT_DIR, "scrape_items_sync_v2.log")
 
 # Number of parallel browsers (6 workers = ~20 min, uses ~6GB RAM)
-NUM_WORKERS = 7
+NUM_WORKERS = 3
 
 # Thread-safe logging
 log_lock = Lock()
