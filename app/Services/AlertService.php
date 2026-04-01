@@ -193,7 +193,7 @@ class AlertService
 
     public function checkScraperFailure(): void
     {
-        $hours = (int) (DB::table('configurations')->where('key', 'scraper_alert_hours')->value('value') ?? 0);
+        $hours = (int) (DB::table('configurations')->where('key', 'scraper_alert_hours')->value('value') ?? 2);
         if ($hours <= 0) return;
 
         $lastScrapeAt = DB::table('platform_status')->max('last_checked_at');

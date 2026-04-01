@@ -2061,7 +2061,7 @@ Route::get('/settings/configuration', function () {
         'alertEmail' => $configs->get('alert_email')?->value ?? 'alerts@example.com',
         'whatsappNumber' => $configs->get('whatsapp_number')?->value ?? '',
         'whatsappApikey' => $configs->get('whatsapp_apikey')?->value ?? '',
-        'scraperAlertHours' => $configs->get('scraper_alert_hours')?->value ?? '0',
+        'scraperAlertHours' => $configs->get('scraper_alert_hours')?->value ?? '2',
         'timezone' => $configs->get('timezone')?->value ?? 'Asia/Singapore',
         'dateFormat' => $configs->get('date_format')?->value ?? 'DD/MM/YYYY',
         'showItemImages' => (bool) ($configs->get('show_item_images')?->value ?? true),
