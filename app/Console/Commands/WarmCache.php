@@ -90,7 +90,7 @@ class WarmCache extends Command
                         }
                     }
 
-                    if ($onlineCount === 3) {
+                    if ($onlineCount === 2) {
                         $status     = 'all_online';
                         $statusText = 'All Platforms Online';
                     } elseif ($onlineCount === 0) {
@@ -98,7 +98,7 @@ class WarmCache extends Command
                         $statusText = 'All Platforms Offline';
                     } else {
                         $status     = 'partial_offline';
-                        $statusText = "{$offlineCount}/3 Offline";
+                        $statusText = "{$offlineCount}/2 Offline";
                     }
 
                     $shopInfo = $shopMap[$shop->shop_id] ?? [

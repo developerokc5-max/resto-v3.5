@@ -79,7 +79,7 @@
                 $statusLabel = match(true) {
                     $status === 'All Online'  => ['text' => 'All Online',  'class' => 'bg-emerald-100 dark:bg-emerald-900/20 text-emerald-800 dark:text-emerald-400 border border-emerald-300 dark:border-emerald-800'],
                     $status === 'All Offline' => ['text' => 'All Offline', 'class' => 'bg-red-100 dark:bg-red-900/20 text-red-800 dark:text-red-400 border border-red-300 dark:border-red-800'],
-                    default                   => ['text' => $onlineCount.'/3 Online', 'class' => 'bg-amber-100 dark:bg-amber-900/20 text-amber-800 dark:text-amber-400 border border-amber-300 dark:border-amber-800'],
+                    default                   => ['text' => $onlineCount.'/2 Online', 'class' => 'bg-amber-100 dark:bg-amber-900/20 text-amber-800 dark:text-amber-400 border border-amber-300 dark:border-amber-800'],
                 };
 
                 $platformConfig = [

@@ -403,7 +403,7 @@ Route::get('/items', function (Request $request) {
             ->orderBy('name')
             ->get();
 
-        // Group items by shop + name to show all 3 platforms together
+        // Group items by shop + name to show all platforms together
         $grouped = [];
         foreach ($allItems as $item) {
             $key = $item->shop_name . '|' . $item->name;
@@ -419,7 +419,6 @@ Route::get('/items', function (Request $request) {
                     'platforms' => [
                         'grab' => false,
                         'foodpanda' => false,
-                        'deliveroo' => false,
                     ],
                 ];
             }
@@ -435,11 +434,10 @@ Route::get('/items', function (Request $request) {
     if ($selectedStatus) {
         $itemsGrouped = array_values(array_filter($itemsGrouped, function ($item) use ($selectedStatus) {
             $oc = (int)$item['platforms']['grab']
-                + (int)$item['platforms']['foodpanda']
-                + (int)$item['platforms']['deliveroo'];
+                + (int)$item['platforms']['foodpanda'];
             return match ($selectedStatus) {
-                'online'    => $oc === 3,
-                'has_issue' => $oc < 3,
+                'online'    => $oc === 2,
+                'has_issue' => $oc < 2,
                 'offline'   => $oc === 0,
                 default     => true,
             };
@@ -471,7 +469,7 @@ Route::get('/items', function (Request $request) {
         'total' => count($itemsGrouped),  // Unique items, not total records
         'restaurants' => $restaurants->count(),
         'available' => count(array_filter($itemsGrouped, function($item) {
-            return $item['platforms']['grab'] || $item['platforms']['foodpanda'] || $item['platforms']['deliveroo'];
+            return $item['platforms']['grab'] || $item['platforms']['foodpanda'];
         })),
     ];
 
@@ -515,7 +513,7 @@ Route::get('/items/management', function (Request $request) {
     foreach ($items as $item) {
         $key = $item->shop_name . '|' . $item->name;
         if (!isset($itemsGrouped[$key])) {
-            $itemsGrouped[$key] = ['shop_name' => $item->shop_name, 'name' => $item->name, 'sku' => $item->sku, 'category' => $item->category, 'price' => $item->price, 'platforms' => ['grab' => null, 'foodpanda' => null, 'deliveroo' => null], 'any_available' => false];
+            $itemsGrouped[$key] = ['shop_name' => $item->shop_name, 'name' => $item->name, 'sku' => $item->sku, 'category' => $item->category, 'price' => $item->price, 'platforms' => ['grab' => null, 'foodpanda' => null], 'any_available' => false];
         }
         $itemsGrouped[$key]['platforms'][$item->platform] = ['id' => $item->id, 'is_available' => (bool)$item->is_available];
         if ($item->is_available) { $itemsGrouped[$key]['any_available'] = true; }
@@ -588,7 +586,7 @@ Route::get('/platforms', function () {
         ];
 
         $platformStats = [];
-        foreach (['grab', 'foodpanda', 'deliveroo'] as $platform) {
+        foreach (['grab', 'foodpanda'] as $platform) {
             $platformData = $platformStatuses->where('platform', $platform);
             $total  = $platformData->count();
             $online = $platformData->where('is_online', true)->count();
@@ -655,7 +653,6 @@ Route::get('/store/{shopId}/items', function ($shopId) {
     $offlineItemsByPlatform = [
         'grab' => [],
         'foodpanda' => [],
-        'deliveroo' => [],
     ];
 
     $totalOfflineItems = 0;
@@ -686,12 +683,6 @@ Route::get('/store/{shopId}/items', function ($shopId) {
             'is_online' => $platformStatus->get('foodpanda')?->is_online ?? null,
             'last_checked' => $platformStatus->get('foodpanda')?->last_checked_at ?? null,
             'color' => 'pink',
-        ],
-        'deliveroo' => [
-            'name' => 'Deliveroo',
-            'is_online' => $platformStatus->get('deliveroo')?->is_online ?? null,
-            'last_checked' => $platformStatus->get('deliveroo')?->last_checked_at ?? null,
-            'color' => 'cyan',
         ],
     ];
 
@@ -731,7 +722,6 @@ Route::get('/offline-items', function () {
                 'platforms' => [
                     'grab' => ['is_online' => null, 'last_checked' => null],
                     'foodpanda' => ['is_online' => null, 'last_checked' => null],
-                    'deliveroo' => ['is_online' => null, 'last_checked' => null],
                 ],
                 'online_count' => 0,
                 'offline_count' => 0,
@@ -751,7 +741,7 @@ Route::get('/offline-items', function () {
         $onlineCount = 0;
         $offlineCount = 0;
 
-        foreach (['grab', 'foodpanda', 'deliveroo'] as $platform) {
+        foreach (['grab', 'foodpanda'] as $platform) {
             if (isset($store['platforms'][$platform]['is_online'])) {
                 if ($store['platforms'][$platform]['is_online']) {
                     $onlineCount++;
@@ -765,9 +755,9 @@ Route::get('/offline-items', function () {
         $store['offline_count'] = $offlineCount;
 
         // Determine overall status
-        if ($onlineCount === 3) {
+        if ($onlineCount === 2) {
             $store['overall_status'] = 'all_online';
-        } elseif ($offlineCount === 3) {
+        } elseif ($offlineCount === 2) {
             $store['overall_status'] = 'all_offline';
         } else {
             $store['overall_status'] = 'mixed';
@@ -819,16 +809,16 @@ Route::get('/store/{shopId}/logs', function ($shopId) {
         ->get()
         ->keyBy('platform');
 
-    // Batch all 3 platform queries into ONE DB call (avoids N+1)
+    // Batch all platform queries into ONE DB call (avoids N+1)
     $allOfflineItems = DB::table('items')
         ->whereRaw('LOWER(shop_name) = LOWER(?)', [$shopInfo['name']])
         ->where('is_available', false)
-        ->whereIn('platform', ['grab', 'foodpanda', 'deliveroo'])
+        ->whereIn('platform', ['grab', 'foodpanda'])
         ->get()
         ->groupBy('platform');
 
     $platformData = [];
-    foreach (['grab', 'foodpanda', 'deliveroo'] as $platform) {
+    foreach (['grab', 'foodpanda'] as $platform) {
         $status = $platformStatus->get($platform);
         $offlineItems = $allOfflineItems->get($platform, collect());
 
@@ -860,7 +850,7 @@ Route::get('/store/{shopId}/logs', function ($shopId) {
         'shop_id' => $shopId,
         'shop_name' => $shopInfo['name'],
         'platforms_online' => $onlinePlatforms,
-        'total_platforms' => 3,
+        'total_platforms' => 2,
         'total_offline_items' => $totalOffline,
         'platform_data' => json_encode($platformData),
         'logged_at' => $todayUtcStart,
@@ -887,7 +877,7 @@ Route::get('/store/{shopId}/logs', function ($shopId) {
         // Build per-platform data merging stored status with item_status_history items
         $mergedPlatformData = [];
         $cardTotalOffline = 0;
-        foreach (['grab', 'foodpanda', 'deliveroo'] as $platform) {
+        foreach (['grab', 'foodpanda'] as $platform) {
             if ($isTodaySgt) {
                 $mergedPlatformData[$platform] = $platformData[$platform];
             } else {
@@ -907,7 +897,7 @@ Route::get('/store/{shopId}/logs', function ($shopId) {
         $statusCards[] = [
             'id'                  => $historicalLogs->count() - $index,
             'timestamp'           => $displayTime,
-            'outlet_status'       => $log->platforms_online === 3 ? 'All Online' : ($log->platforms_online === 0 ? 'All Offline' : 'Mixed'),
+            'outlet_status'       => $log->platforms_online === 2 ? 'All Online' : ($log->platforms_online === 0 ? 'All Offline' : 'Mixed'),
             'platforms_online'    => $log->platforms_online,
             'total_offline_items' => $isTodaySgt ? $totalOffline : $cardTotalOffline,
             'platform_data'       => $mergedPlatformData,
@@ -971,22 +961,19 @@ Route::get('/dashboard/export', function () {
         // Extract platform-specific data
         $grabStatus = $platformStatusMap->get('grab');
         $foodpandaStatus = $platformStatusMap->get('foodpanda');
-        $deliverooStatus = $platformStatusMap->get('deliveroo');
 
         $grabOffline = $offlineItemsMap->get('grab')?->offline_count ?? 0;
         $foodpandaOffline = $offlineItemsMap->get('foodpanda')?->offline_count ?? 0;
-        $deliverooOffline = $offlineItemsMap->get('deliveroo')?->offline_count ?? 0;
 
-        $totalOffline = $grabOffline + $foodpandaOffline + $deliverooOffline;
+        $totalOffline = $grabOffline + $foodpandaOffline;
 
         // Calculate overall status
         $onlineCount = 0;
         if ($grabStatus && $grabStatus->is_online) $onlineCount++;
         if ($foodpandaStatus && $foodpandaStatus->is_online) $onlineCount++;
-        if ($deliverooStatus && $deliverooStatus->is_online) $onlineCount++;
 
         $overallStatus = 'Mixed';
-        if ($onlineCount === 3) $overallStatus = 'All Online';
+        if ($onlineCount === 2) $overallStatus = 'All Online';
         if ($onlineCount === 0) $overallStatus = 'All Offline';
 
         $exportData[] = [
@@ -994,7 +981,7 @@ Route::get('/dashboard/export', function () {
             'store_name' => $shopInfo['name'],
             'shop_id' => $shopId,
             'overall_status' => $overallStatus,
-            'platforms_online' => $onlineCount . '/3',
+            'platforms_online' => $onlineCount . '/2',
             'total_offline_items' => $totalOffline,
 
             // Grab details
@@ -1006,11 +993,6 @@ Route::get('/dashboard/export', function () {
             'foodpanda_status' => $foodpandaStatus ? ($foodpandaStatus->is_online ? 'Online' : 'OFFLINE') : 'Unknown',
             'foodpanda_offline_items' => $foodpandaOffline,
             'foodpanda_last_checked' => $foodpandaStatus && $foodpandaStatus->last_checked_at ? \Carbon\Carbon::parse($foodpandaStatus->last_checked_at)->format('Y-m-d H:i:s') : 'Never',
-
-            // Deliveroo details
-            'deliveroo_status' => $deliverooStatus ? ($deliverooStatus->is_online ? 'Online' : 'OFFLINE') : 'Unknown',
-            'deliveroo_offline_items' => $deliverooOffline,
-            'deliveroo_last_checked' => $deliverooStatus && $deliverooStatus->last_checked_at ? \Carbon\Carbon::parse($deliverooStatus->last_checked_at)->format('Y-m-d H:i:s') : 'Never',
         ];
     }
 
@@ -1023,7 +1005,6 @@ Route::get('/dashboard/export', function () {
     $csv .= "Brand,Store Name,Shop ID,Overall Status,Platforms Online,Total Offline Items,";
     $csv .= "Grab Status,Grab Offline Items,Grab Last Checked (SGT),";
     $csv .= "FoodPanda Status,FoodPanda Offline Items,FoodPanda Last Checked (SGT),";
-    $csv .= "Deliveroo Status,Deliveroo Offline Items,Deliveroo Last Checked (SGT),";
     $csv .= "Exported At (SGT)\n";
 
     $exportedAt = \Carbon\Carbon::now('Asia/Singapore')->format('Y-m-d H:i:s');
@@ -1046,10 +1027,6 @@ Route::get('/dashboard/export', function () {
                 $row['foodpanda_status'],
                 $row['foodpanda_offline_items'],
                 $row['foodpanda_last_checked'],
-
-                $row['deliveroo_status'],
-                $row['deliveroo_offline_items'],
-                $row['deliveroo_last_checked'],
 
                 $exportedAt,
             ]
@@ -1360,7 +1337,7 @@ Route::get('/history', function () {
 
     $allOfflineItems = DB::table('items')
         ->where('is_available', false)
-        ->whereIn('platform', ['grab', 'foodpanda', 'deliveroo'])
+        ->whereIn('platform', ['grab', 'foodpanda'])
         ->get()
         ->groupBy(fn($item) => strtolower($item->shop_name) . '|' . $item->platform);
 
@@ -1371,7 +1348,7 @@ Route::get('/history', function () {
         $totalOffline    = 0;
         $storeName       = $platforms->first()->store_name ?? '';
 
-        foreach (['grab', 'foodpanda', 'deliveroo'] as $platform) {
+        foreach (['grab', 'foodpanda'] as $platform) {
             $status       = $platforms->firstWhere('platform', $platform);
             $offlineItems = $allOfflineItems->get(strtolower($storeName) . '|' . $platform, collect());
             $offlineCount = $offlineItems->count();
@@ -1547,29 +1524,25 @@ Route::get('/history/{date}/export', function ($date) {
         $handle = fopen('php://output', 'w');
         fputcsv($handle, [
             'Date', 'Store Name', 'Store ID',
-            'Grab Status', 'Panda Status', 'Deliveroo Status',
+            'Grab Status', 'Panda Status',
             'Total Items Offline',
-            'Grab Offline Items', 'Panda Offline Items', 'Deliveroo Offline Items',
+            'Grab Offline Items', 'Panda Offline Items',
         ]);
         foreach ($stores as $s) {
             $pd = $s->platform_data ?? [];
             $grabStatus  = $pd['grab']['status']      ?? 'N/A';
             $fpStatus    = $pd['foodpanda']['status']  ?? 'N/A';
-            $delStatus   = $pd['deliveroo']['status']  ?? 'N/A';
             $grabItems   = implode('; ', array_column($pd['grab']['offline_items']      ?? [], 'name'));
             $fpItems     = implode('; ', array_column($pd['foodpanda']['offline_items'] ?? [], 'name'));
-            $delItems    = implode('; ', array_column($pd['deliveroo']['offline_items'] ?? [], 'name'));
             fputcsv($handle, [
                 $date,
                 $s->shop_name,
                 $s->shop_id,
                 $grabStatus,
                 $fpStatus,
-                $delStatus,
                 $s->total_offline_items,
                 $grabItems,
                 $fpItems,
-                $delItems,
             ]);
         }
         fclose($handle);
@@ -1702,8 +1675,7 @@ Route::get('/reports/daily-trends', function (\Illuminate\Http\Request $request)
             ->selectRaw("
                 snapshot_date,
                 ROUND(AVG(CASE WHEN (platform_data::jsonb)->'grab'->>'status' = 'Online' THEN 100.0 ELSE 0 END), 1) as grab_uptime,
-                ROUND(AVG(CASE WHEN (platform_data::jsonb)->'foodpanda'->>'status' = 'Online' THEN 100.0 ELSE 0 END), 1) as foodpanda_uptime,
-                ROUND(AVG(CASE WHEN (platform_data::jsonb)->'deliveroo'->>'status' = 'Online' THEN 100.0 ELSE 0 END), 1) as deliveroo_uptime
+                ROUND(AVG(CASE WHEN (platform_data::jsonb)->'foodpanda'->>'status' = 'Online' THEN 100.0 ELSE 0 END), 1) as foodpanda_uptime
             ")
             ->whereBetween('snapshot_date', [$startDate, $endDate])
             ->whereNotNull('platform_data')
@@ -1741,7 +1713,7 @@ Route::get('/reports/platform-reliability', function () {
             ->keyBy('platform');
 
         $platformData = [];
-        foreach (['grab', 'foodpanda', 'deliveroo'] as $platform) {
+        foreach (['grab', 'foodpanda'] as $platform) {
             // For uptime, we use a reasonable default assuming online if current status is online
             $statusData = $platformStatuses->get($platform);
             $totalStores = $statusData->total_stores ?? 0;
@@ -1956,7 +1928,6 @@ Route::get('/reports/store-comparison', function () {
             'last_checked'      => $lastCheckedLabel,
             'grab_online'       => (bool)($platformStatus->get('grab')?->is_online),
             'foodpanda_online'  => (bool)($platformStatus->get('foodpanda')?->is_online),
-            'deliveroo_online'  => (bool)($platformStatus->get('deliveroo')?->is_online),
         ];
     }
 

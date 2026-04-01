@@ -99,11 +99,11 @@ class CacheOptimizationHelper
                 ->get();
 
             $fullyOfflineCount = $offlineStores->filter(function ($store) {
-                return $store->offline_count === 3;
+                return $store->offline_count === 2;
             })->count();
 
             $partiallyOfflineCount = $offlineStores->filter(function ($store) {
-                return $store->offline_count < 3;
+                return $store->offline_count < 2;
             })->count();
 
             // Get offline items count in single query

@@ -359,9 +359,9 @@
           <div class="bg-pink-50 dark:bg-pink-900/30 border-l-4 border-pink-500 p-4 rounded-lg mb-4">
             <div class="font-semibold text-slate-900 dark:text-slate-100 mb-2">📊 Status Indicators</div>
             <div class="text-slate-600 dark:text-slate-400 text-xs leading-relaxed space-y-1">
-              <p><strong>🟢 Green:</strong> All 3 platforms online</p>
-              <p><strong>🟡 Orange:</strong> 1-2 platforms offline</p>
-              <p><strong>🔴 Red:</strong> All 2 platforms offline</p>
+              <p><strong>🟢 Green:</strong> Both platforms online</p>
+              <p><strong>🟡 Orange:</strong> 1 platform offline</p>
+              <p><strong>🔴 Red:</strong> Both platforms offline</p>
             </div>
           </div>
           <div class="bg-yellow-50 dark:bg-yellow-900/30 border-l-4 border-yellow-500 p-4 rounded-lg mb-4">

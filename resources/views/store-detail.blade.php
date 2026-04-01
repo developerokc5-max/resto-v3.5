@@ -65,7 +65,7 @@
 
           <div class="bg-cyan-50 dark:bg-cyan-900/30 border-l-4 border-cyan-500 p-4 rounded-lg">
             <div class="font-semibold text-slate-900 dark:text-slate-100 mb-2">🎨 Filter Buttons</div>
-            <p class="text-slate-600 dark:text-slate-400 text-xs leading-relaxed"><strong>All Stores:</strong> Show all outlets. <strong>All Online:</strong> Only all 3 platforms online. <strong>Partial Offline:</strong> 1-2 platforms down. <strong>All Offline:</strong> All 3 platforms down.</p>
+            <p class="text-slate-600 dark:text-slate-400 text-xs leading-relaxed"><strong>All Stores:</strong> Show all outlets. <strong>All Online:</strong> Both platforms online. <strong>Partial Offline:</strong> 1 platform down. <strong>All Offline:</strong> Both platforms down.</p>
           </div>
         </div>
 
@@ -74,9 +74,9 @@
           <div class="bg-pink-50 dark:bg-pink-900/30 border-l-4 border-pink-500 p-4 rounded-lg mb-4">
             <div class="font-semibold text-slate-900 dark:text-slate-100 mb-2">📊 Status Indicators</div>
             <div class="text-slate-600 dark:text-slate-400 text-xs leading-relaxed space-y-1">
-              <p><strong>🟢 Green Badge:</strong> All 3 platforms online - Fully operational</p>
-              <p><strong>🟡 Orange Badge:</strong> 1-2 platforms offline - Partial service</p>
-              <p><strong>🔴 Red Badge:</strong> All 3 platforms offline - No service</p>
+              <p><strong>🟢 Green Badge:</strong> Both platforms online - Fully operational</p>
+              <p><strong>🟡 Orange Badge:</strong> 1 platform offline - Partial service</p>
+              <p><strong>🔴 Red Badge:</strong> Both platforms offline - No service</p>
             </div>
           </div>
 

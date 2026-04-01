@@ -258,7 +258,7 @@ Route::prefix('sync')->group(function () {
 
                 foreach ($data['stores'] as $storeName => $items) {
                     foreach ($items as $item) {
-                        foreach (['grab', 'foodpanda', 'deliveroo'] as $platform) {
+                        foreach (['grab', 'foodpanda'] as $platform) {
                             $itemsToInsert[] = [
                                 'item_id' => $item['sku'] ?: 'unknown',
                                 'shop_name' => $storeName,
@@ -435,7 +435,7 @@ Route::prefix('v1/items')->group(function () {
             $validated = $request->validate([
                 'item_id' => 'required|integer',
                 'is_available' => 'required|boolean',
-                'platform' => 'required|string|in:grab,foodpanda,deliveroo',
+                'platform' => 'required|string|in:grab,foodpanda',
             ]);
 
             $updated = DB::table('items')
@@ -663,7 +663,7 @@ Route::post('/history/snapshot', function () {
 
         $allOfflineItems = DB::table('items')
             ->where('is_available', false)
-            ->whereIn('platform', ['grab', 'foodpanda', 'deliveroo'])
+            ->whereIn('platform', ['grab', 'foodpanda'])
             ->get()
             ->groupBy(fn($item) => $item->shop_id . '|' . $item->platform);
 
@@ -673,7 +673,7 @@ Route::post('/history/snapshot', function () {
             $onlinePlatforms = 0;
             $totalOffline    = 0;
 
-            foreach (['grab', 'foodpanda', 'deliveroo'] as $platform) {
+            foreach (['grab', 'foodpanda'] as $platform) {
                 $status       = $platforms->firstWhere('platform', $platform);
                 $offlineItems = $allOfflineItems->get($shopId . '|' . $platform, collect());
                 $offlineCount = $offlineItems->count();
@@ -701,7 +701,7 @@ Route::post('/history/snapshot', function () {
                 'shop_id'             => $shopId,
                 'shop_name'           => $platforms->first()->store_name ?? $shopId,
                 'platforms_online'    => $onlinePlatforms,
-                'total_platforms'     => 3,
+                'total_platforms'     => 2,
                 'total_offline_items' => $totalOffline,
                 'platform_data'       => json_encode($platformData),
                 'last_updated_at'     => $nowUtc,
@@ -784,7 +784,7 @@ Route::post('/store-logs/snapshot', function () {
 
         $allOfflineItems = DB::table('items')
             ->where('is_available', false)
-            ->whereIn('platform', ['grab', 'foodpanda', 'deliveroo'])
+            ->whereIn('platform', ['grab', 'foodpanda'])
             ->get()
             ->groupBy(fn($item) => $item->shop_id . '|' . $item->platform);
 
@@ -796,7 +796,7 @@ Route::post('/store-logs/snapshot', function () {
             $onlinePlatforms = 0;
             $totalOffline    = 0;
 
-            foreach (['grab', 'foodpanda', 'deliveroo'] as $platform) {
+            foreach (['grab', 'foodpanda'] as $platform) {
                 $status       = $platforms->firstWhere('platform', $platform);
                 $offlineItems = $allOfflineItems->get($shopId . '|' . $platform, collect());
                 $offlineCount = $offlineItems->count();
@@ -825,7 +825,7 @@ Route::post('/store-logs/snapshot', function () {
                 'shop_id'             => $shopId,
                 'shop_name'           => $platforms->first()->store_name ?? $shopId,
                 'platforms_online'    => $onlinePlatforms,
-                'total_platforms'     => 3,
+                'total_platforms'     => 2,
                 'total_offline_items' => $totalOffline,
                 'platform_data'       => json_encode($platformData),
                 'logged_at'           => $todayUtcStart,
@@ -1182,8 +1182,7 @@ Route::get('/reports/daily-trends', function (\Illuminate\Http\Request $request)
     $platformUptimeData = DB::table('daily_history')
         ->selectRaw("snapshot_date,
             ROUND(AVG(CASE WHEN (platform_data::jsonb)->'grab'->>'status'      = 'Online' THEN 100.0 ELSE 0 END), 1) as grab_uptime,
-            ROUND(AVG(CASE WHEN (platform_data::jsonb)->'foodpanda'->>'status'  = 'Online' THEN 100.0 ELSE 0 END), 1) as foodpanda_uptime,
-            ROUND(AVG(CASE WHEN (platform_data::jsonb)->'deliveroo'->>'status'  = 'Online' THEN 100.0 ELSE 0 END), 1) as deliveroo_uptime")
+            ROUND(AVG(CASE WHEN (platform_data::jsonb)->'foodpanda'->>'status'  = 'Online' THEN 100.0 ELSE 0 END), 1) as foodpanda_uptime")
         ->whereBetween('snapshot_date', [$startDate, $endDate])
         ->whereNotNull('platform_data')->where('platform_data', '!=', '')
         ->groupBy('snapshot_date')->orderBy('snapshot_date')->get();
@@ -1207,7 +1206,7 @@ Route::get('/reports/platform-reliability', function () {
             ->groupBy('platform')->get()->keyBy('platform');
 
         $data = [];
-        foreach (['grab', 'foodpanda', 'deliveroo'] as $p) {
+        foreach (['grab', 'foodpanda'] as $p) {
             $s = $statuses->get($p);
             $total  = $s->total_stores  ?? 0;
             $online = $s->online_stores ?? 0;
@@ -1326,7 +1325,6 @@ Route::get('/reports/store-comparison', function () {
             'total_platforms'  => $totalPlatforms,
             'grab_online'      => (bool)($ps->get('grab')?->is_online),
             'foodpanda_online' => (bool)($ps->get('foodpanda')?->is_online),
-            'deliveroo_online' => (bool)($ps->get('deliveroo')?->is_online),
             'total_items'      => (int) $totalItems,
             'offline_items'    => (int) $offlineItems,
             'availability_pct' => $totalItems > 0 ? round((($totalItems - $offlineItems) / $totalItems) * 100, 1) : 0,
@@ -1469,13 +1467,11 @@ Route::post('/alert/email', function () {
             ->where('platform', 'grab')->where('is_online', false)->count();
         $fpOff = DB::table('platform_status')
             ->where('platform', 'foodpanda')->where('is_online', false)->count();
-        $delOff = DB::table('platform_status')
-            ->where('platform', 'deliveroo')->where('is_online', false)->count();
 
         // Menu items offline
         $itemsOffline = DB::table('items')
             ->where('is_available', false)
-            ->whereIn('platform', ['grab', 'foodpanda', 'deliveroo'])
+            ->whereIn('platform', ['grab', 'foodpanda'])
             ->count();
 
         // Top 8 stores with issues
@@ -1544,10 +1540,6 @@ Route::post('/alert/email', function () {
       <div style='flex:1;padding:12px;background:#fdf2f8;border-radius:10px;text-align:center;'>
         <p style='margin:0;font-size:11px;color:#be185d;font-weight:700;'>FoodPanda</p>
         <p style='margin:4px 0 0;font-size:18px;font-weight:800;color:#9d174d;'>{$fpOff} off</p>
-      </div>
-      <div style='flex:1;padding:12px;background:#ecfeff;border-radius:10px;text-align:center;'>
-        <p style='margin:0;font-size:11px;color:#0e7490;font-weight:700;'>Deliveroo</p>
-        <p style='margin:4px 0 0;font-size:18px;font-weight:800;color:#155e75;'>{$delOff} off</p>
       </div>
     </div>
 

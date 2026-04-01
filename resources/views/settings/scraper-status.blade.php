@@ -40,7 +40,7 @@
         <div>
           <p class="text-sm text-slate-500 dark:text-slate-400">Total Items Collected</p>
           <p class="text-2xl font-semibold text-slate-900 dark:text-slate-100 mt-1">{{ $scraperStatus['total_items_updated'] }}</p>
-          <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">Across 3 platforms</p>
+          <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">Across 2 platforms</p>
         </div>
         <div class="text-4xl">📦</div>
       </div>
