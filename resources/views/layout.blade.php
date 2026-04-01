@@ -173,19 +173,18 @@
                 <div class="px-4 py-6 text-center text-sm text-slate-400 dark:text-slate-500">All stores online ✅</div>
                 @else
                 @php
-                  $bellAlerts = \Illuminate\Support\Facades\DB::table('alert_logs as al')
-                      ->leftJoin('shops as s', 's.shop_id', '=', 'al.shop_id')
-                      ->select('al.shop_id', 'al.alerted_at',
-                          \Illuminate\Support\Facades\DB::raw("COALESCE(NULLIF(s.shop_name,''), NULLIF(al.shop_name,'Unknown Store'), NULLIF(al.shop_name,''), CAST(al.shop_id AS TEXT)) as display_name"))
-                      ->where('al.type', 'offline')->whereNull('al.recovered_at')
-                      ->orderByDesc('al.alerted_at')->limit(5)->get();
+                  $bellShopMap = \App\Helpers\ShopHelper::getShopMap();
+                  $bellAlerts = \Illuminate\Support\Facades\DB::table('alert_logs')
+                      ->where('type', 'offline')->whereNull('recovered_at')
+                      ->orderByDesc('alerted_at')->limit(5)
+                      ->get(['shop_id', 'alerted_at']);
                 @endphp
                 <div class="divide-y divide-slate-100 dark:divide-slate-700 max-h-64 overflow-y-auto">
                   @foreach($bellAlerts as $ba)
                   <a href="/store/{{ $ba->shop_id }}" class="flex items-start gap-3 px-4 py-3 hover:bg-slate-50 dark:hover:bg-slate-700/50 transition">
                     <span class="mt-1.5 flex-shrink-0 w-2 h-2 rounded-full bg-red-500 animate-pulse"></span>
                     <div class="min-w-0">
-                      <div class="text-sm font-medium text-slate-900 dark:text-slate-100 truncate">{{ $ba->display_name }}</div>
+                      <div class="text-sm font-medium text-slate-900 dark:text-slate-100 truncate">{{ $bellShopMap[$ba->shop_id]['name'] ?? $ba->shop_id }}</div>
                       <div class="text-xs text-slate-500 dark:text-slate-400">Since {{ \Carbon\Carbon::parse($ba->alerted_at)->diffForHumans() }}</div>
                     </div>
                   </a>
