@@ -26,6 +26,9 @@ class Kernel extends ConsoleKernel
         // Scrapers are run as continuous loops in docker-entrypoint.sh
         // platform-test-trait-1/scrape_platform_sync.py  → loops after each finish
         // item-test-trait-1/scrape_items_sync_v2.py      → loops after each finish
+
+        // Daily summary email + WhatsApp at 9 AM SGT (UTC+8 → 01:00 UTC)
+        $schedule->command('alerts:daily-summary')->dailyAt('01:00');
     }
 
     /**

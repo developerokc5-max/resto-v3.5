@@ -59,6 +59,24 @@ Route::post('/cache/clear', function () {
     return response()->json(['ok' => true]);
 });
 
+// Resolve stale alerts — marks open alerts older than X days as auto-resolved
+Route::post('/alerts/resolve-stale', function (\Illuminate\Http\Request $request) {
+    $days = max(1, (int) $request->input('days', 7));
+    $cutoff = \Carbon\Carbon::now()->subDays($days);
+    $count = DB::table('alert_logs')
+        ->where('type', 'offline')
+        ->whereNull('recovered_at')
+        ->where('alerted_at', '<', $cutoff)
+        ->update([
+            'recovered_at'     => \Carbon\Carbon::now(),
+            'downtime_minutes' => DB::raw("EXTRACT(EPOCH FROM (NOW() - alerted_at)) / 60"),
+            'updated_at'       => \Carbon\Carbon::now(),
+        ]);
+    Cache::forget('bell_alert_count');
+    Cache::forget('alerts_db_data');
+    return response()->json(['ok' => true, 'resolved' => $count]);
+});
+
 // ========================================
 // PROTECTED MOBILE APP MONITORING API
 // ========================================

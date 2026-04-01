@@ -136,6 +136,17 @@
           </div>
 
           <div class="flex items-center gap-2">
+            {{-- Maintenance mode toggle --}}
+            <button onclick="toggleMaintenance('{{ $shop->shop_id }}')"
+              id="maintenanceBtn"
+              class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition {{ $maintenanceMode ? 'bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-400 border border-amber-300 dark:border-amber-700' : 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 hover:bg-amber-50 dark:hover:bg-amber-900/20' }}"
+              title="{{ $maintenanceMode ? 'Maintenance mode ON — alerts silenced' : 'Enable maintenance mode to silence alerts' }}">
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+              </svg>
+              <span id="maintenanceBtnText">{{ $maintenanceMode ? 'Maintenance ON' : 'Maintenance' }}</span>
+            </button>
             <button onclick="toggleDarkMode()" id="darkToggle" class="h-8 w-8 rounded-full bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 text-slate-600 dark:text-slate-300 text-xs flex items-center justify-center transition" title="Toggle dark mode">
               <span id="darkIcon">🌙</span>
             </button>
@@ -409,6 +420,27 @@
       gridViewBtn.classList.remove('bg-slate-900', 'text-white');
       gridViewBtn.classList.add('border', 'border-slate-300');
     });
+
+    // Maintenance mode toggle
+    async function toggleMaintenance(shopId) {
+      const btn  = document.getElementById('maintenanceBtn');
+      const text = document.getElementById('maintenanceBtnText');
+      const res  = await fetch(`/store/${shopId}/maintenance`, { method: 'POST', headers: { 'Content-Type': 'application/json' } });
+      const data = await res.json();
+      if (data.ok) {
+        if (data.maintenance_mode) {
+          btn.classList.add('bg-amber-100','dark:bg-amber-900/40','text-amber-700','dark:text-amber-400','border','border-amber-300','dark:border-amber-700');
+          btn.classList.remove('bg-slate-100','dark:bg-slate-800','text-slate-500','dark:text-slate-400');
+          text.textContent = 'Maintenance ON';
+          btn.title = 'Maintenance mode ON — alerts silenced';
+        } else {
+          btn.classList.remove('bg-amber-100','dark:bg-amber-900/40','text-amber-700','dark:text-amber-400','border','border-amber-300','dark:border-amber-700');
+          btn.classList.add('bg-slate-100','dark:bg-slate-800','text-slate-500','dark:text-slate-400');
+          text.textContent = 'Maintenance';
+          btn.title = 'Enable maintenance mode to silence alerts';
+        }
+      }
+    }
 
     // Toggle info popup
     function toggleInfoPopup() {

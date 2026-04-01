@@ -138,10 +138,18 @@
         <!-- Card Header -->
         <div class="bg-gradient-to-r from-slate-50 to-slate-100 dark:from-slate-700 dark:to-slate-800 border-b-2 border-slate-200 dark:border-slate-600 px-5 min-h-[6rem] flex items-center rounded-t-2xl">
           <div class="flex items-center justify-between w-full">
-            <div class="flex-1">
-              <h3 class="text-xl font-bold text-slate-900 dark:text-slate-100">{{ $s['store'] ?? 'Store' }}</h3>
+            <div class="flex-1 min-w-0">
+              <div class="flex items-center gap-2 flex-wrap">
+                <h3 class="text-xl font-bold text-slate-900 dark:text-slate-100 truncate">{{ $s['store'] ?? 'Store' }}</h3>
+                @if(!empty($s['maintenance_mode']))
+                  <span class="flex-shrink-0 px-1.5 py-0.5 bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-400 text-[10px] font-bold rounded uppercase tracking-wide">Maintenance</span>
+                @endif
+              </div>
               @if(isset($s['brand']) && $s['brand'])
                 <p class="text-sm text-slate-600 dark:text-slate-400 mt-0.5">{{ $s['brand'] }}</p>
+              @endif
+              @if(!empty($s['offline_since']))
+                <p class="text-xs text-red-500 dark:text-red-400 mt-0.5 font-medium">Offline since {{ $s['offline_since'] }}</p>
               @endif
             </div>
 
@@ -249,6 +257,18 @@
             @endforeach
           </div>
           @endif
+
+          <!-- Uptime % bar -->
+          @php $upt = $s['uptime_pct'] ?? 100; @endphp
+          <div class="mb-3">
+            <div class="flex items-center justify-between mb-1">
+              <span class="text-xs text-slate-400 dark:text-slate-500">30d uptime</span>
+              <span class="text-xs font-semibold {{ $upt >= 99 ? 'text-green-600 dark:text-green-400' : ($upt >= 95 ? 'text-amber-600 dark:text-amber-400' : 'text-red-600 dark:text-red-400') }}">{{ $upt }}%</span>
+            </div>
+            <div class="w-full bg-slate-100 dark:bg-slate-700 rounded-full h-1.5">
+              <div class="h-1.5 rounded-full {{ $upt >= 99 ? 'bg-green-500' : ($upt >= 95 ? 'bg-amber-400' : 'bg-red-500') }}" style="width:{{ $upt }}%"></div>
+            </div>
+          </div>
 
           <!-- Action Buttons -->
           <div class="flex gap-3">

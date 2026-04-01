@@ -65,12 +65,20 @@
           Last scrape: <span class="font-medium text-slate-600 dark:text-slate-400">{{ $latestScrape ?? 'Never' }}</span>
         </p>
       </div>
-      <a href="/dashboard" class="inline-flex items-center gap-1.5 px-4 py-2 bg-slate-900 dark:bg-slate-700 text-white text-sm font-medium rounded-xl hover:bg-slate-700 dark:hover:bg-slate-600 transition">
-        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
-        </svg>
-        Run Scrape
-      </a>
+      <div class="flex items-center gap-2">
+        <button onclick="resolveStaleAlerts()" class="inline-flex items-center gap-1.5 px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white text-sm font-medium rounded-xl transition" title="Auto-resolve alerts older than 7 days">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+          </svg>
+          <span class="hidden sm:inline">Resolve Stale</span>
+        </button>
+        <a href="/dashboard" class="inline-flex items-center gap-1.5 px-4 py-2 bg-slate-900 dark:bg-slate-700 text-white text-sm font-medium rounded-xl hover:bg-slate-700 dark:hover:bg-slate-600 transition">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+          </svg>
+          Run Scrape
+        </a>
+      </div>
     </div>
 
     @forelse($alerts as $alert)
@@ -266,5 +274,74 @@
 
   </div>
 </div>
+
+{{-- ── Alert History ────────────────────────────────────────────────────────── --}}
+<div class="mt-6">
+  <div class="flex items-center justify-between mb-4">
+    <h2 class="text-lg font-bold text-slate-900 dark:text-slate-100">Alert History</h2>
+    <span class="text-xs text-slate-400 dark:text-slate-500">Last 30 days · resolved only</span>
+  </div>
+
+  @php
+    $shopMap = \App\Helpers\ShopHelper::getShopMap();
+    $history = \Illuminate\Support\Facades\DB::table('alert_logs')
+        ->whereNotNull('recovered_at')
+        ->where('alerted_at', '>=', \Carbon\Carbon::now()->subDays(30))
+        ->orderByDesc('alerted_at')
+        ->limit(50)
+        ->get(['shop_id','alerted_at','recovered_at','downtime_minutes']);
+  @endphp
+
+  @if($history->isEmpty())
+    <div class="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl p-8 text-center text-slate-400 dark:text-slate-500 text-sm">
+      No resolved alerts in the last 30 days.
+    </div>
+  @else
+    <div class="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl overflow-hidden shadow-sm">
+      <table class="w-full text-sm">
+        <thead class="bg-slate-50 dark:bg-slate-700/50 border-b border-slate-200 dark:border-slate-700">
+          <tr>
+            <th class="text-left px-5 py-3 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">Store</th>
+            <th class="text-left px-5 py-3 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide hidden sm:table-cell">Went Offline</th>
+            <th class="text-left px-5 py-3 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide hidden sm:table-cell">Recovered</th>
+            <th class="text-right px-5 py-3 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">Downtime</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-slate-100 dark:divide-slate-700">
+          @foreach($history as $h)
+          @php
+            $hName = $shopMap[$h->shop_id]['name'] ?? $h->shop_id;
+            $mins  = (int) $h->downtime_minutes;
+            $dur   = $mins >= 60 ? floor($mins/60).'h '.($mins%60).'m' : $mins.'m';
+            $durColor = $mins >= 120 ? 'text-red-600 dark:text-red-400' : ($mins >= 30 ? 'text-amber-600 dark:text-amber-400' : 'text-slate-600 dark:text-slate-400');
+          @endphp
+          <tr class="hover:bg-slate-50 dark:hover:bg-slate-700/30 transition">
+            <td class="px-5 py-3">
+              <a href="/store/{{ $h->shop_id }}" class="font-medium text-slate-900 dark:text-slate-100 hover:text-slate-600 dark:hover:text-slate-300 transition">{{ $hName }}</a>
+            </td>
+            <td class="px-5 py-3 text-slate-500 dark:text-slate-400 hidden sm:table-cell">{{ \Carbon\Carbon::parse($h->alerted_at)->format('d M, g:ia') }}</td>
+            <td class="px-5 py-3 text-slate-500 dark:text-slate-400 hidden sm:table-cell">{{ \Carbon\Carbon::parse($h->recovered_at)->format('d M, g:ia') }}</td>
+            <td class="px-5 py-3 text-right font-semibold {{ $durColor }}">{{ $dur }}</td>
+          </tr>
+          @endforeach
+        </tbody>
+      </table>
+    </div>
+  @endif
+</div>
+
+@push('scripts')
+<script>
+async function resolveStaleAlerts() {
+  if (!confirm('Mark all alerts older than 7 days as auto-resolved?')) return;
+  const res = await fetch('/api/alerts/resolve-stale', { method: 'POST', headers: { 'Content-Type': 'application/json' } });
+  const data = await res.json();
+  if (data.ok) {
+    alert(`Done — ${data.resolved} stale alert(s) resolved.`);
+    window.location.reload();
+  }
+}
+</script>
+@endpush
 
 @endsection

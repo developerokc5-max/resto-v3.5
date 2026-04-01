@@ -91,6 +91,7 @@
             <a class="flex items-center gap-2 px-3 py-2 rounded-lg @if(Request::is('reports/platform-reliability')) bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-white @else text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 @endif transition text-sm" href="/reports/platform-reliability">Platform Reliability</a>
             <a class="flex items-center gap-2 px-3 py-2 rounded-lg @if(Request::is('reports/item-performance')) bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-white @else text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 @endif transition text-sm" href="/reports/item-performance">Item Performance</a>
             <a class="flex items-center gap-2 px-3 py-2 rounded-lg @if(Request::is('reports/store-comparison')) bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-white @else text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 @endif transition text-sm" href="/reports/store-comparison">Store Comparison</a>
+            <a class="flex items-center gap-2 px-3 py-2 rounded-lg @if(Request::is('reports/downtime-leaderboard')) bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-white @else text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 @endif transition text-sm" href="/reports/downtime-leaderboard">Downtime Leaderboard</a>
           </div>
         </div>
 
@@ -328,6 +329,11 @@
                 @if(Request::is('reports/store-comparison')) bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-white @else text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 @endif">
         🏆 Store Comparison
       </a>
+      <a href="/reports/downtime-leaderboard" onclick="toggleMobileDrawer()"
+         class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition
+                @if(Request::is('reports/downtime-leaderboard')) bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-white @else text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 @endif">
+        📉 Downtime Leaderboard
+      </a>
 
       <div class="border-t border-slate-200 dark:border-slate-700 my-2"></div>
 
@@ -444,5 +450,6 @@
   <script src="/js/hawkerops.js?v=4" defer></script>
 
   @yield('extra-scripts')
+  @stack('scripts')
 </body>
 </html>

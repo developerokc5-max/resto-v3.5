@@ -43,7 +43,15 @@ class AlertService
         $waApikey    = DB::table('configurations')->where('key', 'whatsapp_apikey')->value('value');
         $appUrl      = rtrim(env('APP_URL', 'https://resto-v3-5.onrender.com'), '/');
 
+        // Pre-load maintenance mode shops — skip alerting for these
+        $maintenanceShops = DB::table('shops')
+            ->where('maintenance_mode', true)
+            ->pluck('shop_id')
+            ->flip();
+
         foreach ($currentStatuses as $shopId => $platforms) {
+            // Skip shops in maintenance mode
+            if ($maintenanceShops->has((string) $shopId)) continue;
             $shopName     = $platforms->first()->shop_name
                             ?? DB::table('shops')->where('shop_id', $shopId)->value('shop_name')
                             ?? (string) $shopId;
@@ -144,6 +152,122 @@ class AlertService
         $html = $this->offlineEmailHtml($shopName, $time, $platformRows, $storeUrl, $appUrl);
 
         return $this->sendViaResend($apiKey, $from, $to, $subject, $html, "sendOfflineEmail:{$shopName}");
+    }
+
+    // ── Daily Summary Email ───────────────────────────────────────────────────
+
+    public function sendDailySummary(): void
+    {
+        $apiKey     = env('RESEND_API_KEY');
+        $from       = env('ALERT_FROM_EMAIL', 'onboarding@resend.dev');
+        $recipients = $this->getRecipients();
+        $appUrl     = rtrim(env('APP_URL', 'https://resto-v3-5.onrender.com'), '/');
+
+        if (!$apiKey || empty($recipients)) return;
+
+        $now     = Carbon::now('Asia/Singapore');
+        $since   = $now->copy()->subDay();
+        $dateStr = $now->format('j M Y');
+
+        // Incidents in last 24h
+        $incidents = DB::table('alert_logs')
+            ->where('alerted_at', '>=', $since)
+            ->orderByDesc('alerted_at')
+            ->get();
+
+        $totalIncidents  = $incidents->count();
+        $resolved        = $incidents->whereNotNull('recovered_at')->count();
+        $stillOpen       = $incidents->whereNull('recovered_at')->count();
+        $totalDowntime   = (int) $incidents->whereNotNull('recovered_at')->sum('downtime_minutes');
+
+        // Current platform status
+        $platformStats = DB::table('platform_status')
+            ->selectRaw('platform, SUM(CASE WHEN is_online THEN 1 ELSE 0 END) as online, COUNT(*) as total')
+            ->whereIn('platform', ['grab', 'foodpanda'])
+            ->groupBy('platform')
+            ->get()->keyBy('platform');
+
+        $incidentRows = '';
+        foreach ($incidents->take(10) as $inc) {
+            $dur = $inc->downtime_minutes ? $this->formatDuration((int)$inc->downtime_minutes) : ($inc->recovered_at ? '?' : 'ongoing');
+            $status = $inc->recovered_at ? '✅ Resolved' : '🔴 Open';
+            $incidentRows .= "<tr>
+                <td style='padding:8px 12px;border-bottom:1px solid #f1f5f9;'>{$inc->shop_name}</td>
+                <td style='padding:8px 12px;border-bottom:1px solid #f1f5f9;'>{$status}</td>
+                <td style='padding:8px 12px;border-bottom:1px solid #f1f5f9;text-align:right;'>{$dur}</td>
+            </tr>";
+        }
+
+        $platformRows = '';
+        foreach (['grab' => 'Grab', 'foodpanda' => 'FoodPanda'] as $key => $label) {
+            $p = $platformStats[$key] ?? null;
+            $pct = $p && $p->total > 0 ? round($p->online / $p->total * 100) : 100;
+            $color = $pct >= 90 ? '#16a34a' : ($pct >= 70 ? '#d97706' : '#dc2626');
+            $platformRows .= "<tr>
+                <td style='padding:8px 12px;border-bottom:1px solid #f1f5f9;'><strong>{$label}</strong></td>
+                <td style='padding:8px 12px;border-bottom:1px solid #f1f5f9;text-align:right;color:{$color};font-weight:700;'>{$pct}% online</td>
+            </tr>";
+        }
+
+        $html = "<!DOCTYPE html><html><body style='margin:0;padding:0;background:#f1f5f9;font-family:Arial,Helvetica,sans-serif;'>
+<table width='100%' cellpadding='0' cellspacing='0' style='background:#f1f5f9;padding:32px 16px;'>
+  <tr><td align='center'>
+    <table width='600' cellpadding='0' cellspacing='0' style='max-width:600px;width:100%;'>
+      <tr><td style='background:#0f172a;border-radius:12px 12px 0 0;padding:28px 32px;'>
+        <p style='margin:0;color:#94a3b8;font-size:13px;font-weight:600;letter-spacing:1px;text-transform:uppercase;'>HawkerOps Daily Summary</p>
+        <h1 style='margin:8px 0 0;color:#ffffff;font-size:22px;font-weight:700;'>📊 Daily Report · {$dateStr}</h1>
+      </td></tr>
+      <tr><td style='background:#ffffff;padding:32px;border-left:1px solid #e2e8f0;border-right:1px solid #e2e8f0;'>
+
+        <div style='display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin-bottom:28px;'>
+          <div style='background:#f8fafc;border-radius:8px;padding:16px;text-align:center;'>
+            <div style='font-size:28px;font-weight:700;color:#0f172a;'>{$totalIncidents}</div>
+            <div style='font-size:12px;color:#64748b;margin-top:4px;'>Incidents</div>
+          </div>
+          <div style='background:#f8fafc;border-radius:8px;padding:16px;text-align:center;'>
+            <div style='font-size:28px;font-weight:700;color:" . ($stillOpen > 0 ? '#dc2626' : '#16a34a') . ";'>{$stillOpen}</div>
+            <div style='font-size:12px;color:#64748b;margin-top:4px;'>Still Open</div>
+          </div>
+          <div style='background:#f8fafc;border-radius:8px;padding:16px;text-align:center;'>
+            <div style='font-size:28px;font-weight:700;color:#0f172a;'>" . ($totalDowntime >= 60 ? floor($totalDowntime/60).'h '.($totalDowntime%60).'m' : $totalDowntime.'m') . "</div>
+            <div style='font-size:12px;color:#64748b;margin-top:4px;'>Total Downtime</div>
+          </div>
+        </div>
+
+        <h3 style='margin:0 0 12px;font-size:14px;color:#64748b;text-transform:uppercase;letter-spacing:.5px;'>Platform Status</h3>
+        <table width='100%' cellpadding='0' cellspacing='0' style='border:1px solid #e2e8f0;border-radius:8px;border-collapse:separate;border-spacing:0;overflow:hidden;margin-bottom:24px;'>
+          {$platformRows}
+        </table>
+
+        " . ($totalIncidents > 0 ? "
+        <h3 style='margin:0 0 12px;font-size:14px;color:#64748b;text-transform:uppercase;letter-spacing:.5px;'>Incidents (last 24h)</h3>
+        <table width='100%' cellpadding='0' cellspacing='0' style='border:1px solid #e2e8f0;border-radius:8px;border-collapse:separate;border-spacing:0;overflow:hidden;margin-bottom:24px;'>
+          <tr style='background:#f8fafc;'><th style='padding:8px 12px;text-align:left;font-size:11px;color:#64748b;'>Store</th><th style='padding:8px 12px;text-align:left;font-size:11px;color:#64748b;'>Status</th><th style='padding:8px 12px;text-align:right;font-size:11px;color:#64748b;'>Downtime</th></tr>
+          {$incidentRows}
+        </table>" : "<p style='color:#16a34a;font-weight:600;margin:0 0 24px;'>✅ No incidents in the last 24 hours.</p>") . "
+
+        <a href='{$appUrl}/dashboard' style='display:inline-block;background:#0f172a;color:#ffffff;padding:12px 22px;border-radius:8px;text-decoration:none;font-size:14px;font-weight:700;'>View Dashboard →</a>
+      </td></tr>
+      <tr><td style='background:#f8fafc;border:1px solid #e2e8f0;border-top:none;border-radius:0 0 12px 12px;padding:16px 32px;text-align:center;'>
+        <p style='margin:0;color:#94a3b8;font-size:12px;'>HawkerOps · Daily automated report</p>
+      </td></tr>
+    </table>
+  </td></tr>
+</table></body></html>";
+
+        $subject = $totalIncidents > 0
+            ? "📊 HawkerOps Daily · {$totalIncidents} incident(s), {$stillOpen} open · {$dateStr}"
+            : "📊 HawkerOps Daily · All clear ✅ · {$dateStr}";
+
+        $this->sendViaResend($apiKey, $from, $recipients, $subject, $html, 'sendDailySummary');
+
+        // WhatsApp summary (short version)
+        $waNumber = DB::table('configurations')->where('key', 'whatsapp_number')->value('value');
+        $waApikey = DB::table('configurations')->where('key', 'whatsapp_apikey')->value('value');
+        $waMsg = $totalIncidents > 0
+            ? "📊 HawkerOps Daily ({$dateStr}): {$totalIncidents} incident(s), {$stillOpen} still open. Check: {$appUrl}/alerts"
+            : "📊 HawkerOps Daily ({$dateStr}): All clear! No incidents. ✅";
+        $this->sendWhatsApp($waMsg, $waNumber, $waApikey);
     }
 
     // ── Recovery Email ────────────────────────────────────────────────────────

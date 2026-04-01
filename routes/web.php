@@ -60,6 +60,31 @@ Route::get('/dashboard', function () {
         ->groupBy(fn($r) => $r->shop_name . '|' . $r->platform)
         ->map(fn($rows) => $rows->take(2)->pluck('name')->toArray());
 
+    // Uptime % per shop (last 30 days from alert_logs)
+    $totalMinutes30d = 30 * 24 * 60;
+    $downtimePerShop = Cache::remember('dashboard_downtime_30d', 300, function () {
+        return DB::table('alert_logs')
+            ->where('alerted_at', '>=', \Carbon\Carbon::now()->subDays(30))
+            ->whereNotNull('recovered_at')
+            ->groupBy('shop_id')
+            ->selectRaw('shop_id, SUM(COALESCE(downtime_minutes, 0)) as total_downtime')
+            ->pluck('total_downtime', 'shop_id');
+    });
+
+    // Open alerts per shop — for offline_since
+    $openAlertPerShop = Cache::remember('dashboard_open_alerts', 120, function () {
+        return DB::table('alert_logs')
+            ->where('type', 'offline')->whereNull('recovered_at')
+            ->orderByDesc('alerted_at')
+            ->get(['shop_id', 'alerted_at'])
+            ->keyBy('shop_id');
+    });
+
+    // Maintenance mode shops
+    $maintenanceShops = Cache::remember('dashboard_maintenance_shops', 300, function () {
+        return DB::table('shops')->where('maintenance_mode', true)->pluck('shop_id')->flip();
+    });
+
     if ($storeStats->count() > 0) {
         // We have RestoSuite API data - use it as primary source
 
@@ -101,6 +126,11 @@ Route::get('/dashboard', function () {
                 $overallStatus = 'mixed';
             }
 
+            $shopDowntime = (float) ($downtimePerShop[$stat->shop_id] ?? 0);
+            $openAlert    = $openAlertPerShop[$stat->shop_id] ?? null;
+            $offlineSince = $openAlert ? \Carbon\Carbon::parse($openAlert->alerted_at)->diffForHumans() : null;
+            $uptimePct    = round(max(0, ($totalMinutes30d - $shopDowntime) / $totalMinutes30d * 100), 1);
+
             $stores[] = [
                 'brand' => $shopInfo['brand'],
                 'store' => $shopInfo['name'],
@@ -114,6 +144,9 @@ Route::get('/dashboard', function () {
                 'platform_offline_count' => $platformOfflineCount,
                 'platform_online_count' => $platformOnlineCount,
                 'overall_status' => $overallStatus,
+                'uptime_pct' => $uptimePct,
+                'offline_since' => $offlineSince,
+                'maintenance_mode' => $maintenanceShops->has((string) $stat->shop_id),
                 // HYBRID: Platform status from scraping
                 'platforms' => [
                     'grab' => [
@@ -190,6 +223,9 @@ Route::get('/dashboard', function () {
                 $overallStatus = 'mixed';
             }
 
+            $shopDowntimeFb = (float) ($downtimePerShop[$shopId] ?? 0);
+            $openAlertFb    = $openAlertPerShop[$shopId] ?? null;
+
             $stores[] = [
                 'brand' => $shopData['brand'],
                 'store' => $shopData['store'],
@@ -204,6 +240,9 @@ Route::get('/dashboard', function () {
                 'platform_online_count' => $onlineCount,
                 'overall_status' => $overallStatus,
                 'platforms' => $shopData['platforms'],
+                'uptime_pct' => round(max(0, ($totalMinutes30d - $shopDowntimeFb) / $totalMinutes30d * 100), 1),
+                'offline_since' => $openAlertFb ? \Carbon\Carbon::parse($openAlertFb->alerted_at)->diffForHumans() : null,
+                'maintenance_mode' => $maintenanceShops->has((string) $shopId),
             ];
         }
     }
@@ -303,6 +342,17 @@ Route::get('/stores', function () {
     ]);
 });
 
+// Toggle maintenance mode for a store
+Route::post('/store/{shop_id}/maintenance', function ($shop_id) {
+    $shop = DB::table('shops')->where('shop_id', $shop_id)->first();
+    if (!$shop) return response()->json(['error' => 'Not found'], 404);
+    $newState = !$shop->maintenance_mode;
+    DB::table('shops')->where('shop_id', $shop_id)->update(['maintenance_mode' => $newState]);
+    Cache::forget('shop_map');
+    Cache::forget('store_detail_data_' . $shop_id);
+    return response()->json(['ok' => true, 'maintenance_mode' => $newState]);
+});
+
 // Store Detail Page - Show all items for a specific store
 Route::get('/store/{shop_id}', function ($shop_id) {
     $shopMap = ShopHelper::getShopMap();
@@ -363,10 +413,11 @@ Route::get('/store/{shop_id}', function ($shop_id) {
     });
 
     return view('store-detail', [
-        'shop'           => $shop,
-        'shopInfo'       => $shopInfo,
-        'items'          => $storeData['groupedItems'],
-        'platformStatus' => $storeData['platformStatus'],
+        'shop'            => $shop,
+        'shopInfo'        => $shopInfo,
+        'items'           => $storeData['groupedItems'],
+        'platformStatus'  => $storeData['platformStatus'],
+        'maintenanceMode' => (bool) ($shop->maintenance_mode ?? false),
     ]);
 });
 
@@ -1840,6 +1891,39 @@ Route::get('/reports/item-performance', function () {
 });
 
 // Reports: Store Comparison
+Route::get('/reports/downtime-leaderboard', function () {
+    $shopMap = ShopHelper::getShopMap();
+
+    $data = Cache::remember('reports_downtime_leaderboard', 300, function () {
+        return DB::table('alert_logs')
+            ->where('alerted_at', '>=', \Carbon\Carbon::now()->subDays(30))
+            ->whereNotNull('recovered_at')
+            ->groupBy('shop_id')
+            ->selectRaw('shop_id, COUNT(*) as incident_count, SUM(COALESCE(downtime_minutes,0)) as total_downtime, MAX(COALESCE(downtime_minutes,0)) as max_downtime')
+            ->orderByDesc('total_downtime')
+            ->get();
+    });
+
+    foreach ($data as $row) {
+        $row->store_name = $shopMap[$row->shop_id]['name'] ?? $row->shop_id;
+    }
+
+    $storesAffected   = $data->count();
+    $totalIncidents   = $data->sum('incident_count');
+    $totalMins        = (int) $data->sum('total_downtime');
+    $avgMins          = $totalIncidents > 0 ? round($totalMins / $totalIncidents) : 0;
+
+    $fmt = fn(int $m) => $m >= 60 ? floor($m/60).'h '.($m%60).'m' : $m.'m';
+
+    return view('reports.downtime-leaderboard', [
+        'leaderboard'          => $data,
+        'storesAffected'       => $storesAffected,
+        'totalIncidents'       => $totalIncidents,
+        'totalDowntimeFormatted' => $fmt($totalMins),
+        'avgIncidentFormatted' => $fmt($avgMins),
+    ]);
+});
+
 Route::get('/reports/store-comparison', function () {
     $shopMap = ShopHelper::getShopMap();
 
