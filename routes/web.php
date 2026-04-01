@@ -133,6 +133,10 @@ Route::get('/dashboard', function () {
             $shopDowntime = (float) ($downtimePerShop[$stat->shop_id] ?? 0);
             $openAlert    = $openAlertPerShop[$stat->shop_id] ?? null;
             $offlineSince = $openAlert ? \Carbon\Carbon::parse($openAlert->alerted_at)->diffForHumans() : null;
+            if ($openAlert) {
+                $openMinutes  = min($totalMinutes30d, \Carbon\Carbon::parse($openAlert->alerted_at)->diffInMinutes(now()));
+                $shopDowntime += $openMinutes;
+            }
             $uptimePct    = round(max(0, ($totalMinutes30d - $shopDowntime) / $totalMinutes30d * 100), 1);
 
             $stores[] = [
@@ -229,6 +233,9 @@ Route::get('/dashboard', function () {
 
             $shopDowntimeFb = (float) ($downtimePerShop[$shopId] ?? 0);
             $openAlertFb    = $openAlertPerShop[$shopId] ?? null;
+            if ($openAlertFb) {
+                $shopDowntimeFb += min($totalMinutes30d, \Carbon\Carbon::parse($openAlertFb->alerted_at)->diffInMinutes(now()));
+            }
 
             $stores[] = [
                 'brand' => $shopData['brand'],
