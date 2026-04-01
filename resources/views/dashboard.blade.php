@@ -105,6 +105,10 @@
     <button onclick="filterStores('all_offline')" class="filter-btn px-4 py-2 bg-red-50 dark:bg-red-900/30 border-2 border-red-200 dark:border-red-700 rounded-lg text-sm font-semibold text-red-700 dark:text-red-400 shadow-sm hover:shadow-md transition" id="filter-all_offline">
       ✕ All Platforms Offline
     </button>
+
+    <button onclick="filterStores('test_demo')" class="filter-btn px-4 py-2 bg-slate-50 dark:bg-slate-700/50 border-2 border-slate-300 dark:border-slate-600 rounded-lg text-sm font-semibold text-slate-500 dark:text-slate-400 shadow-sm hover:shadow-md transition" id="filter-test_demo">
+      🧪 Test / Demo
+    </button>
   </section>
 
   <!-- Store cards -->
@@ -312,11 +316,15 @@
       const offlineCount = parseInt(card.getAttribute('data-offline-count') || '0');
       let shouldShow = false;
 
+      const storeName = (card.getAttribute('data-store-name') || '').toLowerCase();
+      const isTest = storeName.includes('testing') || storeName.includes('demo');
+
       if (status === 'all') shouldShow = true;
-      else if (status === 'all_online') shouldShow = cardStatus === 'all_online';
-      else if (status === 'all_offline') shouldShow = cardStatus === 'all_offline';
-      else if (status === '1_offline') shouldShow = offlineCount === 1;
-      else if (status === '2_offline') shouldShow = offlineCount === 2;
+      else if (status === 'all_online') shouldShow = cardStatus === 'all_online' && !isTest;
+      else if (status === 'all_offline') shouldShow = cardStatus === 'all_offline' && !isTest;
+      else if (status === '1_offline') shouldShow = offlineCount === 1 && !isTest;
+      else if (status === '2_offline') shouldShow = offlineCount === 2 && !isTest;
+      else if (status === 'test_demo') shouldShow = isTest;
       else shouldShow = cardStatus === status;
 
       card.style.display = shouldShow ? 'block' : 'none';
