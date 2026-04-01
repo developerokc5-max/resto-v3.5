@@ -545,6 +545,13 @@ def main():
                 db.commit()
                 log("✓ Table ready")
 
+                # Safety check: never wipe the DB if the scan came back empty
+                if len(result['shops']) == 0:
+                    log("⚠ Scan returned 0 stores — skipping DB update to preserve existing data")
+                    cursor.close()
+                    db.close()
+                    return
+
                 # Clear existing platform_status data
                 log("Clearing old platform data...")
                 cursor.execute("DELETE FROM platform_status")
