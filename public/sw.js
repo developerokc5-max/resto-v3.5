@@ -58,6 +58,9 @@ self.addEventListener('fetch', event => {
   // Skip export/download routes (but not /settings/export which is an HTML page)
   if (url.pathname !== '/settings/export' && (url.pathname.startsWith('/export') || url.pathname.endsWith('/export') || url.pathname.includes('/logs/export'))) return;
 
+  // Skip non-Vite JS — no content hash so cache-first would serve stale code after updates
+  if (url.pathname.startsWith('/js/')) return;
+
   // Bypass SW cache for explicit no-store requests (e.g. smartReload JS fetch)
   // Without this, fetch(url, { cache: 'no-store' }) falls into cache-first and gets stale HTML
   if (event.request.cache === 'no-store') return;

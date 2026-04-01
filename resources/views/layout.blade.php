@@ -441,7 +441,7 @@
     </div>
   </div>
 
-  <script src="/js/hawkerops.js?v=3" defer></script>
+  <script src="/js/hawkerops.js?v=4" defer></script>
 
   @yield('extra-scripts')
 </body>
