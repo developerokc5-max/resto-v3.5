@@ -38,7 +38,10 @@ class AlertService
             ->map(fn($group) => $group->first());
 
         // Resolve recipients once for the whole run
-        $recipients = $this->getRecipients();
+        $recipients  = $this->getRecipients();
+        $waNumber    = DB::table('configurations')->where('key', 'whatsapp_number')->value('value');
+        $waApikey    = DB::table('configurations')->where('key', 'whatsapp_apikey')->value('value');
+        $appUrl      = rtrim(env('APP_URL', 'https://resto-v3-5.onrender.com'), '/');
 
         foreach ($currentStatuses as $shopId => $platforms) {
             $shopName     = $platforms->first()->shop_name ?? 'Unknown Store';
@@ -71,6 +74,10 @@ class AlertService
                 ]);
 
                 $sent = $this->sendOfflineEmail($shopId, $shopName, $platformStatuses, $recipients);
+                $this->sendWhatsApp(
+                    "🔴 {$shopName} is OFFLINE on all platforms!\nCheck: {$appUrl}/store/{$shopId}",
+                    $waNumber, $waApikey
+                );
 
                 DB::table('alert_logs')->where('id', $alertId)
                     ->update(['email_sent' => $sent]);
@@ -86,7 +93,12 @@ class AlertService
                     'updated_at'       => Carbon::now(),
                 ]);
 
+                $duration = $this->formatDuration($downtimeMinutes);
                 $this->sendRecoveryEmail($shopId, $shopName, $platformStatuses, $downtimeMinutes, $recipients);
+                $this->sendWhatsApp(
+                    "✅ {$shopName} is back ONLINE. Was down {$duration}.",
+                    $waNumber, $waApikey
+                );
             }
         }
     }
@@ -153,6 +165,100 @@ class AlertService
         $html = $this->recoveryEmailHtml($shopName, $time, $duration, $platformRows, $storeUrl, $appUrl);
 
         return $this->sendViaResend($apiKey, $from, $to, $subject, $html, "sendRecoveryEmail:{$shopName}");
+    }
+
+    // ── WhatsApp (CallMeBot) ──────────────────────────────────────────────────
+
+    private function sendWhatsApp(string $message, ?string $number, ?string $apikey): void
+    {
+        if (!$number || !$apikey) return;
+
+        $url = 'https://api.callmebot.com/whatsapp.php?' . http_build_query([
+            'phone'  => $number,
+            'text'   => $message,
+            'apikey' => $apikey,
+        ]);
+
+        try {
+            Http::timeout(10)->get($url);
+            Log::info('AlertService: WhatsApp sent');
+        } catch (\Exception $e) {
+            Log::error('AlertService: WhatsApp failed', ['error' => $e->getMessage()]);
+        }
+    }
+
+    // ── Scraper Failure Alert ─────────────────────────────────────────────────
+
+    public function checkScraperFailure(): void
+    {
+        $hours = (int) (DB::table('configurations')->where('key', 'scraper_alert_hours')->value('value') ?? 0);
+        if ($hours <= 0) return;
+
+        $lastScrapeAt = DB::table('platform_status')->max('last_checked_at');
+        if (!$lastScrapeAt) return;
+
+        $hoursSince = Carbon::parse($lastScrapeAt)->diffInMinutes(Carbon::now()) / 60;
+        if ($hoursSince < $hours) return;
+
+        $hoursSinceFormatted = round($hoursSince, 1);
+        $time = Carbon::now('Asia/Singapore')->format('j M Y, g:i A');
+        $appUrl = rtrim(env('APP_URL', 'https://resto-v3-5.onrender.com'), '/');
+
+        $recipients = $this->getRecipients();
+        $apiKey     = env('RESEND_API_KEY');
+        $from       = env('ALERT_FROM_EMAIL', 'onboarding@resend.dev');
+
+        if ($apiKey && !empty($recipients)) {
+            $subject = "⚠️ HawkerOps Scraper Not Running · {$hoursSinceFormatted}h since last scrape";
+            $html = $this->scraperFailureEmailHtml($hoursSinceFormatted, $time, $appUrl);
+            $this->sendViaResend($apiKey, $from, $recipients, $subject, $html, 'checkScraperFailure');
+        }
+
+        $waNumber = DB::table('configurations')->where('key', 'whatsapp_number')->value('value');
+        $waApikey = DB::table('configurations')->where('key', 'whatsapp_apikey')->value('value');
+        $this->sendWhatsApp(
+            "⚠️ HawkerOps scraper has not run for {$hoursSinceFormatted}h!\nCheck: {$appUrl}/settings/scraper-status",
+            $waNumber, $waApikey
+        );
+    }
+
+    private function scraperFailureEmailHtml(float $hoursSince, string $time, string $appUrl): string
+    {
+        return "<!DOCTYPE html>
+<html>
+<body style='margin:0;padding:0;background:#f1f5f9;font-family:Arial,Helvetica,sans-serif;'>
+<table width='100%' cellpadding='0' cellspacing='0' style='background:#f1f5f9;padding:32px 16px;'>
+  <tr><td align='center'>
+    <table width='600' cellpadding='0' cellspacing='0' style='max-width:600px;width:100%;'>
+      <tr>
+        <td style='background:#d97706;border-radius:12px 12px 0 0;padding:28px 32px;'>
+          <p style='margin:0;color:#fef3c7;font-size:13px;font-weight:600;letter-spacing:1px;text-transform:uppercase;'>HawkerOps Alert</p>
+          <h1 style='margin:8px 0 0;color:#ffffff;font-size:24px;font-weight:700;'>⚠️ Scraper Not Running</h1>
+        </td>
+      </tr>
+      <tr>
+        <td style='background:#ffffff;padding:32px;border-left:1px solid #e2e8f0;border-right:1px solid #e2e8f0;'>
+          <p style='margin:0 0 16px;color:#374151;font-size:15px;'>
+            No scrape data has been received for <strong style='color:#d97706;'>{$hoursSince} hours</strong>.
+            The platform scraper may have stopped or failed.
+          </p>
+          <p style='margin:0 0 24px;color:#64748b;font-size:14px;'>Detected at {$time} SGT</p>
+          <a href='{$appUrl}/settings/scraper-status'
+             style='display:inline-block;background:#0f172a;color:#ffffff;padding:12px 22px;border-radius:8px;text-decoration:none;font-size:14px;font-weight:700;'>
+            Check Scraper Status →
+          </a>
+        </td>
+      </tr>
+      <tr>
+        <td style='background:#f8fafc;border:1px solid #e2e8f0;border-top:none;border-radius:0 0 12px 12px;padding:16px 32px;text-align:center;'>
+          <p style='margin:0;color:#94a3b8;font-size:12px;'>HawkerOps · Automated monitoring alert</p>
+        </td>
+      </tr>
+    </table>
+  </td></tr>
+</table>
+</body>
+</html>";
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────────

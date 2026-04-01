@@ -56,7 +56,7 @@
         <div class="flex items-center justify-between p-4 bg-slate-50 dark:bg-slate-700 rounded-xl">
           <div>
             <div class="font-medium text-slate-900 dark:text-slate-100">Enable Parallel Scraping</div>
-            <div class="text-sm text-slate-600 dark:text-slate-400">Run all 3 scrapers simultaneously for faster updates</div>
+            <div class="text-sm text-slate-600 dark:text-slate-400">Run all platform scrapers simultaneously for faster updates</div>
           </div>
           <label class="relative inline-flex items-center cursor-pointer">
             <input type="checkbox" name="enable_parallel_scraping" class="sr-only peer" {{ $enableParallelScraping ? 'checked' : '' }}>
@@ -101,9 +101,32 @@
           </div>
 
           <div>
-            <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Alert Recipients</label>
+            <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Alert Recipients (Email)</label>
             <input type="text" name="alert_email" value="{{ $alertEmail }}" placeholder="you@email.com, team@email.com" class="w-full px-4 py-3 border-2 border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-100 rounded-xl focus:ring-2 focus:ring-slate-900 focus:border-transparent">
             <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">Separate multiple emails with a comma</p>
+          </div>
+        </div>
+
+        <!-- WhatsApp (CallMeBot) -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">WhatsApp Number</label>
+            <input type="text" name="whatsapp_number" value="{{ $whatsappNumber }}" placeholder="+6591234567" class="w-full px-4 py-3 border-2 border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-100 rounded-xl focus:ring-2 focus:ring-slate-900 focus:border-transparent">
+            <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">Your number with country code (e.g. +6591234567)</p>
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">CallMeBot API Key</label>
+            <input type="text" name="whatsapp_apikey" value="{{ $whatsappApikey }}" placeholder="1234567" class="w-full px-4 py-3 border-2 border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-100 rounded-xl focus:ring-2 focus:ring-slate-900 focus:border-transparent">
+            <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">Message <strong>+34 644 59 77 39</strong> on WhatsApp: "I allow callmebot to send me messages" to get your key</p>
+          </div>
+        </div>
+
+        <!-- Scraper failure alert -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Scraper Failure Alert (hours)</label>
+            <input type="number" name="scraper_alert_hours" value="{{ $scraperAlertHours }}" min="0" placeholder="2" class="w-full px-4 py-3 border-2 border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-100 rounded-xl focus:ring-2 focus:ring-slate-900 focus:border-transparent">
+            <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">Alert if no scrape data received for this many hours (0 = disabled)</p>
           </div>
         </div>
       </div>

@@ -1442,6 +1442,9 @@ Route::post('/alert/email', function () {
             return response()->json(['success' => false, 'message' => 'Email alert not configured — set RESEND_API_KEY and ALERT_TO_EMAILS'], 400);
         }
 
+        // ── Scraper failure check ─────────────────────────────────────────────
+        (new \App\Services\AlertService())->checkScraperFailure();
+
         $nowSgt = \Carbon\Carbon::now('Asia/Singapore');
 
         // ── Change detection: only alert when NEW stores go offline ──────────

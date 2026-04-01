@@ -197,6 +197,18 @@ function toggleMobileDrawer() {
   }
 }
 
+function toggleBellDropdown(e) {
+  if (e) e.stopPropagation();
+  const dd = document.getElementById('bell-dropdown');
+  if (dd) dd.classList.toggle('hidden');
+}
+document.addEventListener('click', function(e) {
+  const dd = document.getElementById('bell-dropdown');
+  if (dd && !dd.classList.contains('hidden') && !e.target.closest('[onclick^="toggleBellDropdown"]') && !dd.contains(e.target)) {
+    dd.classList.add('hidden');
+  }
+});
+
 function toggleSection(sectionName) {
   const section = document.getElementById(sectionName + '-section');
   const arrow = document.getElementById(sectionName + '-arrow');

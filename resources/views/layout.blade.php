@@ -148,6 +148,52 @@
           </div>
           <div class="flex items-center gap-2 flex-shrink-0">
             @yield('top-actions')
+            {{-- Alert Bell --}}
+            @php
+              $bellCount = \Illuminate\Support\Facades\Cache::remember('bell_alert_count', 120, function () {
+                  return \Illuminate\Support\Facades\DB::table('alert_logs')
+                      ->where('type', 'offline')->whereNull('recovered_at')->count();
+              });
+            @endphp
+            <div class="relative">
+              <button onclick="toggleBellDropdown(event)" class="relative rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 p-2 hover:bg-slate-200 dark:hover:bg-slate-700 transition flex items-center" title="Active Alerts">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/>
+                </svg>
+                @if($bellCount > 0)
+                <span class="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-bold rounded-full min-w-[18px] h-[18px] flex items-center justify-center px-1 leading-none">{{ $bellCount }}</span>
+                @endif
+              </button>
+              <div id="bell-dropdown" class="hidden absolute right-0 top-full mt-2 w-72 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl shadow-2xl z-50 overflow-hidden">
+                <div class="px-4 py-3 border-b border-slate-100 dark:border-slate-700 flex items-center justify-between">
+                  <span class="font-semibold text-sm text-slate-900 dark:text-slate-100">Active Alerts</span>
+                  <a href="/alerts" class="text-xs text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 transition">View all →</a>
+                </div>
+                @if($bellCount === 0)
+                <div class="px-4 py-6 text-center text-sm text-slate-400 dark:text-slate-500">All stores online ✅</div>
+                @else
+                @php
+                  $bellAlerts = \Illuminate\Support\Facades\DB::table('alert_logs')
+                      ->where('type', 'offline')->whereNull('recovered_at')
+                      ->orderByDesc('alerted_at')->limit(5)->get();
+                @endphp
+                <div class="divide-y divide-slate-100 dark:divide-slate-700 max-h-64 overflow-y-auto">
+                  @foreach($bellAlerts as $ba)
+                  <a href="/store/{{ $ba->shop_id }}" class="flex items-start gap-3 px-4 py-3 hover:bg-slate-50 dark:hover:bg-slate-700/50 transition">
+                    <span class="mt-1.5 flex-shrink-0 w-2 h-2 rounded-full bg-red-500 animate-pulse"></span>
+                    <div class="min-w-0">
+                      <div class="text-sm font-medium text-slate-900 dark:text-slate-100 truncate">{{ $ba->shop_name }}</div>
+                      <div class="text-xs text-slate-500 dark:text-slate-400">Since {{ \Carbon\Carbon::parse($ba->alerted_at)->diffForHumans() }}</div>
+                    </div>
+                  </a>
+                  @endforeach
+                  @if($bellCount > 5)
+                  <div class="px-4 py-2 text-xs text-center text-slate-400 dark:text-slate-500">+{{ $bellCount - 5 }} more</div>
+                  @endif
+                </div>
+                @endif
+              </div>
+            </div>
             {{-- PWA install button moved to sidebar + startup prompt --}}
             <button onclick="smartReload(this)" class="rounded-xl bg-slate-900 dark:bg-slate-700 text-white px-3 py-2 text-sm font-medium hover:opacity-90 transition flex items-center gap-1.5">
               <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>

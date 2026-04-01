@@ -2059,6 +2059,9 @@ Route::get('/settings/configuration', function () {
         'enableHighOfflineItemsAlert' => (bool) ($configs->get('enable_high_offline_items_alert')?->value ?? true),
         'offlineItemsThreshold' => $configs->get('offline_items_threshold')?->value ?? '20',
         'alertEmail' => $configs->get('alert_email')?->value ?? 'alerts@example.com',
+        'whatsappNumber' => $configs->get('whatsapp_number')?->value ?? '',
+        'whatsappApikey' => $configs->get('whatsapp_apikey')?->value ?? '',
+        'scraperAlertHours' => $configs->get('scraper_alert_hours')?->value ?? '0',
         'timezone' => $configs->get('timezone')?->value ?? 'Asia/Singapore',
         'dateFormat' => $configs->get('date_format')?->value ?? 'DD/MM/YYYY',
         'showItemImages' => (bool) ($configs->get('show_item_images')?->value ?? true),
@@ -2076,6 +2079,9 @@ Route::post('/settings/configuration', function (\Illuminate\Http\Request $reque
     \App\Models\Configuration::set('enable_high_offline_items_alert', $request->has('enable_high_offline_items_alert') ? 1 : 0);
     \App\Models\Configuration::set('offline_items_threshold', $request->input('offline_items_threshold'));
     \App\Models\Configuration::set('alert_email', $request->input('alert_email'));
+    \App\Models\Configuration::set('whatsapp_number', $request->input('whatsapp_number'));
+    \App\Models\Configuration::set('whatsapp_apikey', $request->input('whatsapp_apikey'));
+    \App\Models\Configuration::set('scraper_alert_hours', $request->input('scraper_alert_hours', '0'));
     \App\Models\Configuration::set('timezone', $request->input('timezone'));
     \App\Models\Configuration::set('date_format', $request->input('date_format'));
     \App\Models\Configuration::set('show_item_images', $request->has('show_item_images') ? 1 : 0);
