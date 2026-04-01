@@ -44,7 +44,9 @@ class AlertService
         $appUrl      = rtrim(env('APP_URL', 'https://resto-v3-5.onrender.com'), '/');
 
         foreach ($currentStatuses as $shopId => $platforms) {
-            $shopName     = $platforms->first()->shop_name ?? 'Unknown Store';
+            $shopName     = $platforms->first()->shop_name
+                            ?? DB::table('shops')->where('shop_id', $shopId)->value('shop_name')
+                            ?? (string) $shopId;
             $totalCount   = $platforms->count();
             $offlineCount = $platforms->where('is_online', false)->count();
             $allOffline   = $offlineCount === $totalCount && $totalCount > 0;
