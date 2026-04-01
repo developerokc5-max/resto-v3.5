@@ -244,10 +244,11 @@ def save_shop(shop_info, worker_id=None):
         now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
         cursor.execute("""
-            INSERT INTO shops (shop_id, shop_name, organization_name, has_items, last_synced_at, created_at, updated_at)
-            VALUES (%s, %s, %s, %s, %s, %s, %s)
+            INSERT INTO shops (shop_id, shop_name, brand, organization_name, has_items, last_synced_at, created_at, updated_at)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
             ON CONFLICT (shop_id) DO UPDATE SET
                 shop_name         = EXCLUDED.shop_name,
+                brand             = EXCLUDED.brand,
                 organization_name = EXCLUDED.organization_name,
                 has_items         = EXCLUDED.has_items,
                 last_synced_at    = EXCLUDED.last_synced_at,
@@ -255,6 +256,7 @@ def save_shop(shop_info, worker_id=None):
         """, (
             shop_info['shop_id'],
             shop_info['shop_name'],
+            shop_info.get('brand', shop_info['shop_name']),
             shop_info['organization_name'],
             bool(shop_info['has_items']),
             now,
@@ -593,6 +595,7 @@ def worker_process_outlets(worker_id, outlets_to_process):
                                         save_shop({
                                             'shop_id': outlet_name,
                                             'shop_name': outlet_name,
+                                            'brand': brand_name,
                                             'organization_name': 'ACHIEVERS RESOURCE CONSULTANCY PTE LTD',
                                             'has_items': True
                                         }, worker_id)
@@ -601,6 +604,7 @@ def worker_process_outlets(worker_id, outlets_to_process):
                                         save_shop({
                                             'shop_id': outlet_name,
                                             'shop_name': outlet_name,
+                                            'brand': brand_name,
                                             'organization_name': 'ACHIEVERS RESOURCE CONSULTANCY PTE LTD',
                                             'has_items': False
                                         }, worker_id)
