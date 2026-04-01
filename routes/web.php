@@ -1908,9 +1908,13 @@ Route::get('/reports/downtime-leaderboard', function () {
     $data = Cache::remember('reports_downtime_leaderboard', 300, function () {
         return DB::table('alert_logs')
             ->where('alerted_at', '>=', \Carbon\Carbon::now()->subDays(30))
-            ->whereNotNull('recovered_at')
             ->groupBy('shop_id')
-            ->selectRaw('shop_id, COUNT(*) as incident_count, SUM(COALESCE(downtime_minutes,0)) as total_downtime, MAX(COALESCE(downtime_minutes,0)) as max_downtime')
+            ->selectRaw("
+                shop_id,
+                COUNT(*) as incident_count,
+                SUM(COALESCE(downtime_minutes, EXTRACT(EPOCH FROM (NOW() - alerted_at)) / 60)) as total_downtime,
+                MAX(COALESCE(downtime_minutes, EXTRACT(EPOCH FROM (NOW() - alerted_at)) / 60)) as max_downtime
+            ")
             ->orderByDesc('total_downtime')
             ->get();
     });

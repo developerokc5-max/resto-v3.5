@@ -182,7 +182,8 @@ class AlertService
         $totalIncidents  = $incidents->count();
         $resolved        = $incidents->whereNotNull('recovered_at')->count();
         $stillOpen       = $incidents->whereNull('recovered_at')->count();
-        $totalDowntime   = (int) $incidents->whereNotNull('recovered_at')->sum('downtime_minutes');
+        $openDowntime    = $incidents->whereNull('recovered_at')->sum(fn($i) => Carbon::parse($i->alerted_at)->diffInMinutes(Carbon::now()));
+        $totalDowntime   = (int) ($incidents->whereNotNull('recovered_at')->sum('downtime_minutes') + $openDowntime);
 
         // Current platform status
         $platformStats = DB::table('platform_status')
