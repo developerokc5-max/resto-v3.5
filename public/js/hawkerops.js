@@ -319,6 +319,11 @@ if ('serviceWorker' in navigator) {
       .catch(err => console.log('[PWA] Service worker failed:', err));
 
     navigator.serviceWorker.addEventListener('message', event => {
+      if (event.data?.type === 'PAGE_UPDATED' && event.data.url === window.location.href) {
+        // SW fetched a fresh copy in background — soft-swap DOM without hard reload
+        smartReload();
+        return;
+      }
       if (event.data?.type === 'SW_UPDATED') {
         const banner = document.createElement('div');
         banner.innerHTML = `

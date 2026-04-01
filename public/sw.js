@@ -72,6 +72,7 @@ self.addEventListener('fetch', event => {
       const cached = await cache.match(event.request);
 
       // Background network fetch — always runs to keep cache fresh
+      const clientId = event.clientId;
       const networkFetch = (async () => {
         try {
           const controller = new AbortController();
@@ -79,7 +80,14 @@ self.addEventListener('fetch', event => {
           const response   = await fetch(event.request.url, { signal: controller.signal });
           clearTimeout(timeoutId);
           // Store non-redirected OK responses for next visit
-          if (response.ok && !response.redirected) cache.put(event.request, response.clone());
+          if (response.ok && !response.redirected) {
+            cache.put(event.request, response.clone());
+            // Tell the page fresh content is ready — it will soft-swap via smartReload()
+            if (clientId) {
+              const client = await self.clients.get(clientId);
+              if (client) client.postMessage({ type: 'PAGE_UPDATED', url: event.request.url });
+            }
+          }
           return response;
         } catch (_) {
           // Network failed — fall back to cache then offline page
