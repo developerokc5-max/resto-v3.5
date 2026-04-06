@@ -436,7 +436,7 @@
           </div>
           <div class="bg-teal-50 dark:bg-teal-900/30 border-l-4 border-teal-500 p-4 rounded-lg mb-4">
             <div class="font-semibold text-slate-900 dark:text-slate-100 mb-2">📍 Timezone</div>
-            <p class="text-slate-600 dark:text-slate-400 text-xs leading-relaxed">All timestamps in Singapore Time (SGT, UTC+8). 46 outlets monitored.</p>
+            <p class="text-slate-600 dark:text-slate-400 text-xs leading-relaxed">All timestamps in Singapore Time (SGT, UTC+8). 50 outlets monitored.</p>
           </div>
           <div class="bg-green-50 dark:bg-green-900/30 border-l-4 border-green-500 p-4 rounded-lg">
             <div class="font-semibold text-slate-900 dark:text-slate-100 mb-2">⚡ Performance</div>
