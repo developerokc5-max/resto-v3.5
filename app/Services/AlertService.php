@@ -37,6 +37,10 @@ class AlertService
             ->groupBy('shop_id')
             ->map(fn($group) => $group->first());
 
+        // Only send notifications during operating hours (6AM–12AM SGT)
+        $sgtHour = (int) Carbon::now('Asia/Singapore')->format('G');
+        $notifyEnabled = $sgtHour >= 6;
+
         // Resolve recipients once for the whole run
         $recipients  = $this->getRecipients();
         $waNumber    = DB::table('configurations')->where('key', 'whatsapp_number')->value('value');
@@ -87,11 +91,13 @@ class AlertService
                     'updated_at'         => Carbon::now(),
                 ]);
 
-                $sent = $this->sendOfflineEmail($shopId, $shopName, $platformStatuses, $recipients);
-                $this->sendWhatsApp(
-                    "🔴 {$shopName} is OFFLINE on all platforms!\nCheck: {$appUrl}/store/{$shopId}",
-                    $waNumber, $waApikey
-                );
+                $sent = $notifyEnabled && $this->sendOfflineEmail($shopId, $shopName, $platformStatuses, $recipients);
+                if ($notifyEnabled) {
+                    $this->sendWhatsApp(
+                        "🔴 {$shopName} is OFFLINE on all platforms!\nCheck: {$appUrl}/store/{$shopId}",
+                        $waNumber, $waApikey
+                    );
+                }
 
                 DB::table('alert_logs')->where('id', $alertId)
                     ->update(['email_sent' => $sent]);
@@ -108,11 +114,13 @@ class AlertService
                 ]);
 
                 $duration = $this->formatDuration($downtimeMinutes);
-                $this->sendRecoveryEmail($shopId, $shopName, $platformStatuses, $downtimeMinutes, $recipients);
-                $this->sendWhatsApp(
-                    "✅ {$shopName} is back ONLINE. Was down {$duration}.",
-                    $waNumber, $waApikey
-                );
+                if ($notifyEnabled) {
+                    $this->sendRecoveryEmail($shopId, $shopName, $platformStatuses, $downtimeMinutes, $recipients);
+                    $this->sendWhatsApp(
+                        "✅ {$shopName} is back ONLINE. Was down {$duration}.",
+                        $waNumber, $waApikey
+                    );
+                }
             }
         }
     }
