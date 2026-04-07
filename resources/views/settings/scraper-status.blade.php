@@ -73,7 +73,7 @@
         </div>
         <div>
           <div class="text-xs text-slate-500 dark:text-slate-400 mb-1">Stores Checked</div>
-          <div class="font-bold text-blue-600 dark:text-blue-400">{{ $scraperStatus['total_stores_checked'] }} (50 outlets × 2 platforms)</div>
+          <div class="font-bold text-blue-600 dark:text-blue-400">{{ $scraperStatus['total_stores_checked'] }} (46 stalls × 2 platforms)</div>
         </div>
         <div>
           <div class="text-xs text-slate-500 dark:text-slate-400 mb-1">Success Rate</div>
