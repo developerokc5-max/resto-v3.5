@@ -1453,11 +1453,14 @@ Route::post('/alert/email', function () {
     try {
         $apiKey    = env('RESEND_API_KEY');
         $fromEmail = env('ALERT_FROM_EMAIL', 'HawkerOps <onboarding@resend.dev>');
-        $toRaw     = env('ALERT_TO_EMAILS', '');
-        $toEmails  = array_values(array_filter(array_map('trim', explode(',', $toRaw))));
+
+        // Check DB config first (Settings page), fall back to env var
+        $dbEmail = DB::table('configurations')->where('key', 'alert_email')->value('value');
+        $toRaw   = $dbEmail ?: env('ALERT_TO_EMAILS', '');
+        $toEmails = array_values(array_filter(array_map('trim', explode(',', $toRaw))));
 
         if (!$apiKey || empty($toEmails)) {
-            return response()->json(['success' => false, 'message' => 'Email alert not configured — set RESEND_API_KEY and ALERT_TO_EMAILS'], 400);
+            return response()->json(['success' => false, 'message' => 'Email alert not configured — set ALERT_TO_EMAILS in Render env vars or configure alert_email in Settings'], 400);
         }
 
         // ── Scraper failure check ─────────────────────────────────────────────

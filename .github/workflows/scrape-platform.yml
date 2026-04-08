@@ -73,3 +73,11 @@ jobs:
                -H "X-Actions-Secret: ${{ secrets.ACTIONS_SECRET }}" \
                --max-time 30 \
                --retry 2 || echo "Alert email ping failed (non-fatal)"
+
+      - name: Run Alert Check (WhatsApp + per-store alerts)
+        run: |
+          curl -s -X POST "https://resto-v3-5.onrender.com/api/alerts/check" \
+               -H "Content-Type: application/json" \
+               -H "X-Actions-Secret: ${{ secrets.ACTIONS_SECRET }}" \
+               --max-time 30 \
+               --retry 2 || echo "Alert check ping failed (non-fatal)"

@@ -609,10 +609,15 @@ def main():
     try:
         import urllib.request
         import json as _json
+        actions_secret = os.environ.get("ACTIONS_SECRET", "")
         req = urllib.request.Request(
             "https://resto-v3-5.onrender.com/api/alerts/check",
             data=b"{}",
-            headers={"Content-Type": "application/json", "Accept": "application/json"},
+            headers={
+                "Content-Type": "application/json",
+                "Accept": "application/json",
+                "X-Actions-Secret": actions_secret,
+            },
             method="POST"
         )
         with urllib.request.urlopen(req, timeout=15) as resp:
