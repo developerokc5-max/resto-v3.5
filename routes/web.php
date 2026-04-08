@@ -2147,7 +2147,11 @@ Route::get('/settings/scraper-status', function () {
 // Settings: Configuration - Load from database
 Route::get('/settings/configuration', function () {
     // Load all configurations from database
-    $configs = \App\Models\Configuration::all()->keyBy('key');
+    try {
+        $configs = \App\Models\Configuration::all()->keyBy('key');
+    } catch (\Exception $e) {
+        $configs = collect();
+    }
 
     return view('settings.configuration', [
         'configs' => $configs,
@@ -2164,7 +2168,6 @@ Route::get('/settings/configuration', function () {
         'timezone' => $configs->get('timezone')?->value ?? 'Asia/Singapore',
         'dateFormat' => $configs->get('date_format')?->value ?? 'DD/MM/YYYY',
         'showItemImages' => (bool) ($configs->get('show_item_images')?->value ?? true),
-        'lastSync' => SyncHelper::getLastSyncTimestamp(),
     ]);
 });
 
