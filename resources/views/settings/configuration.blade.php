@@ -121,6 +121,20 @@
           </div>
         </div>
 
+        <!-- Telegram -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+          <div>
+            <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Telegram Bot Token</label>
+            <input type="text" name="telegram_bot_token" value="{{ $telegramBotToken ?? '' }}" placeholder="123456:ABCdef..." class="w-full px-4 py-3 border-2 border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-100 rounded-xl focus:ring-2 focus:ring-slate-900 focus:border-transparent">
+            <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">Get from @BotFather on Telegram</p>
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Telegram Chat ID</label>
+            <input type="text" name="telegram_chat_id" value="{{ $telegramChatId ?? '' }}" placeholder="123456789" class="w-full px-4 py-3 border-2 border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-100 rounded-xl focus:ring-2 focus:ring-slate-900 focus:border-transparent">
+            <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">Your chat ID from getUpdates API</p>
+          </div>
+        </div>
+
         <!-- Scraper failure alert -->
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>

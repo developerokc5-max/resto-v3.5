@@ -2164,6 +2164,8 @@ Route::get('/settings/configuration', function () {
         'alertEmail' => $configs->get('alert_email')?->value ?? 'alerts@example.com',
         'whatsappNumber' => $configs->get('whatsapp_number')?->value ?? '',
         'whatsappApikey' => $configs->get('whatsapp_apikey')?->value ?? '',
+        'telegramBotToken' => $configs->get('telegram_bot_token')?->value ?? '',
+        'telegramChatId' => $configs->get('telegram_chat_id')?->value ?? '',
         'scraperAlertHours' => $configs->get('scraper_alert_hours')?->value ?? '2',
         'timezone' => $configs->get('timezone')?->value ?? 'Asia/Singapore',
         'dateFormat' => $configs->get('date_format')?->value ?? 'DD/MM/YYYY',
@@ -2183,6 +2185,8 @@ Route::post('/settings/configuration', function (\Illuminate\Http\Request $reque
     \App\Models\Configuration::set('alert_email', $request->input('alert_email'));
     \App\Models\Configuration::set('whatsapp_number', $request->input('whatsapp_number'));
     \App\Models\Configuration::set('whatsapp_apikey', $request->input('whatsapp_apikey'));
+    \App\Models\Configuration::set('telegram_bot_token', $request->input('telegram_bot_token'));
+    \App\Models\Configuration::set('telegram_chat_id', $request->input('telegram_chat_id'));
     \App\Models\Configuration::set('scraper_alert_hours', $request->input('scraper_alert_hours', '0'));
     \App\Models\Configuration::set('timezone', $request->input('timezone'));
     \App\Models\Configuration::set('date_format', $request->input('date_format'));

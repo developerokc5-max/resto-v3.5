@@ -45,6 +45,8 @@ class AlertService
         $recipients  = $this->getRecipients();
         $waNumber    = DB::table('configurations')->where('key', 'whatsapp_number')->value('value');
         $waApikey    = DB::table('configurations')->where('key', 'whatsapp_apikey')->value('value');
+        $tgBotToken  = DB::table('configurations')->where('key', 'telegram_bot_token')->value('value');
+        $tgChatId    = DB::table('configurations')->where('key', 'telegram_chat_id')->value('value');
         $appUrl      = rtrim(env('APP_URL', 'https://resto-v3-5.onrender.com'), '/');
 
         // Pre-load maintenance mode shops — skip alerting for these
@@ -96,13 +98,12 @@ class AlertService
                 if ($notifyEnabled) {
                     $time = Carbon::now('Asia/Singapore')->format('j M, g:i A');
                     $platformList = implode(' & ', array_map('ucfirst', $offlinePlatforms));
-                    $this->sendWhatsApp(
-                        "🔴 *STORE OFFLINE*\n" .
+                    $msg = "🔴 *STORE OFFLINE*\n" .
                         "📍 {$shopName}\n" .
                         "❌ Offline on: {$platformList}\n" .
-                        "🕐 Detected: {$time} SGT",
-                        $waNumber, $waApikey
-                    );
+                        "🕐 Detected: {$time} SGT";
+                    $this->sendWhatsApp($msg, $waNumber, $waApikey);
+                    $this->sendTelegram($msg, $tgBotToken, $tgChatId);
                 }
 
                 DB::table('alert_logs')->where('id', $alertId)
@@ -123,13 +124,12 @@ class AlertService
                 if ($notifyEnabled) {
                     $this->sendRecoveryEmail($shopId, $shopName, $platformStatuses, $downtimeMinutes, $recipients);
                     $timeBack = Carbon::now('Asia/Singapore')->format('j M, g:i A');
-                    $this->sendWhatsApp(
-                        "✅ *STORE BACK ONLINE*\n" .
+                    $recoveryMsg = "✅ *STORE BACK ONLINE*\n" .
                         "📍 {$shopName}\n" .
                         "⏱ Was down for: {$duration}\n" .
-                        "🕐 Recovered: {$timeBack} SGT",
-                        $waNumber, $waApikey
-                    );
+                        "🕐 Recovered: {$timeBack} SGT";
+                    $this->sendWhatsApp($recoveryMsg, $waNumber, $waApikey);
+                    $this->sendTelegram($recoveryMsg, $tgBotToken, $tgChatId);
                 }
             }
         }
@@ -333,6 +333,24 @@ class AlertService
             Log::info('AlertService: WhatsApp sent');
         } catch (\Exception $e) {
             Log::error('AlertService: WhatsApp failed', ['error' => $e->getMessage()]);
+        }
+    }
+
+    // ── Telegram ─────────────────────────────────────────────────────────────
+
+    private function sendTelegram(string $message, ?string $botToken, ?string $chatId): void
+    {
+        if (!$botToken || !$chatId) return;
+
+        try {
+            Http::timeout(10)->post("https://api.telegram.org/bot{$botToken}/sendMessage", [
+                'chat_id'    => $chatId,
+                'text'       => $message,
+                'parse_mode' => 'Markdown',
+            ]);
+            Log::info('AlertService: Telegram sent');
+        } catch (\Exception $e) {
+            Log::error('AlertService: Telegram failed', ['error' => $e->getMessage()]);
         }
     }
 
