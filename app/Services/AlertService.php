@@ -104,7 +104,7 @@ class AlertService
 
             } elseif (!$allOffline && $openAlert) {
                 // Store recovered — close alert + send recovery email
-                $downtimeMinutes = Carbon::parse($openAlert->alerted_at)
+                $downtimeMinutes = (int) Carbon::parse($openAlert->alerted_at)
                     ->diffInMinutes(Carbon::now());
 
                 DB::table('alert_logs')->where('id', $openAlert->id)->update([
