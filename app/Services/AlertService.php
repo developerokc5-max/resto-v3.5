@@ -60,7 +60,8 @@ class AlertService
         foreach ($currentStatuses as $shopId => $platforms) {
             // Skip shops in maintenance mode
             if ($maintenanceShops->has((string) $shopId)) continue;
-            $shopName     = $platforms->first()->shop_name
+            $shopName     = $platforms->first()->store_name
+                            ?? $platforms->first()->shop_name
                             ?? DB::table('shops')->where('shop_id', $shopId)->value('shop_name')
                             ?? (string) $shopId;
             $totalCount   = $platforms->count();
@@ -93,8 +94,13 @@ class AlertService
 
                 $sent = $notifyEnabled && $this->sendOfflineEmail($shopId, $shopName, $platformStatuses, $recipients);
                 if ($notifyEnabled) {
+                    $time = Carbon::now('Asia/Singapore')->format('j M, g:i A');
+                    $platformList = implode(' & ', array_map('ucfirst', $offlinePlatforms));
                     $this->sendWhatsApp(
-                        "🔴 {$shopName} is OFFLINE on all platforms!\nCheck: {$appUrl}/store/{$shopId}",
+                        "🔴 *STORE OFFLINE*\n" .
+                        "📍 {$shopName}\n" .
+                        "❌ Offline on: {$platformList}\n" .
+                        "🕐 Detected: {$time} SGT",
                         $waNumber, $waApikey
                     );
                 }
@@ -116,8 +122,12 @@ class AlertService
                 $duration = $this->formatDuration($downtimeMinutes);
                 if ($notifyEnabled) {
                     $this->sendRecoveryEmail($shopId, $shopName, $platformStatuses, $downtimeMinutes, $recipients);
+                    $timeBack = Carbon::now('Asia/Singapore')->format('j M, g:i A');
                     $this->sendWhatsApp(
-                        "✅ {$shopName} is back ONLINE. Was down {$duration}.",
+                        "✅ *STORE BACK ONLINE*\n" .
+                        "📍 {$shopName}\n" .
+                        "⏱ Was down for: {$duration}\n" .
+                        "🕐 Recovered: {$timeBack} SGT",
                         $waNumber, $waApikey
                     );
                 }
