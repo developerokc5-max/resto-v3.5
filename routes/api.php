@@ -1480,13 +1480,18 @@ Route::post('/alert/email', function () {
 
         // All clear — reset cached state
         if (empty($currentOfflineIds)) {
-            \Illuminate\Support\Facades\Cache::forget('hawkerops_alert_offline_ids');
+            try { \Illuminate\Support\Facades\Cache::forget('hawkerops_alert_offline_ids'); } catch (\Exception $e) {}
             return response()->json(['success' => true, 'message' => 'All clear — no alert needed']);
         }
 
         // Compare to last alerted offline set
-        $lastOfflineIds    = \Illuminate\Support\Facades\Cache::get('hawkerops_alert_offline_ids', []);
-        $lastSentAt        = \Illuminate\Support\Facades\Cache::get('hawkerops_alert_last_sent');
+        try {
+            $lastOfflineIds = \Illuminate\Support\Facades\Cache::get('hawkerops_alert_offline_ids', []);
+            $lastSentAt     = \Illuminate\Support\Facades\Cache::get('hawkerops_alert_last_sent');
+        } catch (\Exception $e) {
+            $lastOfflineIds = [];
+            $lastSentAt     = null;
+        }
         $minutesSinceLast  = $lastSentAt ? \Carbon\Carbon::parse($lastSentAt)->diffInMinutes(now()) : 9999;
 
         $newOfflineIds = array_values(array_diff($currentOfflineIds, $lastOfflineIds));
@@ -1563,14 +1568,12 @@ Route::post('/alert/email', function () {
 <body style='margin:0;padding:0;background:#f8fafc;font-family:-apple-system,BlinkMacSystemFont,\"Segoe UI\",sans-serif;'>
   <div style='max-width:560px;margin:32px auto;background:#ffffff;border-radius:16px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,0.08);'>
 
-    {{-- Header --}}
     <div style='background:#ef4444;padding:24px 28px;'>
       <p style='margin:0 0 4px;font-size:11px;font-weight:700;letter-spacing:1.5px;color:rgba(255,255,255,0.75);text-transform:uppercase;'>HawkerOps Alert</p>
       <h1 style='margin:0;font-size:22px;font-weight:800;color:#ffffff;'>{$storesWithIssues} Stores with Issues</h1>
       <p style='margin:6px 0 0;font-size:13px;color:rgba(255,255,255,0.85);'>{$dateStr} &nbsp;·&nbsp; {$timeStr}</p>
     </div>
 
-    {{-- Stats row --}}
     <div style='display:flex;border-bottom:1px solid #f1f5f9;'>
       <div style='flex:1;padding:20px 16px;text-align:center;border-right:1px solid #f1f5f9;'>
         <p style='margin:0;font-size:11px;color:#94a3b8;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;'>Stores Scanned</p>
@@ -1586,7 +1589,6 @@ Route::post('/alert/email', function () {
       </div>
     </div>
 
-    {{-- Platform breakdown --}}
     <div style='padding:16px 16px 8px;display:flex;gap:8px;'>
       <div style='flex:1;padding:12px;background:#f0fdf4;border-radius:10px;text-align:center;'>
         <p style='margin:0;font-size:11px;color:#16a34a;font-weight:700;'>Grab</p>
@@ -1598,7 +1600,6 @@ Route::post('/alert/email', function () {
       </div>
     </div>
 
-    {{-- Issue stores table --}}
     <div style='padding:16px 16px 8px;'>
       <p style='margin:0 0 8px;font-size:11px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:1px;'>Affected Stores</p>
       <table width='100%' cellpadding='0' cellspacing='0' style='border-radius:10px;overflow:hidden;border:1px solid #f1f5f9;'>
@@ -1607,7 +1608,6 @@ Route::post('/alert/email', function () {
       {$moreText}
     </div>
 
-    {{-- CTA button --}}
     <div style='padding:20px 16px 28px;text-align:center;'>
       <a href='{$reportUrl}'
          style='display:inline-block;padding:12px 32px;background:#0f172a;color:#ffffff;font-size:14px;font-weight:700;text-decoration:none;border-radius:10px;letter-spacing:0.3px;'>
@@ -1615,7 +1615,6 @@ Route::post('/alert/email', function () {
       </a>
     </div>
 
-    {{-- Footer --}}
     <div style='padding:16px;background:#f8fafc;border-top:1px solid #f1f5f9;text-align:center;'>
       <p style='margin:0;font-size:11px;color:#cbd5e1;'>HawkerOps · Automated scan alert · {$timeStr}</p>
     </div>
@@ -1635,8 +1634,11 @@ Route::post('/alert/email', function () {
         ]);
 
         if ($response->successful()) {
-            \Illuminate\Support\Facades\Cache::put('hawkerops_alert_last_sent', now()->toIso8601String(), 7200);
-            \Illuminate\Support\Facades\Cache::put('hawkerops_alert_offline_ids', $currentOfflineIds, 86400);
+            try {
+                \Illuminate\Support\Facades\Cache::put('hawkerops_alert_last_sent', now()->toIso8601String(), 7200);
+                \Illuminate\Support\Facades\Cache::put('hawkerops_alert_offline_ids', $currentOfflineIds, 86400);
+            } catch (\Exception $e) {}
+
             return response()->json([
                 'success'   => true,
                 'message'   => 'Alert email sent',
