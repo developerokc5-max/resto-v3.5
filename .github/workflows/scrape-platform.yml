@@ -43,6 +43,7 @@ jobs:
           NEON_DB: ${{ secrets.NEON_DB }}
           RESTOSUITE_EMAIL: ${{ secrets.RESTOSUITE_EMAIL }}
           RESTOSUITE_PASSWORD: ${{ secrets.RESTOSUITE_PASSWORD }}
+          ACTIONS_SECRET: ${{ secrets.ACTIONS_SECRET }}
         run: python platform-test-trait-1/scrape_platform_sync.py
 
       - name: Update Daily History Snapshot
@@ -76,5 +77,5 @@ jobs:
           curl -s -X POST "https://resto-v3-5.onrender.com/api/alerts/check" \
                -H "Content-Type: application/json" \
                -H "X-Actions-Secret: ${{ secrets.ACTIONS_SECRET }}" \
-               --max-time 30 \
-               --retry 2 || echo "Alert check ping failed (non-fatal)"
+               --max-time 60 \
+               --retry 1 || echo "Alert check ping failed (non-fatal)"
