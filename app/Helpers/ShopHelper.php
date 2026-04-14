@@ -8,6 +8,24 @@ use Illuminate\Support\Facades\DB;
 class ShopHelper
 {
     /**
+     * Shop IDs to exclude from all views — test/demo outlets and permanently closed stores.
+     */
+    public static function excludedShopIds(): array
+    {
+        return [
+            '401525442', // OKCR Testing Outlet
+            '404055818', // HUMFULL Testing Outlet
+            '402214336', // JKT Western Testing Outlet
+            '405576685', // Le Le Mee Pok Testing Outlet
+            '404144535', // Drinks Stall Testing Outlet
+            '408443497', // AH HUAT HOKKIEN MEE (Demo outlet)
+            '402473827', // OK CHICKEN RICE @ AMK (closed)
+            '407006583', // HUMFULL @ Edgedale Plains (closed)
+            '408543917', // HUMFULL @ AMK (closed)
+        ];
+    }
+
+    /**
      * Build shop map dynamically from both sources:
      * - platform_status: numeric shop_id → store_name (used by platform scraper)
      * - shops: outlet-name shop_id → shop_name + brand (used by item scraper)

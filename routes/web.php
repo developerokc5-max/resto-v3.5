@@ -701,10 +701,11 @@ Route::get('/store/{shopId}/items', function ($shopId) {
         ->get()
         ->keyBy('platform');
 
-    // Get ALL items for this store (grouped by platform)
+    // Get Grab + FoodPanda items only for this store
     // Try by shop_name first, then fallback to store_name from platform_status (handles name mismatches)
     $allItems = DB::table('items')
         ->where('shop_name', $shopInfo['name'])
+        ->whereIn('platform', ['grab', 'foodpanda'])
         ->orderBy('platform')
         ->orderBy('category')
         ->orderBy('name')
@@ -716,6 +717,7 @@ Route::get('/store/{shopId}/items', function ($shopId) {
         if ($storeName) {
             $allItems = DB::table('items')
                 ->whereRaw('LOWER(shop_name) = LOWER(?)', [$storeName])
+                ->whereIn('platform', ['grab', 'foodpanda'])
                 ->orderBy('platform')
                 ->orderBy('category')
                 ->orderBy('name')
