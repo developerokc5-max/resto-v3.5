@@ -65,32 +65,33 @@ self.addEventListener('fetch', event => {
   // Without this, fetch(url, { cache: 'no-store' }) falls into cache-first and gets stale HTML
   if (event.request.cache === 'no-store') return;
 
-  // ── HTML pages: network-first ──────────────────────────────────────────────
-  // Always fetch fresh HTML from the server first — guarantees up-to-date data.
-  // Only fall back to cache if the network is completely unreachable (offline).
+  // ── HTML pages: stale-while-revalidate ────────────────────────────────────
+  // Serve cached page INSTANTLY (sub-second LCP), fetch fresh in background.
+  // smartReload() + visibilitychange handles showing new data to the user.
   if (event.request.headers.get('accept')?.includes('text/html')) {
     event.respondWith((async () => {
-      const cache = await caches.open(CACHE_NAME);
-      try {
-        const controller = new AbortController();
-        const timeoutId  = setTimeout(() => controller.abort(), 15000);
-        const response   = await fetch(event.request.url, { signal: controller.signal });
-        clearTimeout(timeoutId);
-        // Cache the fresh response for offline fallback
+      const cache  = await caches.open(CACHE_NAME);
+      const cached = await cache.match(event.request);
+
+      // Always fetch fresh in background to keep cache up-to-date
+      const fetchPromise = fetch(event.request.url).then(response => {
         if (response.ok && !response.redirected) {
           cache.put(event.request, response.clone());
         }
         return response;
-      } catch (_) {
-        // Network failed — serve cached version if available
-        const cached = await cache.match(event.request);
-        if (cached) return cached;
-        return new Response(
-          '<html><body style="font-family:sans-serif;text-align:center;padding:60px;background:#0f172a;color:#fff">' +
-          '<h1>⚡ HawkerOps</h1><p>You are offline. Connect to see live data.</p></body></html>',
-          { headers: { 'Content-Type': 'text/html' } }
-        );
-      }
+      }).catch(() => null);
+
+      // Return cached immediately if available; otherwise wait for network
+      if (cached) return cached;
+
+      // No cache yet (first visit) — wait for network, fall back to offline page
+      const response = await fetchPromise;
+      if (response) return response;
+      return new Response(
+        '<html><body style="font-family:sans-serif;text-align:center;padding:60px;background:#0f172a;color:#fff">' +
+        '<h1>⚡ HawkerOps</h1><p>You are offline. Connect to see live data.</p></body></html>',
+        { headers: { 'Content-Type': 'text/html' } }
+      );
     })());
     return;
   }

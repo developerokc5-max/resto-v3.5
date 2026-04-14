@@ -123,9 +123,12 @@ function showNotification(message, type = 'info') {
 // Last known sync unix timestamp — used to skip full-page fetches when data hasn't changed
 let _lastSyncTs = 0;
 
-// Auto-reload every 5 minutes — skip if tab is hidden to avoid wasted requests
-const _autoReloadTimer = setInterval(() => { if (!document.hidden) smartReload(); }, 300000);
+// Auto-reload every 2 minutes — skip if tab is hidden to avoid wasted requests
+const _autoReloadTimer = setInterval(() => { if (!document.hidden) smartReload(); }, 120000);
 window.addEventListener('beforeunload', () => clearInterval(_autoReloadTimer));
+
+// Reload when tab becomes visible again (returning to app on phone/laptop or switching tabs)
+document.addEventListener('visibilitychange', () => { if (!document.hidden) smartReload(); });
 
 async function smartReload(btn) {
   // Visual feedback (only when user explicitly clicks Reload)
