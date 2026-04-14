@@ -65,53 +65,32 @@ self.addEventListener('fetch', event => {
   // Without this, fetch(url, { cache: 'no-store' }) falls into cache-first and gets stale HTML
   if (event.request.cache === 'no-store') return;
 
-  // ── HTML pages: stale-while-revalidate ─────────────────────────────────────
-  // Serve the cached version IMMEDIATELY so navigation feels instant,
-  // then fetch a fresh copy in the background and update the cache.
-  // smartReload() (every 5 min) will swap in fresh content without a hard reload.
+  // ── HTML pages: network-first ──────────────────────────────────────────────
+  // Always fetch fresh HTML from the server first — guarantees up-to-date data.
+  // Only fall back to cache if the network is completely unreachable (offline).
   if (event.request.headers.get('accept')?.includes('text/html')) {
     event.respondWith((async () => {
-      const cache  = await caches.open(CACHE_NAME);
-      const cached = await cache.match(event.request);
-
-      // Background network fetch — always runs to keep cache fresh
-      const clientId = event.clientId;
-      const networkFetch = (async () => {
-        try {
-          const controller = new AbortController();
-          const timeoutId  = setTimeout(() => controller.abort(), 15000);
-          const response   = await fetch(event.request.url, { signal: controller.signal });
-          clearTimeout(timeoutId);
-          // Store non-redirected OK responses for next visit
-          if (response.ok && !response.redirected) {
-            cache.put(event.request, response.clone());
-            // Tell the page fresh content is ready — it will soft-swap via smartReload()
-            if (clientId) {
-              const client = await self.clients.get(clientId);
-              if (client) client.postMessage({ type: 'PAGE_UPDATED', url: event.request.url });
-            }
-          }
-          return response;
-        } catch (_) {
-          // Network failed — fall back to cache then offline page
-          const fallback = await cache.match(event.request);
-          if (fallback) return fallback;
-          return cache.match('/offline') || new Response(
-            '<html><body style="font-family:sans-serif;text-align:center;padding:60px;background:#0f172a;color:#fff">' +
-            '<h1>⚡ HawkerOps</h1><p>You are offline. Connect to see live data.</p></body></html>',
-            { headers: { 'Content-Type': 'text/html' } }
-          );
+      const cache = await caches.open(CACHE_NAME);
+      try {
+        const controller = new AbortController();
+        const timeoutId  = setTimeout(() => controller.abort(), 15000);
+        const response   = await fetch(event.request.url, { signal: controller.signal });
+        clearTimeout(timeoutId);
+        // Cache the fresh response for offline fallback
+        if (response.ok && !response.redirected) {
+          cache.put(event.request, response.clone());
         }
-      })();
-
-      // If we have a cached copy: serve it NOW, let network run in background
-      if (cached) {
-        networkFetch.catch(() => {}); // fire-and-forget, errors silently ignored
-        return cached;
+        return response;
+      } catch (_) {
+        // Network failed — serve cached version if available
+        const cached = await cache.match(event.request);
+        if (cached) return cached;
+        return new Response(
+          '<html><body style="font-family:sans-serif;text-align:center;padding:60px;background:#0f172a;color:#fff">' +
+          '<h1>⚡ HawkerOps</h1><p>You are offline. Connect to see live data.</p></body></html>',
+          { headers: { 'Content-Type': 'text/html' } }
+        );
       }
-
-      // No cached copy yet (first-ever visit) — wait for network
-      return networkFetch;
     })());
     return;
   }
