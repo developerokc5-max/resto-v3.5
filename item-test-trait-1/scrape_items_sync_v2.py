@@ -102,7 +102,7 @@ def ensure_schema():
 def check_skip_scheduled_run():
     """
     If this is a scheduled run and a manual scan was triggered within the last
-    2 hours, skip this run to avoid double-scanning and wasting Actions minutes.
+    10 minutes, skip this run to avoid double-scanning and wasting Actions minutes.
     Manual runs always proceed regardless.
     """
     event_name = os.getenv("GITHUB_EVENT_NAME", "workflow_dispatch")
@@ -115,7 +115,7 @@ def check_skip_scheduled_run():
         cur.execute("""
             SELECT triggered_at FROM scraper_manual_triggers
             WHERE scraper_type = 'items'
-            AND triggered_at > NOW() - INTERVAL '2 hours'
+            AND triggered_at > NOW() - INTERVAL '10 minutes'
             ORDER BY triggered_at DESC
             LIMIT 1
         """)
@@ -124,7 +124,7 @@ def check_skip_scheduled_run():
         conn.close()
 
         if row:
-            log(f"⏭ Skipping scheduled run — manual scan was triggered at {row[0]} (within last 2 hours). Resuming normal schedule next run.")
+            log(f"⏭ Skipping scheduled run — manual scan was triggered at {row[0]} (within last 10 minutes). Resuming normal schedule next run.")
             sys.exit(0)
     except Exception as e:
         log(f"Warning: Could not check manual trigger table: {e} — proceeding with run")
