@@ -38,8 +38,18 @@ Route::get('/', function () {
 Route::get('/dashboard', function () {
     $shopMap = ShopHelper::getShopMap();
 
-    // NO FILTERING - Show ALL stores including testing outlets
-    $testingShopIds = []; // Empty array - no exclusions
+    // Excluded shops: test/demo outlets + permanently closed stores
+    $testingShopIds = [
+        '401525442', // OKCR Testing Outlet
+        '404055818', // HUMFULL Testing Outlet
+        '402214336', // JKT Western Testing Outlet
+        '405576685', // Le Le Mee Pok Testing Outlet
+        '404144535', // Drinks Stall Testing Outlet
+        '408443497', // AH HUAT HOKKIEN MEE (Demo outlet)
+        '402473827', // OK CHICKEN RICE @ AMK (closed)
+        '407006583', // HUMFULL @ Edgedale Plains (closed)
+        '408543917', // HUMFULL @ AMK (closed)
+    ];
 
     // CONSOLIDATED CACHE: Get all KPIs in a single cached query operation
     // This replaces 6+ individual cache calls with 1, reducing overhead by ~80%
@@ -102,6 +112,7 @@ Route::get('/dashboard', function () {
         $allPlatformStatuses = CacheOptimizationHelper::getAllPlatformStatuses();
 
         foreach ($storeStats as $stat) {
+            if (in_array((string) $stat->shop_id, $testingShopIds)) continue;
             $fallbackName = collect($allPlatformStatuses[$stat->shop_id] ?? [])->first()?->store_name ?? $stat->shop_id;
             $shopInfo = $shopMap[$stat->shop_id] ?? ['name' => $fallbackName, 'brand' => $fallbackName];
 
@@ -177,6 +188,7 @@ Route::get('/dashboard', function () {
     } else {
         // Fallback: Use platform_status table directly
         $platformStatuses = DB::table('platform_status')
+            ->whereNotIn('shop_id', $testingShopIds)
             ->orderBy('shop_id')
             ->get();
 
