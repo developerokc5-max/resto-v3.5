@@ -290,15 +290,17 @@ Route::get('/stores', function () {
             ->orderBy('shop_name')
             ->get();
 
-        // BATCH: Get all item counts per shop in one query (fixes N+1)
+        // BATCH: Get all item counts per shop in one query (Grab + FoodPanda only)
         $allItemCounts = DB::table('items')
             ->select('shop_name', DB::raw("COUNT(DISTINCT (name || '|' || category)) as total_count"))
+            ->whereIn('platform', ['grab', 'foodpanda'])
             ->groupBy('shop_name')
             ->pluck('total_count', 'shop_name');
 
-        // BATCH: Get all offline item counts per shop in one query (fixes N+1)
+        // BATCH: Get all offline item counts per shop in one query (Grab + FoodPanda only)
         $allOfflineCounts = DB::table('items')
             ->select('shop_name', DB::raw("COUNT(DISTINCT (name || '|' || category)) as offline_count"))
+            ->whereIn('platform', ['grab', 'foodpanda'])
             ->where('is_available', false)
             ->groupBy('shop_name')
             ->pluck('offline_count', 'shop_name');
@@ -458,9 +460,10 @@ Route::get('/items', function (Request $request) {
 
     // Cache the GROUPED items (not raw items) for better performance
     $itemsGrouped = Cache::remember($cacheKey, 600, function () use ($selectedRestaurant, $selectedCategory) {
-        // Build query for items - only select needed columns
+        // Build query for items - Grab + FoodPanda only
         $query = DB::table('items')
-            ->select('shop_name', 'name', 'category', 'price', 'image_url', 'sku', 'platform', 'is_available');
+            ->select('shop_name', 'name', 'category', 'price', 'image_url', 'sku', 'platform', 'is_available')
+            ->whereIn('platform', ['grab', 'foodpanda']);
 
         // Apply restaurant filter if provided
         if ($selectedRestaurant) {
