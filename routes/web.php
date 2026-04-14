@@ -391,9 +391,10 @@ Route::get('/store/{shop_id}', function ($shop_id) {
 
     // Cache items + platform status per store (invalidated by TTL or scraper run)
     $storeData = Cache::remember('store_detail_data_' . $shop_id, 300, function () use ($shop) {
-        // Get all items for this shop grouped by name+category (across all platforms)
+        // Get Grab + FoodPanda items only for this shop grouped by name+category
         $items = DB::table('items')
             ->where('shop_name', $shop->shop_name)
+            ->whereIn('platform', ['grab', 'foodpanda'])
             ->orderBy('category')
             ->orderBy('name')
             ->get();
