@@ -23,8 +23,9 @@ class AlertService
      */
     public function checkAndAlert(): void
     {
-        // Get current platform status grouped by shop
+        // Get current platform status grouped by shop (exclude test/closed stores)
         $currentStatuses = DB::table('platform_status')
+            ->whereNotIn('shop_id', \App\Helpers\ShopHelper::excludedShopIds())
             ->get()
             ->groupBy('shop_id');
 

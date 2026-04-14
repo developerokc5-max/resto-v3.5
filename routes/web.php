@@ -512,6 +512,7 @@ Route::get('/items', function (Request $request) {
     // Get ALL restaurants from shops table — cached 1h (shop names rarely change)
     $restaurants = Cache::remember('shops_name_list', 3600, function () {
         return DB::table('shops')
+            ->whereNotIn('shop_id', \App\Helpers\ShopHelper::excludedShopIds())
             ->select('shop_name')
             ->orderBy('shop_name')
             ->pluck('shop_name')
