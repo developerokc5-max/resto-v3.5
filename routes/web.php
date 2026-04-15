@@ -65,11 +65,10 @@ Route::get('/dashboard', function () {
         ->select('shop_name', 'platform', 'name')
         ->where('is_available', false)
         ->whereIn('platform', ['grab', 'foodpanda'])
-        ->where('category', 'not like', '%(Del)%')
         ->orderBy('shop_name')->orderBy('platform')->orderBy('name')
         ->get()
         ->groupBy(fn($r) => $r->shop_name . '|' . $r->platform)
-        ->map(fn($rows) => $rows->take(2)->pluck('name')->toArray());
+        ->map(fn($rows) => $rows->pluck('name')->unique()->take(2)->values()->toArray());
 
     // Uptime % per shop (last 30 days from alert_logs)
     $totalMinutes30d = 30 * 24 * 60;
@@ -293,17 +292,15 @@ Route::get('/stores', function () {
 
         // BATCH: Get all item counts per shop in one query (Grab + FoodPanda only)
         $allItemCounts = DB::table('items')
-            ->select('shop_name', DB::raw("COUNT(DISTINCT (name || '|' || category)) as total_count"))
+            ->select('shop_name', DB::raw("COUNT(DISTINCT (name || '|' || REGEXP_REPLACE(category, '\\s*\\(Del\\)\\s*', '', 'g'))) as total_count"))
             ->whereIn('platform', ['grab', 'foodpanda'])
-            ->where('category', 'not like', '%(Del)%')
             ->groupBy('shop_name')
             ->pluck('total_count', 'shop_name');
 
         // BATCH: Get all offline item counts per shop in one query (Grab + FoodPanda only)
         $allOfflineCounts = DB::table('items')
-            ->select('shop_name', DB::raw("COUNT(DISTINCT (name || '|' || category)) as offline_count"))
+            ->select('shop_name', DB::raw("COUNT(DISTINCT (name || '|' || REGEXP_REPLACE(category, '\\s*\\(Del\\)\\s*', '', 'g'))) as offline_count"))
             ->whereIn('platform', ['grab', 'foodpanda'])
-            ->where('category', 'not like', '%(Del)%')
             ->where('is_available', false)
             ->groupBy('shop_name')
             ->pluck('offline_count', 'shop_name');
@@ -400,20 +397,21 @@ Route::get('/store/{shop_id}', function ($shop_id) {
         $items = DB::table('items')
             ->where('shop_name', $shop->shop_name)
             ->whereIn('platform', ['grab', 'foodpanda'])
-            ->where('category', 'not like', '%(Del)%')
             ->orderBy('category')
             ->orderBy('name')
             ->get();
 
-        // Group items by unique item (name + category)
+        // Group items by unique item (name + category) — normalize "(Del)" suffix so
+        // RestoSuite delivery-mapped variants merge with their base item instead of appearing twice.
         $groupedItems = [];
         foreach ($items as $item) {
-            $key = $item->name . '|' . $item->category;
+            $cleanCategory = trim(preg_replace('/\s*\(Del\)\s*/', ' ', $item->category ?? ''));
+            $key = $item->name . '|' . $cleanCategory;
 
             if (!isset($groupedItems[$key])) {
                 $groupedItems[$key] = [
                     'name'      => $item->name,
-                    'category'  => $item->category,
+                    'category'  => $cleanCategory,
                     'image_url' => $item->image_url,
                     'price'     => $item->price,
                     'platforms' => [],
@@ -467,17 +465,17 @@ Route::get('/items', function (Request $request) {
         // Build query for items - Grab + FoodPanda only
         $query = DB::table('items')
             ->select('shop_name', 'name', 'category', 'price', 'image_url', 'sku', 'platform', 'is_available')
-            ->whereIn('platform', ['grab', 'foodpanda'])
-            ->where('category', 'not like', '%(Del)%');
+            ->whereIn('platform', ['grab', 'foodpanda']);
 
         // Apply restaurant filter if provided
         if ($selectedRestaurant) {
             $query->where('shop_name', $selectedRestaurant);
         }
 
-        // Apply category filter at DB level
+        // Apply category filter at DB level — match against normalized category so
+        // "(Del)" variants still match their cleaned category value.
         if ($selectedCategory) {
-            $query->where('category', $selectedCategory);
+            $query->whereRaw("TRIM(REGEXP_REPLACE(category, '\\s*\\(Del\\)\\s*', ' ', 'g')) = ?", [$selectedCategory]);
         }
 
         // Get all items from the items table
@@ -486,16 +484,19 @@ Route::get('/items', function (Request $request) {
             ->orderBy('name')
             ->get();
 
-        // Group items by shop + name to show all platforms together
+        // Group items by shop + name to show all platforms together.
+        // Normalize "(Del)" in category so RestoSuite delivery-mapped variants
+        // merge cleanly instead of displaying the "(Del)" suffix.
         $grouped = [];
         foreach ($allItems as $item) {
+            $cleanCategory = trim(preg_replace('/\s*\(Del\)\s*/', ' ', $item->category ?? ''));
             $key = $item->shop_name . '|' . $item->name;
 
             if (!isset($grouped[$key])) {
                 $grouped[$key] = [
                     'shop_name' => $item->shop_name,
                     'name' => $item->name,
-                    'category' => $item->category,
+                    'category' => $cleanCategory,
                     'price' => $item->price,
                     'image_url' => $item->image_url,
                     'sku' => $item->sku,
@@ -504,10 +505,17 @@ Route::get('/items', function (Request $request) {
                         'foodpanda' => false,
                     ],
                 ];
+            } else {
+                // Prefer the non-"(Del)" category when both variants exist
+                if ($cleanCategory !== '' && ($grouped[$key]['category'] === '' || str_contains($grouped[$key]['category'], '(Del)'))) {
+                    $grouped[$key]['category'] = $cleanCategory;
+                }
             }
 
-            // Set platform availability
-            $grouped[$key]['platforms'][$item->platform] = (bool)$item->is_available;
+            // Set platform availability (if either variant is available, item is available)
+            if (!$grouped[$key]['platforms'][$item->platform]) {
+                $grouped[$key]['platforms'][$item->platform] = (bool)$item->is_available;
+            }
         }
 
         return array_values($grouped);
@@ -536,14 +544,15 @@ Route::get('/items', function (Request $request) {
             ->values();
     });
 
-    // Get unique categories - with caching
+    // Get unique categories - with caching.
+    // Normalize "(Del)" suffix so delivery-mapped categories collapse into their base value.
     $categories = Cache::remember('items_categories', 300, function () {
         return DB::table('items')
-            ->select('category')
-            ->distinct()
+            ->selectRaw("DISTINCT TRIM(REGEXP_REPLACE(category, '\\s*\\(Del\\)\\s*', ' ', 'g')) as category")
             ->whereNotNull('category')
-            ->where('category', 'not like', '%(Del)%')
             ->pluck('category')
+            ->filter()
+            ->unique()
             ->sort()
             ->values();
     });
@@ -716,7 +725,6 @@ Route::get('/store/{shopId}/items', function ($shopId) {
     $allItems = DB::table('items')
         ->where('shop_name', $shopInfo['name'])
         ->whereIn('platform', ['grab', 'foodpanda'])
-        ->where('category', 'not like', '%(Del)%')
         ->orderBy('platform')
         ->orderBy('category')
         ->orderBy('name')
@@ -729,13 +737,30 @@ Route::get('/store/{shopId}/items', function ($shopId) {
             $allItems = DB::table('items')
                 ->whereRaw('LOWER(shop_name) = LOWER(?)', [$storeName])
                 ->whereIn('platform', ['grab', 'foodpanda'])
-                ->where('category', 'not like', '%(Del)%')
                 ->orderBy('platform')
                 ->orderBy('category')
                 ->orderBy('name')
                 ->get();
         }
     }
+
+    // Dedupe on (platform, name) — prefer non-"(Del)" category variant; strip "(Del)" for display.
+    $deduped = [];
+    foreach ($allItems as $item) {
+        $cleanCategory = trim(preg_replace('/\s*\(Del\)\s*/', ' ', $item->category ?? ''));
+        $key = $item->platform . '|' . $item->name;
+        $hasDel = str_contains($item->category ?? '', '(Del)');
+
+        if (!isset($deduped[$key])) {
+            $item->category = $cleanCategory;
+            $deduped[$key] = $item;
+        } elseif (!$hasDel) {
+            // Prefer the non-"(Del)" variant
+            $item->category = $cleanCategory;
+            $deduped[$key] = $item;
+        }
+    }
+    $allItems = collect(array_values($deduped));
 
     // Group items by platform and filter offline items
     $offlineItemsByPlatform = [
@@ -902,9 +927,21 @@ Route::get('/store/{shopId}/logs', function ($shopId) {
         ->whereRaw('LOWER(shop_name) = LOWER(?)', [$shopInfo['name']])
         ->where('is_available', false)
         ->whereIn('platform', ['grab', 'foodpanda'])
-        ->where('category', 'not like', '%(Del)%')
         ->get()
-        ->groupBy('platform');
+        ->groupBy('platform')
+        ->map(function ($items) {
+            // Dedupe by name — prefer non-"(Del)" category; strip "(Del)" for display
+            $byName = [];
+            foreach ($items as $item) {
+                $cleanCategory = trim(preg_replace('/\s*\(Del\)\s*/', ' ', $item->category ?? ''));
+                $hasDel = str_contains($item->category ?? '', '(Del)');
+                if (!isset($byName[$item->name]) || !$hasDel) {
+                    $item->category = $cleanCategory;
+                    $byName[$item->name] = $item;
+                }
+            }
+            return collect(array_values($byName));
+        });
 
     $platformData = [];
     foreach (['grab', 'foodpanda'] as $platform) {
@@ -1016,16 +1053,16 @@ Route::get('/dashboard/export', function () {
     // Collect store names from platform_status for offline-items lookup
     $shopNames = $platformStatuses->map(fn($rows) => $rows->first()->store_name)->filter()->values()->toArray();
 
-    // QUERY 2: Get all offline items grouped by shop_name and platform
+    // QUERY 2: Get all offline items grouped by shop_name and platform.
+    // Use COUNT DISTINCT on (name, normalized_category) so "(Del)" duplicates don't double-count.
     $offlineItemsStats = DB::table('items')
         ->whereIn('shop_name', $shopNames)
         ->where('is_available', false)
         ->whereIn('platform', ['grab', 'foodpanda'])
-        ->where('category', 'not like', '%(Del)%')
         ->select(
             'shop_name',
             'platform',
-            DB::raw('COUNT(*) as offline_count')
+            DB::raw("COUNT(DISTINCT (name || '|' || REGEXP_REPLACE(category, '\\s*\\(Del\\)\\s*', '', 'g'))) as offline_count")
         )
         ->groupBy('shop_name', 'platform')
         ->get()
@@ -1233,14 +1270,13 @@ Route::get('/alerts', function () {
                 ->keyBy('platform'),
 
             'storesWithOfflineItems' => DB::table('items')
-                ->selectRaw('shop_name, shop_id,
-                    SUM(CASE WHEN is_available = false THEN 1 ELSE 0 END) as offline_count,
-                    COUNT(*) as total_items,
-                    MAX(updated_at) as last_updated')
+                ->selectRaw("shop_name, shop_id,
+                    COUNT(DISTINCT CASE WHEN is_available = false THEN (name || '|' || REGEXP_REPLACE(category, '\\s*\\(Del\\)\\s*', '', 'g')) END) as offline_count,
+                    COUNT(DISTINCT (name || '|' || REGEXP_REPLACE(category, '\\s*\\(Del\\)\\s*', '', 'g'))) as total_items,
+                    MAX(updated_at) as last_updated")
                 ->whereIn('platform', ['grab', 'foodpanda'])
-                ->where('category', 'not like', '%(Del)%')
                 ->groupBy('shop_name', 'shop_id')
-                ->havingRaw('SUM(CASE WHEN is_available = false THEN 1 ELSE 0 END) > 20')
+                ->havingRaw("COUNT(DISTINCT CASE WHEN is_available = false THEN (name || '|' || REGEXP_REPLACE(category, '\\s*\\(Del\\)\\s*', '', 'g')) END) > 20")
                 ->orderByRaw('offline_count DESC')
                 ->limit(8)
                 ->get(),
@@ -1431,9 +1467,12 @@ Route::get('/history', function () {
     $allOfflineItems = DB::table('items')
         ->where('is_available', false)
         ->whereIn('platform', ['grab', 'foodpanda'])
-        ->where('category', 'not like', '%(Del)%')
         ->get()
-        ->groupBy(fn($item) => strtolower($item->shop_name) . '|' . $item->platform);
+        ->groupBy(fn($item) => strtolower($item->shop_name) . '|' . $item->platform)
+        ->map(function ($items) {
+            // Dedupe by (name, normalized category) — "(Del)" duplicates collapse
+            return $items->unique(fn($i) => $i->name . '|' . trim(preg_replace('/\s*\(Del\)\s*/', ' ', $i->category ?? '')))->values();
+        });
 
     $insertRows = [];
     foreach ($allPlatformStatus as $shopId => $platforms) {
@@ -1987,15 +2026,15 @@ Route::get('/reports/store-comparison', function () {
                 ->groupBy('shop_id')
                 ->map(fn($items) => $items->keyBy('platform')),
 
-            // Fetch all item counts (Grab + FoodPanda only, exclude Deliveroo duplicates)
+            // Fetch all item counts (Grab + FoodPanda only).
+            // Use COUNT DISTINCT on normalized (name, category) so "(Del)" duplicates don't inflate counts.
             'itemCounts' => DB::table('items')
                 ->select(
                     'shop_name',
-                    DB::raw('COUNT(*) as total'),
-                    DB::raw('SUM(CASE WHEN is_available = false THEN 1 ELSE 0 END) as offline')
+                    DB::raw("COUNT(DISTINCT (name || '|' || REGEXP_REPLACE(category, '\\s*\\(Del\\)\\s*', '', 'g'))) as total"),
+                    DB::raw("COUNT(DISTINCT CASE WHEN is_available = false THEN (name || '|' || REGEXP_REPLACE(category, '\\s*\\(Del\\)\\s*', '', 'g')) END) as offline")
                 )
                 ->whereIn('platform', ['grab', 'foodpanda'])
-                ->where('category', 'not like', '%(Del)%')
                 ->groupBy('shop_name')
                 ->get()
                 ->keyBy('shop_name'),
