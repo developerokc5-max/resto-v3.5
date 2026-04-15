@@ -65,6 +65,7 @@ Route::get('/dashboard', function () {
         ->select('shop_name', 'platform', 'name')
         ->where('is_available', false)
         ->whereIn('platform', ['grab', 'foodpanda'])
+        ->where('category', 'not like', '%(Del)%')
         ->orderBy('shop_name')->orderBy('platform')->orderBy('name')
         ->get()
         ->groupBy(fn($r) => $r->shop_name . '|' . $r->platform)
@@ -294,6 +295,7 @@ Route::get('/stores', function () {
         $allItemCounts = DB::table('items')
             ->select('shop_name', DB::raw("COUNT(DISTINCT (name || '|' || category)) as total_count"))
             ->whereIn('platform', ['grab', 'foodpanda'])
+            ->where('category', 'not like', '%(Del)%')
             ->groupBy('shop_name')
             ->pluck('total_count', 'shop_name');
 
@@ -301,6 +303,7 @@ Route::get('/stores', function () {
         $allOfflineCounts = DB::table('items')
             ->select('shop_name', DB::raw("COUNT(DISTINCT (name || '|' || category)) as offline_count"))
             ->whereIn('platform', ['grab', 'foodpanda'])
+            ->where('category', 'not like', '%(Del)%')
             ->where('is_available', false)
             ->groupBy('shop_name')
             ->pluck('offline_count', 'shop_name');
@@ -397,6 +400,7 @@ Route::get('/store/{shop_id}', function ($shop_id) {
         $items = DB::table('items')
             ->where('shop_name', $shop->shop_name)
             ->whereIn('platform', ['grab', 'foodpanda'])
+            ->where('category', 'not like', '%(Del)%')
             ->orderBy('category')
             ->orderBy('name')
             ->get();
@@ -463,7 +467,8 @@ Route::get('/items', function (Request $request) {
         // Build query for items - Grab + FoodPanda only
         $query = DB::table('items')
             ->select('shop_name', 'name', 'category', 'price', 'image_url', 'sku', 'platform', 'is_available')
-            ->whereIn('platform', ['grab', 'foodpanda']);
+            ->whereIn('platform', ['grab', 'foodpanda'])
+            ->where('category', 'not like', '%(Del)%');
 
         // Apply restaurant filter if provided
         if ($selectedRestaurant) {
@@ -537,6 +542,7 @@ Route::get('/items', function (Request $request) {
             ->select('category')
             ->distinct()
             ->whereNotNull('category')
+            ->where('category', 'not like', '%(Del)%')
             ->pluck('category')
             ->sort()
             ->values();
@@ -710,6 +716,7 @@ Route::get('/store/{shopId}/items', function ($shopId) {
     $allItems = DB::table('items')
         ->where('shop_name', $shopInfo['name'])
         ->whereIn('platform', ['grab', 'foodpanda'])
+        ->where('category', 'not like', '%(Del)%')
         ->orderBy('platform')
         ->orderBy('category')
         ->orderBy('name')
@@ -722,6 +729,7 @@ Route::get('/store/{shopId}/items', function ($shopId) {
             $allItems = DB::table('items')
                 ->whereRaw('LOWER(shop_name) = LOWER(?)', [$storeName])
                 ->whereIn('platform', ['grab', 'foodpanda'])
+                ->where('category', 'not like', '%(Del)%')
                 ->orderBy('platform')
                 ->orderBy('category')
                 ->orderBy('name')
@@ -894,6 +902,7 @@ Route::get('/store/{shopId}/logs', function ($shopId) {
         ->whereRaw('LOWER(shop_name) = LOWER(?)', [$shopInfo['name']])
         ->where('is_available', false)
         ->whereIn('platform', ['grab', 'foodpanda'])
+        ->where('category', 'not like', '%(Del)%')
         ->get()
         ->groupBy('platform');
 
@@ -1011,6 +1020,8 @@ Route::get('/dashboard/export', function () {
     $offlineItemsStats = DB::table('items')
         ->whereIn('shop_name', $shopNames)
         ->where('is_available', false)
+        ->whereIn('platform', ['grab', 'foodpanda'])
+        ->where('category', 'not like', '%(Del)%')
         ->select(
             'shop_name',
             'platform',
@@ -1226,6 +1237,8 @@ Route::get('/alerts', function () {
                     SUM(CASE WHEN is_available = false THEN 1 ELSE 0 END) as offline_count,
                     COUNT(*) as total_items,
                     MAX(updated_at) as last_updated')
+                ->whereIn('platform', ['grab', 'foodpanda'])
+                ->where('category', 'not like', '%(Del)%')
                 ->groupBy('shop_name', 'shop_id')
                 ->havingRaw('SUM(CASE WHEN is_available = false THEN 1 ELSE 0 END) > 20')
                 ->orderByRaw('offline_count DESC')
@@ -1418,6 +1431,7 @@ Route::get('/history', function () {
     $allOfflineItems = DB::table('items')
         ->where('is_available', false)
         ->whereIn('platform', ['grab', 'foodpanda'])
+        ->where('category', 'not like', '%(Del)%')
         ->get()
         ->groupBy(fn($item) => strtolower($item->shop_name) . '|' . $item->platform);
 
@@ -1973,13 +1987,15 @@ Route::get('/reports/store-comparison', function () {
                 ->groupBy('shop_id')
                 ->map(fn($items) => $items->keyBy('platform')),
 
-            // Fetch all item counts (no whereIn filter — avoids needing shopNames at cache time)
+            // Fetch all item counts (Grab + FoodPanda only, exclude Deliveroo duplicates)
             'itemCounts' => DB::table('items')
                 ->select(
                     'shop_name',
                     DB::raw('COUNT(*) as total'),
                     DB::raw('SUM(CASE WHEN is_available = false THEN 1 ELSE 0 END) as offline')
                 )
+                ->whereIn('platform', ['grab', 'foodpanda'])
+                ->where('category', 'not like', '%(Del)%')
                 ->groupBy('shop_name')
                 ->get()
                 ->keyBy('shop_name'),
