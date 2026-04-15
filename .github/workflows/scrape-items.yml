@@ -2,7 +2,7 @@ name: Auto Scrape - Items
 
 on:
   schedule:
-    - cron: '*/5 * * * *'  # Every 10 minutes, 24/7
+    - cron: '*/10 * * * *'  # Every 10 minutes, 24/7
   workflow_dispatch:      # Allow manual trigger from GitHub UI
 
 jobs:
