@@ -726,7 +726,12 @@ def get_all_outlets():
             page.locator('text=Group').first.click(timeout=5000)
             page.wait_for_timeout(2000)
             page.locator('text=ACHIEVERS RESOURCE CONSULTANCY PTE LTD').first.click(timeout=5000)
-            page.wait_for_timeout(3000)
+            # Wait for the brand tree to actually render (not just a fixed delay)
+            try:
+                page.wait_for_selector('.ant-tree-node-content-wrapper', timeout=10000)
+            except:
+                pass
+            page.wait_for_timeout(2000)
 
             # Ensure all brands are collapsed before scanning
             for switcher in page.locator('.ant-tree-switcher_open').all():
@@ -822,11 +827,20 @@ def main():
 
     start_time = datetime.now()
 
-    # Step 1: Get all outlets
-    outlets = get_all_outlets()
+    # Step 1: Get all outlets — retry up to 3 times if scan returns empty
+    # (race condition: RestoSuite tree sometimes loads slower than the fixed waits)
+    outlets = []
+    for attempt in range(1, 4):
+        outlets = get_all_outlets()
+        if outlets:
+            break
+        if attempt < 3:
+            log(f"Outlet scan returned 0 results (attempt {attempt}/3) — retrying in 15s...")
+            import time
+            time.sleep(15)
 
     if not outlets:
-        log("No outlets found! Exiting.")
+        log("No outlets found after 3 attempts! Exiting.")
         return
 
     # Step 2: Distribute outlets across workers
