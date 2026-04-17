@@ -6,9 +6,6 @@
 
 @section('top-actions')
 <div class="hidden sm:flex items-center gap-2">
-  <button class="hide-test-btn px-3 py-2 text-xs font-medium rounded-xl border border-slate-300 dark:border-slate-600 text-slate-600 dark:text-slate-300 hover:opacity-80 transition whitespace-nowrap" onclick="toggleTestFilter()">
-    Hide Test/Demo
-  </button>
   <div class="flex items-center bg-slate-100 dark:bg-slate-800 rounded-xl px-3 py-2">
     <input id="storeSearch" class="bg-transparent outline-none text-sm w-64 dark:text-slate-100 dark:placeholder-slate-400" placeholder="Search store..." onkeyup="applyFilters()" />
   </div>
@@ -17,7 +14,7 @@
 
 @section('content')
 
-  <!-- Mobile Search + Hide Test (visible on small screens only) -->
+  <!-- Mobile Search (visible on small screens only) -->
   <div class="sm:hidden flex gap-2">
     <div class="flex-1 flex items-center bg-white dark:bg-slate-800 border dark:border-slate-700 rounded-xl px-3 py-2 shadow-sm">
       <svg class="w-4 h-4 text-slate-400 mr-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -25,9 +22,6 @@
       </svg>
       <input id="storeSearchMobile" class="bg-transparent outline-none text-sm w-full dark:text-slate-100 dark:placeholder-slate-400" placeholder="Search store..." onkeyup="applyFilters()" />
     </div>
-    <button class="hide-test-btn flex-shrink-0 px-3 py-2 text-xs font-medium rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:opacity-80 transition shadow-sm whitespace-nowrap" onclick="toggleTestFilter()">
-      Hide Test/Demo
-    </button>
   </div>
 
   <!-- Mobile Card List (hidden on sm+) -->
@@ -155,34 +149,14 @@
 
 @section('extra-scripts')
 <script>
-  let hideTestActive = false;
-
-  function toggleTestFilter() {
-    hideTestActive = !hideTestActive;
-    document.querySelectorAll('.hide-test-btn').forEach(btn => {
-      if (hideTestActive) {
-        btn.style.background   = '#0f172a';
-        btn.style.color        = '#fff';
-        btn.style.borderColor  = '#0f172a';
-      } else {
-        btn.style.background   = '';
-        btn.style.color        = '';
-        btn.style.borderColor  = '';
-      }
-    });
-    applyFilters();
-  }
-
   function applyFilters() {
     const desktopVal = document.getElementById('storeSearch')?.value.toLowerCase() || '';
     const mobileVal  = document.getElementById('storeSearchMobile')?.value.toLowerCase() || '';
     const filter = desktopVal || mobileVal;
 
     document.querySelectorAll('.store-row').forEach(row => {
-      const name   = row.getAttribute('data-name') || '';
-      const isTest = name.includes('testing') || name.includes('demo');
-      const show   = name.includes(filter) && !(hideTestActive && isTest);
-      row.style.display = show ? '' : 'none';
+      const name = row.getAttribute('data-name') || '';
+      row.style.display = name.includes(filter) ? '' : 'none';
     });
   }
 </script>
