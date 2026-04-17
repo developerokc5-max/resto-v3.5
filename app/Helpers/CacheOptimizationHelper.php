@@ -30,17 +30,21 @@ class CacheOptimizationHelper
     public static function getDashboardKPIs()
     {
         return Cache::remember('dashboard_kpis_consolidated', self::CACHE_TTL_MODERATE, function () {
-            $shopMap = ShopHelper::getShopMap();
+            $shopMap       = ShopHelper::getShopMap();
+            $excludedIds   = ShopHelper::excludedShopIds();
+            $excludedNames = ShopHelper::excludedShopNames();
 
-            // Total distinct stores
+            // Total distinct stores (excluding test/demo/closed)
             $storeCount = DB::table('restosuite_item_snapshots')
                 ->select('shop_id')
+                ->whereNotIn('shop_id', $excludedIds)
                 ->distinct()
                 ->count();
 
             if ($storeCount === 0) {
                 $storeCount = DB::table('platform_status')
                     ->select('shop_id')
+                    ->whereNotIn('shop_id', $excludedIds)
                     ->distinct()
                     ->count();
             }
@@ -51,11 +55,13 @@ class CacheOptimizationHelper
                     DB::raw('COUNT(CASE WHEN is_available = false THEN 1 END) as items_off'),
                     DB::raw('COUNT(*) as total_items')
                 )
+                ->whereNotIn('shop_name', $excludedNames)
                 ->first();
 
             // Count distinct stores that have at least one platform offline
             $alertCount = DB::table('platform_status')
                 ->where('is_online', false)
+                ->whereNotIn('shop_id', $excludedIds)
                 ->distinct('shop_id')
                 ->count('shop_id');
 
@@ -65,6 +71,7 @@ class CacheOptimizationHelper
                     DB::raw('COUNT(CASE WHEN is_online = true THEN 1 END) as platforms_online'),
                     DB::raw('COUNT(*) as platforms_total')
                 )
+                ->whereNotIn('shop_id', $excludedIds)
                 ->first();
 
             $storesOnline = max(0, $storeCount - $alertCount);
@@ -91,10 +98,14 @@ class CacheOptimizationHelper
     public static function getAlertMetrics()
     {
         return Cache::remember('alert_metrics_consolidated', self::CACHE_TTL_MODERATE, function () {
-            // Single query to get all alert data
+            $excludedIds   = ShopHelper::excludedShopIds();
+            $excludedNames = ShopHelper::excludedShopNames();
+
+            // Single query to get all alert data (excluding test/demo/closed stores)
             $offlineStores = DB::table('platform_status')
                 ->select('shop_id', DB::raw('COUNT(*) as offline_count'))
                 ->where('is_online', false)
+                ->whereNotIn('shop_id', $excludedIds)
                 ->groupBy('shop_id')
                 ->get();
 
@@ -106,9 +117,10 @@ class CacheOptimizationHelper
                 return $store->offline_count < 2;
             })->count();
 
-            // Get offline items count in single query
+            // Get offline items count in single query (excluding test/demo/closed stores)
             $offlineItems = DB::table('items')
                 ->where('is_available', false)
+                ->whereNotIn('shop_name', $excludedNames)
                 ->count();
 
             return [
@@ -129,7 +141,7 @@ class CacheOptimizationHelper
     public static function getConsolidatedStoreStats()
     {
         return Cache::remember('store_stats_consolidated', self::CACHE_TTL_MODERATE, function () {
-            // Single query to get all stats grouped by shop
+            // Single query to get all stats grouped by shop (excluding test/demo/closed stores)
             return DB::table('restosuite_item_snapshots as s')
                 ->select(
                     's.shop_id',
@@ -137,6 +149,7 @@ class CacheOptimizationHelper
                     DB::raw('SUM(CASE WHEN s.is_active = false THEN 1 ELSE 0 END) as items_off'),
                     DB::raw('MAX(s.updated_at) as last_sync')
                 )
+                ->whereNotIn('s.shop_id', ShopHelper::excludedShopIds())
                 ->groupBy('s.shop_id')
                 ->get()
                 ->keyBy('shop_id');
@@ -154,6 +167,7 @@ class CacheOptimizationHelper
             return DB::table('items')
                 ->select('shop_name', 'platform', DB::raw('COUNT(*) as offline_count'))
                 ->where('is_available', false)
+                ->whereNotIn('shop_name', ShopHelper::excludedShopNames())
                 ->groupBy('shop_name', 'platform')
                 ->get()
                 ->keyBy(function ($item) {
@@ -171,6 +185,7 @@ class CacheOptimizationHelper
     {
         return Cache::remember('all_platform_statuses', self::CACHE_TTL_FAST, function () {
             return DB::table('platform_status')
+                ->whereNotIn('shop_id', ShopHelper::excludedShopIds())
                 ->get()
                 ->groupBy('shop_id');
         });
