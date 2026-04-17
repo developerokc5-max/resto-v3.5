@@ -38,18 +38,8 @@ Route::get('/', function () {
 Route::get('/dashboard', function () {
     $shopMap = ShopHelper::getShopMap();
 
-    // Excluded shops: test/demo outlets + permanently closed stores
-    $testingShopIds = [
-        '401525442', // OKCR Testing Outlet
-        '404055818', // HUMFULL Testing Outlet
-        '402214336', // JKT Western Testing Outlet
-        '405576685', // Le Le Mee Pok Testing Outlet
-        '404144535', // Drinks Stall Testing Outlet
-        '408443497', // AH HUAT HOKKIEN MEE (Demo outlet)
-        '402473827', // OK CHICKEN RICE @ AMK (closed)
-        '407006583', // HUMFULL @ Edgedale Plains (closed)
-        '408543917', // HUMFULL @ AMK (closed)
-    ];
+    // Excluded shops: test/demo outlets + permanently closed stores (single source of truth in ShopHelper)
+    $testingShopIds = ShopHelper::excludedShopIds();
 
     // CONSOLIDATED CACHE: Get all KPIs in a single cached query operation
     // This replaces 6+ individual cache calls with 1, reducing overhead by ~80%
@@ -285,8 +275,12 @@ Route::get('/stores', function () {
     // Cache the entire computed stores list — all 4 DB queries run only on cache miss.
     // Scraper calls invalidateDashboardCaches() which includes 'stores_page_data'.
     $stores = Cache::remember('stores_page_data', 300, function () use ($shopMap) {
-        // Get all shops from shops table (populated by items scraper)
+        $excludedIds   = ShopHelper::excludedShopIds();
+        $excludedNames = ShopHelper::excludedShopNames();
+
+        // Get all shops from shops table — exclude test/demo/closed stores
         $allShops = DB::table('shops')
+            ->whereNotIn('shop_name', $excludedNames)
             ->orderBy('shop_name')
             ->get();
 
@@ -295,6 +289,7 @@ Route::get('/stores', function () {
         $allItemCounts = DB::table('items')
             ->select('shop_name', DB::raw("COUNT(DISTINCT (TRIM(TRAILING '.' FROM TRIM(REGEXP_REPLACE(name, '\\s*\\((Del|Onl)\\)\\s*', '', 'g'))) || '|' || REGEXP_REPLACE(category, '\\s*\\((Del|Onl)\\)\\s*', '', 'g'))) as total_count"))
             ->whereIn('platform', ['grab', 'foodpanda'])
+            ->whereNotIn('shop_name', $excludedNames)
             ->groupBy('shop_name')
             ->pluck('total_count', 'shop_name');
 
@@ -303,11 +298,13 @@ Route::get('/stores', function () {
             ->select('shop_name', DB::raw("COUNT(DISTINCT (TRIM(TRAILING '.' FROM TRIM(REGEXP_REPLACE(name, '\\s*\\((Del|Onl)\\)\\s*', '', 'g'))) || '|' || REGEXP_REPLACE(category, '\\s*\\((Del|Onl)\\)\\s*', '', 'g'))) as offline_count"))
             ->whereIn('platform', ['grab', 'foodpanda'])
             ->where('is_available', false)
+            ->whereNotIn('shop_name', $excludedNames)
             ->groupBy('shop_name')
             ->pluck('offline_count', 'shop_name');
 
-        // BATCH: Get all platform statuses in one query (fixes N+1)
+        // BATCH: Get all platform statuses in one query — exclude test/demo/closed stores
         $allPlatformStatuses = DB::table('platform_status')
+            ->whereNotIn('shop_id', $excludedIds)
             ->get()
             ->groupBy('store_name');
 
@@ -464,10 +461,11 @@ Route::get('/items', function (Request $request) {
 
     // Cache the GROUPED items (not raw items) for better performance
     $itemsGrouped = Cache::remember($cacheKey, 600, function () use ($selectedRestaurant, $selectedCategory) {
-        // Build query for items - Grab + FoodPanda only
+        // Build query for items - Grab + FoodPanda only, exclude test/demo/closed stores
         $query = DB::table('items')
             ->select('shop_name', 'name', 'category', 'price', 'image_url', 'sku', 'platform', 'is_available')
-            ->whereIn('platform', ['grab', 'foodpanda']);
+            ->whereIn('platform', ['grab', 'foodpanda'])
+            ->whereNotIn('shop_name', ShopHelper::excludedShopNames());
 
         // Apply restaurant filter if provided
         if ($selectedRestaurant) {
@@ -538,10 +536,11 @@ Route::get('/items', function (Request $request) {
         }));
     }
 
-    // Get ALL restaurants from shops table — cached 1h (shop names rarely change)
+    // Get ALL restaurants from shops table — cached 1h, exclude test/demo/closed
     $restaurants = Cache::remember('shops_name_list', 3600, function () {
         return DB::table('shops')
             ->select('shop_name')
+            ->whereNotIn('shop_name', ShopHelper::excludedShopNames())
             ->orderBy('shop_name')
             ->pluck('shop_name')
             ->values();
@@ -628,20 +627,9 @@ Route::get('/platforms', function () {
 
     // Cache the computed platforms data — invalidated by scraper via invalidateDashboardCaches()
     [$shopsPlatforms, $stats, $platformStats] = Cache::remember('platforms_page_data', 300, function () use ($shopMap) {
-        // Filter out testing outlets, edge, and depot stores
-        $testingShopIds = [];
-        foreach ($shopMap as $shopId => $info) {
-            if (stripos($info['name'], 'testing') !== false ||
-                stripos($info['name'], 'office testing') !== false ||
-                stripos($info['name'], 'edge') !== false ||
-                stripos($info['name'], 'depot') !== false) {
-                $testingShopIds[] = $shopId;
-            }
-        }
-
-        // Get all platform statuses — one query for entire page
+        // Get all platform statuses — exclude test/demo/closed stores
         $platformStatuses = DB::table('platform_status')
-            ->whereNotIn('shop_id', $testingShopIds)
+            ->whereNotIn('shop_id', ShopHelper::excludedShopIds())
             ->orderBy('shop_id')
             ->orderBy('platform')
             ->get();
@@ -821,8 +809,9 @@ Route::get('/offline-items', function () {
     $shopMap = ShopHelper::getShopMap();
 
     $cached = Cache::remember('offline_items_page', 60, function () use ($shopMap) {
-        // Get all platform statuses for ALL shops
+        // Get all platform statuses — exclude test/demo/closed stores
         $platformStatuses = DB::table('platform_status')
+            ->whereNotIn('shop_id', ShopHelper::excludedShopIds())
             ->orderBy('shop_id')
             ->orderBy('platform')
             ->get();
@@ -1246,7 +1235,10 @@ Route::get('/store/{shopId}/logs/export', function ($shopId) {
 Route::get('/alerts', function () {
     // Cache all 6 Neon DB round-trips for 5 minutes (data only changes when scraper runs)
     $dbData = \Illuminate\Support\Facades\Cache::remember('alerts_db_data', 300, function () {
+        $excludedIds = ShopHelper::excludedShopIds();
+
         $allPlatformCounts = DB::table('platform_status')
+            ->whereNotIn('shop_id', $excludedIds)
             ->selectRaw('shop_id, COUNT(*) as total_platforms')
             ->groupBy('shop_id')
             ->pluck('total_platforms', 'shop_id');
@@ -1255,6 +1247,7 @@ Route::get('/alerts', function () {
             'allPlatformCounts' => $allPlatformCounts,
 
             'offlineCounts' => DB::table('platform_status')
+                ->whereNotIn('shop_id', $excludedIds)
                 ->selectRaw('shop_id, COUNT(*) as offline_count, MAX(last_checked_at) as last_checked')
                 ->where('is_online', false)
                 ->groupBy('shop_id')
@@ -1262,11 +1255,13 @@ Route::get('/alerts', function () {
                 ->keyBy('shop_id'),
 
             'storeNameMap' => DB::table('platform_status')
+                ->whereNotIn('shop_id', $excludedIds)
                 ->selectRaw('shop_id, MIN(store_name) as store_name')
                 ->groupBy('shop_id')
                 ->pluck('store_name', 'shop_id'),
 
             'platformStats' => DB::table('platform_status')
+                ->whereNotIn('shop_id', $excludedIds)
                 ->selectRaw('platform,
                     SUM(CASE WHEN is_online = false THEN 1 ELSE 0 END) as offline_count,
                     SUM(CASE WHEN is_online = true THEN 1 ELSE 0 END) as online_count,
@@ -1277,6 +1272,7 @@ Route::get('/alerts', function () {
                 ->keyBy('platform'),
 
             'storesWithOfflineItems' => DB::table('items')
+                ->whereNotIn('shop_name', ShopHelper::excludedShopNames())
                 ->selectRaw("shop_name, shop_id,
                     COUNT(DISTINCT CASE WHEN is_available = false THEN (TRIM(TRAILING '.' FROM TRIM(REGEXP_REPLACE(name, '\\s*\\((Del|Onl)\\)\\s*', '', 'g'))) || '|' || REGEXP_REPLACE(category, '\\s*\\((Del|Onl)\\)\\s*', '', 'g')) END) as offline_count,
                     COUNT(DISTINCT (TRIM(TRAILING '.' FROM TRIM(REGEXP_REPLACE(name, '\\s*\\((Del|Onl)\\)\\s*', '', 'g'))) || '|' || REGEXP_REPLACE(category, '\\s*\\((Del|Onl)\\)\\s*', '', 'g'))) as total_items,
@@ -1288,8 +1284,8 @@ Route::get('/alerts', function () {
                 ->limit(8)
                 ->get(),
 
-            'latestScrape' => DB::table('platform_status')->max('last_checked_at'),
-            'totalStores'  => DB::table('platform_status')->distinct()->count('shop_id'),
+            'latestScrape' => DB::table('platform_status')->whereNotIn('shop_id', $excludedIds)->max('last_checked_at'),
+            'totalStores'  => DB::table('platform_status')->whereNotIn('shop_id', $excludedIds)->distinct()->count('shop_id'),
         ];
     });
 

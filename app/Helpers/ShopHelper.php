@@ -8,7 +8,7 @@ use Illuminate\Support\Facades\DB;
 class ShopHelper
 {
     /**
-     * Shop IDs to exclude from all views — test/demo outlets and permanently closed stores.
+     * Numeric shop IDs to exclude — used to filter platform_status table.
      */
     public static function excludedShopIds(): array
     {
@@ -22,6 +22,25 @@ class ShopHelper
             '402473827', // OK CHICKEN RICE @ AMK (closed)
             '407006583', // HUMFULL @ Edgedale Plains (closed)
             '408543917', // HUMFULL @ AMK (closed)
+        ];
+    }
+
+    /**
+     * Shop display names to exclude — used to filter shops / items tables.
+     * Must stay in sync with excludedShopIds() above.
+     */
+    public static function excludedShopNames(): array
+    {
+        return [
+            'OKCR Testing Outlet',
+            'HUMFULL Testing Outlet',
+            'JKT Western Testing Outlet',
+            'Le Le Mee Pok Testing Outlet',
+            'Drinks Stall Testing Outlet',
+            'AH HUAT HOKKIEN MEE ( Demo outlet )',
+            'OK CHICKEN RICE @ AMK',
+            'HUMFULL @ Edgedale Plains',
+            'HUMFULL @ AMK',
         ];
     }
 
