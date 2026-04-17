@@ -410,27 +410,6 @@
       gridViewBtn.classList.add('border', 'border-slate-300');
     });
 
-    // Maintenance mode toggle
-    async function toggleMaintenance(shopId) {
-      const btn  = document.getElementById('maintenanceBtn');
-      const text = document.getElementById('maintenanceBtnText');
-      const res  = await fetch(`/store/${shopId}/maintenance`, { method: 'POST', headers: { 'Content-Type': 'application/json' } });
-      const data = await res.json();
-      if (data.ok) {
-        if (data.maintenance_mode) {
-          btn.classList.add('bg-amber-100','dark:bg-amber-900/40','text-amber-700','dark:text-amber-400','border','border-amber-300','dark:border-amber-700');
-          btn.classList.remove('bg-slate-100','dark:bg-slate-800','text-slate-500','dark:text-slate-400');
-          text.textContent = 'Maintenance ON';
-          btn.title = 'Maintenance mode ON — alerts silenced';
-        } else {
-          btn.classList.remove('bg-amber-100','dark:bg-amber-900/40','text-amber-700','dark:text-amber-400','border','border-amber-300','dark:border-amber-700');
-          btn.classList.add('bg-slate-100','dark:bg-slate-800','text-slate-500','dark:text-slate-400');
-          text.textContent = 'Maintenance';
-          btn.title = 'Enable maintenance mode to silence alerts';
-        }
-      }
-    }
-
     // Toggle info popup
     function toggleInfoPopup() {
       const popup = document.getElementById('infoPopup');

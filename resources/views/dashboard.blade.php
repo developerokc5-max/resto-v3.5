@@ -114,9 +114,6 @@
       ✕ All Platforms Offline
     </button>
 
-    <button onclick="filterStores('test_demo')" class="filter-btn px-4 py-2 bg-slate-50 dark:bg-slate-700/50 border-2 border-slate-300 dark:border-slate-600 rounded-lg text-sm font-semibold text-slate-500 dark:text-slate-400 shadow-sm hover:shadow-md transition" id="filter-test_demo">
-      🧪 Test / Demo
-    </button>
   </section>
 
   <!-- Store cards -->
@@ -141,9 +138,6 @@
             <div class="flex-1 min-w-0">
               <div class="flex items-center gap-2 flex-wrap">
                 <h3 class="text-xl font-bold text-slate-900 dark:text-slate-100 truncate">{{ $s['store'] ?? 'Store' }}</h3>
-                @if(!empty($s['maintenance_mode']))
-                  <span class="flex-shrink-0 px-1.5 py-0.5 bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-400 text-[10px] font-bold rounded uppercase tracking-wide">Maintenance</span>
-                @endif
               </div>
               @if(isset($s['brand']) && $s['brand'])
                 <p class="text-sm text-slate-600 dark:text-slate-400 mt-0.5">{{ $s['brand'] }}</p>
@@ -344,15 +338,11 @@
       const offlineCount = parseInt(card.getAttribute('data-offline-count') || '0');
       let shouldShow = false;
 
-      const storeName = (card.getAttribute('data-store-name') || '').toLowerCase();
-      const isTest = storeName.includes('testing') || storeName.includes('demo');
-
       if (status === 'all') shouldShow = true;
-      else if (status === 'all_online') shouldShow = cardStatus === 'all_online' && !isTest;
-      else if (status === 'all_offline') shouldShow = cardStatus === 'all_offline' && !isTest;
-      else if (status === '1_offline') shouldShow = offlineCount === 1 && !isTest;
-      else if (status === '2_offline') shouldShow = offlineCount === 2 && !isTest;
-      else if (status === 'test_demo') shouldShow = isTest;
+      else if (status === 'all_online') shouldShow = cardStatus === 'all_online';
+      else if (status === 'all_offline') shouldShow = cardStatus === 'all_offline';
+      else if (status === '1_offline') shouldShow = offlineCount === 1;
+      else if (status === '2_offline') shouldShow = offlineCount === 2;
       else shouldShow = cardStatus === status;
 
       card.style.display = shouldShow ? 'block' : 'none';
