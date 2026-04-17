@@ -400,13 +400,15 @@ Route::get('/store/{shop_id}', function ($shop_id) {
             ->orderBy('name')
             ->get();
 
-        // Group items by unique item (name + category) — normalize "(Del)" suffix from BOTH
-        // name and category so RestoSuite delivery-mapped variants merge with their base item.
+        // Group items by name only — not name+category.
+        // The same item can have different category names across platforms (e.g. "Beverages" vs "OK Beverages"),
+        // so including category in the key causes false duplicates. Name-only grouping merges them correctly.
+        // Also normalize "(Del)"/"(Onl)" suffixes and trailing dots from both name and category.
         $groupedItems = [];
         foreach ($items as $item) {
             $cleanName     = rtrim(trim(preg_replace('/\s*\((Del|Onl)\)\s*/', '', $item->name ?? '')), '.');
             $cleanCategory = trim(preg_replace('/\s*\((Del|Onl)\)\s*/', '', $item->category ?? ''));
-            $key = $cleanName . '|' . $cleanCategory;
+            $key = $cleanName;
 
             if (!isset($groupedItems[$key])) {
                 $groupedItems[$key] = [
