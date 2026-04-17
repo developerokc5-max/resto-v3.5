@@ -1455,7 +1455,7 @@ Route::get('/history', function () {
             $table->string('shop_id');
             $table->string('shop_name');
             $table->integer('platforms_online')->default(0);
-            $table->integer('total_platforms')->default(3);
+            $table->integer('total_platforms')->default(2);
             $table->integer('total_offline_items')->default(0);
             $table->text('platform_data')->nullable();
             $table->timestamp('last_updated_at')->nullable();
@@ -1520,7 +1520,7 @@ Route::get('/history', function () {
             'shop_id'             => $shopId,
             'shop_name'           => $platforms->first()->store_name ?? $shopId,
             'platforms_online'    => $onlinePlatforms,
-            'total_platforms'     => 3,
+            'total_platforms'     => 2,
             'total_offline_items' => $totalOffline,
             'platform_data'       => json_encode($platformData),
             'last_updated_at'     => $nowUtc,
@@ -2098,7 +2098,7 @@ Route::get('/reports/store-comparison', function () {
 
         $platformStatus  = $allPlatformStatuses->get($shopId, collect());
         $platformsOnline = $platformStatus->filter(fn($p) => $p->is_online)->count();
-        $totalPlatforms  = $platformStatus->count() ?: 3;
+        $totalPlatforms  = $platformStatus->count() ?: 2;
 
         $itemData    = $itemCounts->get($shopName, (object)['total' => 0, 'offline' => 0]);
         $totalItems  = $itemData->total ?? 0;

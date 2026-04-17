@@ -154,7 +154,7 @@
                 </svg>
                 <span class="text-xs font-bold text-white whitespace-nowrap">All Platforms Online</span>
               </div>
-            @elseif($offlineCount == 3)
+            @elseif($offlineCount == 2)
               <div class="flex items-center gap-2 px-3 py-1.5 bg-red-500 rounded-lg shadow-md">
                 <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>

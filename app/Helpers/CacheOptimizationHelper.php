@@ -216,19 +216,41 @@ class CacheOptimizationHelper
      */
     public static function invalidateDashboardCaches()
     {
+        // Dashboard
         Cache::forget('dashboard_kpis_consolidated');
         Cache::forget('alert_metrics_consolidated');
         Cache::forget('store_stats_consolidated');
+        Cache::forget('dashboard_downtime_30d');
+        Cache::forget('dashboard_open_alerts');
+        Cache::forget('dashboard_maintenance_shops');
+
+        // Platform / store pages
         Cache::forget('offline_items_by_shop_platform');
         Cache::forget('all_platform_statuses');
-        Cache::forget('recent_changes_per_shop_1d');
-        Cache::forget('recent_changes_per_shop_7d');
-        Cache::forget('store_comparison_db');
-        Cache::forget('shop_map');
         Cache::forget('stores_page_data');
         Cache::forget('platforms_page_data');
+        Cache::forget('offline_items_page');
+        Cache::forget('shop_map');
 
-        // Clear per-store detail caches so store pages show fresh item groupings
+        // Alerts
+        Cache::forget('alerts_db_data');
+
+        // Reports
+        Cache::forget('reports_daily_trends');
+        Cache::forget('reports_platform_reliability');
+        Cache::forget('reports_item_performance_v2');
+        Cache::forget('reports_downtime_leaderboard');
+        Cache::forget('store_comparison_db');
+
+        // Scraper status
+        Cache::forget('scraper_status_db');
+        Cache::forget('scraper_logs_recent');
+
+        // Change-tracking helpers
+        Cache::forget('recent_changes_per_shop_1d');
+        Cache::forget('recent_changes_per_shop_7d');
+
+        // Per-store detail caches (keyed by shop_id — must loop)
         DB::table('shops')->pluck('shop_id')->each(function ($shopId) {
             Cache::forget('store_detail_data_' . $shopId);
         });
