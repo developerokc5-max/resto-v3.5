@@ -18,8 +18,9 @@ use App\Http\Controllers\Api\MonitorController;
 // to pay for a full HTML fetch or bail out early.
 Route::get('/last-sync', function () {
     $ts = Cache::remember('last_sync_unix', 60, function () {
+        $excludedIds = ShopHelper::excludedShopIds();
         $candidates = array_filter([
-            DB::table('platform_status')->max('last_checked_at'),
+            DB::table('platform_status')->whereNotIn('shop_id', $excludedIds)->max('last_checked_at'),
             DB::table('restosuite_item_snapshots')->max('updated_at'),
         ]);
         if (empty($candidates)) return 0;
@@ -105,7 +106,8 @@ Route::prefix('platform')->group(function () {
 
     // Get all platform statuses
     Route::get('/status', function () {
-        $statuses = PlatformStatus::with([])
+        $excludedIds = ShopHelper::excludedShopIds();
+        $statuses = PlatformStatus::whereNotIn('shop_id', $excludedIds)
             ->orderBy('last_checked_at', 'desc')
             ->get();
 
@@ -122,6 +124,13 @@ Route::prefix('platform')->group(function () {
 
     // Get status for specific shop
     Route::get('/status/{shopId}', function (string $shopId) {
+        if (in_array((int) $shopId, ShopHelper::excludedShopIds())) {
+            return response()->json([
+                'success' => false,
+                'message' => 'No platform status found for this shop',
+            ], 404);
+        }
+
         $statuses = PlatformStatus::where('shop_id', $shopId)->get();
 
         if ($statuses->isEmpty()) {
@@ -142,14 +151,26 @@ Route::prefix('platform')->group(function () {
 
     // Get statistics by platform
     Route::get('/stats', function () {
-        $stats = PlatformStatus::getStatsByPlatform();
+        $excludedIds = ShopHelper::excludedShopIds();
+        $rows = DB::table('platform_status')
+            ->whereNotIn('shop_id', $excludedIds)
+            ->selectRaw('platform,
+                SUM(CASE WHEN is_online = true  THEN 1 ELSE 0 END) as online_count,
+                SUM(CASE WHEN is_online = false THEN 1 ELSE 0 END) as offline_count,
+                COUNT(*) as total')
+            ->groupBy('platform')
+            ->get()
+            ->keyBy('platform');
+
+        $total = $rows->sum('total');
+        $online = $rows->sum('online_count');
 
         return response()->json([
             'success' => true,
-            'data' => $stats,
+            'data' => $rows->values(),
             'overall' => [
-                'online_percentage' => PlatformStatus::getOnlinePercentage(),
-                'total_connections' => PlatformStatus::count(),
+                'online_percentage' => $total > 0 ? round(($online / $total) * 100, 1) : 0,
+                'total_connections' => (int) $total,
             ],
         ]);
     });
@@ -542,8 +563,10 @@ Route::prefix('v1/items')->group(function () {
         $perPage = min($perPage, 500);
         $perPage = max($perPage, 1);
 
+        $excludedNames = ShopHelper::excludedShopNames();
         $query = DB::table('items')
             ->select('id', 'item_id', 'shop_name', 'name', 'sku', 'category', 'price', 'is_available', 'platform')
+            ->whereNotIn('shop_name', $excludedNames)
             ->orderBy('shop_name')
             ->orderBy('name');
 
@@ -679,7 +702,7 @@ Route::post('/history/snapshot', function () {
                 $table->string('shop_id');
                 $table->string('shop_name');
                 $table->integer('platforms_online')->default(0);
-                $table->integer('total_platforms')->default(3);
+                $table->integer('total_platforms')->default(2);
                 $table->integer('total_offline_items')->default(0);
                 $table->text('platform_data')->nullable();
                 $table->timestamp('last_updated_at')->nullable();
@@ -707,12 +730,18 @@ Route::post('/history/snapshot', function () {
         $todaySgt = $nowSgt->format('Y-m-d');
         $nowUtc   = $nowSgt->copy()->setTimezone('UTC');
 
-        // Read current state from both tables (2 queries)
-        $allPlatformStatus = DB::table('platform_status')->get()->groupBy('shop_id');
+        // Read current state from both tables (2 queries) — active shops only
+        $excludedIds   = ShopHelper::excludedShopIds();
+        $excludedNames = ShopHelper::excludedShopNames();
+
+        $allPlatformStatus = DB::table('platform_status')
+            ->whereNotIn('shop_id', $excludedIds)
+            ->get()->groupBy('shop_id');
 
         $allOfflineItems = DB::table('items')
             ->where('is_available', false)
             ->whereIn('platform', ['grab', 'foodpanda'])
+            ->whereNotIn('shop_name', $excludedNames)
             ->get()
             ->groupBy(fn($item) => $item->shop_id . '|' . $item->platform);
 
@@ -916,7 +945,11 @@ Route::post('/store-logs/snapshot', function () {
 // GET /api/alerts — same logic as /alerts page
 Route::get('/alerts', function () {
     $dbData = \Illuminate\Support\Facades\Cache::remember('alerts_db_data', 300, function () {
+        $excludedIds   = ShopHelper::excludedShopIds();
+        $excludedNames = ShopHelper::excludedShopNames();
+
         $allPlatformCounts = DB::table('platform_status')
+            ->whereNotIn('shop_id', $excludedIds)
             ->selectRaw('shop_id, COUNT(*) as total_platforms')
             ->groupBy('shop_id')
             ->pluck('total_platforms', 'shop_id');
@@ -924,16 +957,19 @@ Route::get('/alerts', function () {
         return [
             'allPlatformCounts' => $allPlatformCounts,
             'offlineCounts'     => DB::table('platform_status')
+                ->whereNotIn('shop_id', $excludedIds)
                 ->selectRaw('shop_id, COUNT(*) as offline_count, MAX(last_checked_at) as last_checked')
                 ->where('is_online', false)
                 ->groupBy('shop_id')
                 ->get()
                 ->keyBy('shop_id'),
             'storeNameMap'      => DB::table('platform_status')
+                ->whereNotIn('shop_id', $excludedIds)
                 ->selectRaw('shop_id, MIN(store_name) as store_name')
                 ->groupBy('shop_id')
                 ->pluck('store_name', 'shop_id'),
             'platformStats'     => DB::table('platform_status')
+                ->whereNotIn('shop_id', $excludedIds)
                 ->selectRaw('platform,
                     SUM(CASE WHEN is_online = false THEN 1 ELSE 0 END) as offline_count,
                     SUM(CASE WHEN is_online = true  THEN 1 ELSE 0 END) as online_count,
@@ -943,6 +979,7 @@ Route::get('/alerts', function () {
                 ->get()
                 ->keyBy('platform'),
             'storesWithOfflineItems' => DB::table('items')
+                ->whereNotIn('shop_name', $excludedNames)
                 ->selectRaw('shop_name,
                     SUM(CASE WHEN is_available = false THEN 1 ELSE 0 END) as offline_count,
                     COUNT(*) as total_items,
@@ -952,8 +989,8 @@ Route::get('/alerts', function () {
                 ->orderByRaw('offline_count DESC')
                 ->limit(8)
                 ->get(),
-            'latestScrape' => DB::table('platform_status')->max('last_checked_at'),
-            'totalStores'  => DB::table('platform_status')->distinct()->count('shop_id'),
+            'latestScrape' => DB::table('platform_status')->whereNotIn('shop_id', $excludedIds)->max('last_checked_at'),
+            'totalStores'  => DB::table('platform_status')->whereNotIn('shop_id', $excludedIds)->distinct()->count('shop_id'),
         ];
     });
 
@@ -1075,6 +1112,7 @@ Route::get('/history', function () {
     $todaySgt = \Carbon\Carbon::now('Asia/Singapore')->format('Y-m-d');
 
     $dateSummaries = DB::table('daily_history')
+        ->whereNotIn('shop_id', ShopHelper::excludedShopIds())
         ->selectRaw("snapshot_date,
             COUNT(*) as total_stores,
             SUM(CASE WHEN platforms_online < total_platforms THEN 1 ELSE 0 END) as stores_with_issues,
@@ -1116,6 +1154,7 @@ Route::get('/history/{date}', function ($date) {
 
     $stores = DB::table('daily_history')
         ->where('snapshot_date', $date)
+        ->whereNotIn('shop_id', ShopHelper::excludedShopIds())
         ->orderByRaw('CASE WHEN platforms_online < total_platforms OR total_offline_items > 0 THEN 0 ELSE 1 END')
         ->orderBy('shop_name')
         ->get()
@@ -1166,12 +1205,17 @@ Route::get('/store/{shopId}', function ($shopId) {
         ->orderBy('name')
         ->get();
 
+    // Normalize item names: strip delivery/online suffixes like "(Del)", "(Onl)" and trailing dots
+    // This prevents doubled items when RestoSuite creates delivery-mapped variants of the same item.
+    $normalizeItemName = fn($name) => rtrim(trim(preg_replace('/\s*\((Del|Onl)\)\s*/', '', $name)), '.');
+
     $groupedItems = [];
     foreach ($items as $item) {
-        $key = $item->name . '|' . $item->category;
+        $normalizedName = $normalizeItemName($item->name);
+        $key = $normalizedName . '|' . $item->category;
         if (!isset($groupedItems[$key])) {
             $groupedItems[$key] = [
-                'name'       => $item->name,
+                'name'       => $normalizedName,
                 'category'   => $item->category,
                 'image_url'  => $item->image_url,
                 'price'      => $item->price,
@@ -1212,7 +1256,11 @@ Route::get('/reports/daily-trends', function (\Illuminate\Http\Request $request)
     $endDate   = $request->get('end', $now->toDateString());
 
     $trends = \Illuminate\Support\Facades\Cache::remember('reports_daily_trends', 300, function () use ($now) {
+        $excludedIds   = ShopHelper::excludedShopIds();
+        $excludedNames = ShopHelper::excludedShopNames();
+
         $platformStats  = DB::table('platform_status')
+            ->whereNotIn('shop_id', $excludedIds)
             ->selectRaw('platform, AVG(CASE WHEN is_online = true THEN 100 ELSE 0 END) as uptime')
             ->groupBy('platform')->get();
         $todaySgt       = $now->toDateString();
@@ -1223,7 +1271,7 @@ Route::get('/reports/daily-trends', function (\Illuminate\Http\Request $request)
         $h24            = $peakHourData ? (int)$peakHourData->hour : null;
         return [
             'avg_uptime'  => round($platformStats->avg('uptime') ?? 0, 1),
-            'avg_offline' => DB::table('items')->where('is_available', false)->count(),
+            'avg_offline' => DB::table('items')->whereNotIn('shop_name', $excludedNames)->where('is_available', false)->count(),
             'peak_hour'   => $h24 !== null ? sprintf('%d %s', $h24 % 12 ?: 12, $h24 >= 12 ? 'PM' : 'AM') : 'N/A',
             'incidents'   => DB::table('store_status_logs')
                 ->whereRaw("DATE(logged_at + INTERVAL '8 hours') = ?", [$todaySgt])->count(),
@@ -1256,6 +1304,7 @@ Route::get('/reports/daily-trends', function (\Illuminate\Http\Request $request)
 Route::get('/reports/platform-reliability', function () {
     $platformData = \Illuminate\Support\Facades\Cache::remember('reports_platform_reliability', 300, function () {
         $statuses = DB::table('platform_status')
+            ->whereNotIn('shop_id', ShopHelper::excludedShopIds())
             ->select('platform',
                 DB::raw('COUNT(*) as total_stores'),
                 DB::raw('SUM(CASE WHEN is_online = true THEN 1 ELSE 0 END) as online_stores'))
@@ -1283,9 +1332,14 @@ Route::get('/reports/platform-reliability', function () {
 // GET /api/reports/item-performance
 Route::get('/reports/item-performance', function () {
     $reportData = \Illuminate\Support\Facades\Cache::remember('reports_item_performance_v2', 300, function () {
+        $excludedNames = ShopHelper::excludedShopNames();
+        // SQL normalization: strip (Del)/(Onl) suffixes and trailing dots
+        $normSql = "TRIM(TRAILING '.' FROM TRIM(REGEXP_REPLACE(name, '\\\\s*\\\\((Del|Onl)\\\\)\\\\s*', '', 'g')))";
+
         $totalItems   = DB::table('items')
-            ->selectRaw("COUNT(DISTINCT name || '|' || shop_name || '|' || platform) as total")->first()->total;
-        $offlineItems = DB::table('items')->where('is_available', false)->count();
+            ->whereNotIn('shop_name', $excludedNames)
+            ->selectRaw("COUNT(DISTINCT {$normSql} || '|' || shop_name || '|' || platform) as total")->first()->total;
+        $offlineItems = DB::table('items')->whereNotIn('shop_name', $excludedNames)->where('is_available', false)->count();
         $onlineItems  = $totalItems - $offlineItems;
 
         $sevenDaysAgo  = \Carbon\Carbon::now('Asia/Singapore')->subDays(7)->toDateTimeString();
@@ -1311,13 +1365,15 @@ Route::get('/reports/item-performance', function () {
                 ORDER BY offline_count DESC LIMIT 10
             ", ['since' => $sevenDaysAgo])
             : DB::table('items')->where('is_available', false)
+                ->whereNotIn('shop_name', $excludedNames)
                 ->selectRaw("name, shop_name, platform, COUNT(*) as offline_count, 0 as avg_hours_offline")
                 ->groupBy('name', 'shop_name', 'platform')
                 ->orderBy('offline_count', 'desc')->limit(10)->get();
 
         $categoryData = DB::table('items')
+            ->whereNotIn('shop_name', $excludedNames)
             ->selectRaw("category,
-                COUNT(DISTINCT name || '|' || shop_name || '|' || platform) as total_items,
+                COUNT(DISTINCT {$normSql} || '|' || shop_name || '|' || platform) as total_items,
                 ROUND(100.0 * SUM(CASE WHEN is_available = true THEN 1 ELSE 0 END) / COUNT(*), 1) as availability_pct,
                 SUM(CASE WHEN is_available = false THEN 1 ELSE 0 END) as offline_count")
             ->groupBy('category')->orderByRaw('CAST(category AS TEXT)')->get();
@@ -1327,7 +1383,7 @@ Route::get('/reports/item-performance', function () {
                 'total'            => (int) $totalItems,
                 'offline'          => (int) $offlineItems,
                 'online'           => (int) $onlineItems,
-                'frequently_offline' => DB::table('items')->where('is_available', false)
+                'frequently_offline' => DB::table('items')->whereNotIn('shop_name', $excludedNames)->where('is_available', false)
                     ->where('updated_at', '>', \Carbon\Carbon::now('Asia/Singapore')->subDays(7))->count(),
             ],
             'top_offline_items'=> $topOfflineItems,
@@ -1340,7 +1396,7 @@ Route::get('/reports/item-performance', function () {
         'item_stats'   => $reportData['item_stats'],
         'top_offline'  => $reportData['top_offline_items'],
         'categories'   => $reportData['category_data'],
-        'total_stores' => DB::table('platform_status')->distinct()->count('shop_id'),
+        'total_stores' => DB::table('platform_status')->whereNotIn('shop_id', ShopHelper::excludedShopIds())->distinct()->count('shop_id'),
     ]);
 });
 
@@ -1349,12 +1405,17 @@ Route::get('/reports/store-comparison', function () {
     $shopMap = \App\Helpers\ShopHelper::getShopMap();
 
     $dbData = \Illuminate\Support\Facades\Cache::remember('store_comparison_db', 300, function () {
-        $shopIds = DB::table('platform_status')->select('shop_id')->distinct()->pluck('shop_id')->toArray();
+        $excludedIds   = ShopHelper::excludedShopIds();
+        $excludedNames = ShopHelper::excludedShopNames();
+        $shopIds = DB::table('platform_status')
+            ->whereNotIn('shop_id', $excludedIds)
+            ->select('shop_id')->distinct()->pluck('shop_id')->toArray();
         return [
             'shopIds'             => $shopIds,
             'allPlatformStatuses' => DB::table('platform_status')->whereIn('shop_id', $shopIds)->get()
                 ->groupBy('shop_id')->map(fn($i) => $i->keyBy('platform')),
             'itemCounts'          => DB::table('items')
+                ->whereNotIn('shop_name', $excludedNames)
                 ->select('shop_name',
                     DB::raw('COUNT(*) as total'),
                     DB::raw('SUM(CASE WHEN is_available = false THEN 1 ELSE 0 END) as offline'))
@@ -1365,7 +1426,7 @@ Route::get('/reports/store-comparison', function () {
     $stores = collect($dbData['shopIds'])->map(function ($shopId) use ($shopMap, $dbData) {
         $ps           = $dbData['allPlatformStatuses']->get($shopId, collect());
         $onlinePlatforms = $ps->filter(fn($p) => $p->is_online)->count();
-        $totalPlatforms  = $ps->count() ?: 3;
+        $totalPlatforms  = $ps->count() ?: 2;
         $shopName     = $shopMap[$shopId]['name'] ?? 'Unknown Store';
         $itemData     = $dbData['itemCounts']->get($shopName, (object)['total' => 0, 'offline' => 0]);
         $totalItems   = $itemData->total ?? 0;
