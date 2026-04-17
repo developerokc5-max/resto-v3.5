@@ -57,6 +57,11 @@ Route::post('/cache/clear', function () {
         Cache::forget($key);
     }
 
+    // Clear per-store detail caches (keyed by shop_id, so must loop)
+    DB::table('shops')->pluck('shop_id')->each(function ($shopId) {
+        Cache::forget('store_detail_data_' . $shopId);
+    });
+
     return response()->json(['ok' => true]);
 });
 

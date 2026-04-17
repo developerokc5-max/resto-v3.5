@@ -227,6 +227,11 @@ class CacheOptimizationHelper
         Cache::forget('shop_map');
         Cache::forget('stores_page_data');
         Cache::forget('platforms_page_data');
+
+        // Clear per-store detail caches so store pages show fresh item groupings
+        DB::table('shops')->pluck('shop_id')->each(function ($shopId) {
+            Cache::forget('store_detail_data_' . $shopId);
+        });
     }
 
     /**
