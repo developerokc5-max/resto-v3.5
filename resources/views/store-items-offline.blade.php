@@ -39,7 +39,7 @@
     </div>
 </header>
 
-<main class="max-w-4xl mx-auto px-4 py-8 space-y-6">
+<main id="main-content" class="max-w-4xl mx-auto px-4 py-8 space-y-6">
 
     @php
         $grabCount = count($offlineItemsByPlatform['grab'] ?? []);
@@ -233,5 +233,6 @@
         if (icon) icon.textContent = localStorage.getItem('darkMode') === 'true' ? '☀️' : '🌙';
     });
 </script>
+<script src="/js/hawkerops.js?v=5" defer></script>
 </body>
 </html>

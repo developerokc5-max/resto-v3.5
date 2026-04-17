@@ -119,7 +119,7 @@
 
   <div>
     <!-- Main Content -->
-    <main class="w-full">
+    <main id="main-content" class="w-full">
       <!-- Header -->
       <header class="bg-white dark:bg-slate-900 border-b dark:border-slate-800 px-4 md:px-8 py-4">
         <div class="flex items-center justify-between">
@@ -423,5 +423,6 @@
       }
     });
   </script>
+  <script src="/js/hawkerops.js?v=5" defer></script>
 </body>
 </html>

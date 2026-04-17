@@ -43,7 +43,7 @@
     </div>
 </header>
 
-<main class="max-w-4xl mx-auto px-4 py-8 space-y-4">
+<main id="main-content" class="max-w-4xl mx-auto px-4 py-8 space-y-4">
 
     <!-- Page Title -->
     <div class="mb-2">
@@ -265,5 +265,6 @@
         if (chev) chev.classList.toggle('open');
     }
 </script>
+<script src="/js/hawkerops.js?v=5" defer></script>
 </body>
 </html>
