@@ -346,11 +346,23 @@ def extract_items_from_table(page, shop_name, platform_name, worker_id):
                 if img and img.count() > 0:
                     image_url = img.get_attribute('src') or ""
 
-                name_cell = cells[3] if len(cells) > 3 else None
-                name = name_cell.text_content().strip() if name_cell else "Unknown"
+                # Column 3 = internal "Item Name" (may have "(Del)" delivery suffix)
+                # Column 5 = "Third Party Item Name" (clean display name on Grab/FoodPanda)
+                # Prefer the third-party name so stored names match what customers see
+                # and avoid "(Del)" duplicates being stored as separate items.
+                internal_name_cell = cells[3] if len(cells) > 3 else None
+                internal_name = internal_name_cell.text_content().strip() if internal_name_cell else "Unknown"
 
-                # Skip header rows (case-insensitive check)
-                if name.lower() in ['item name', 'unknown', ''] or name.lower().startswith('item name'):
+                third_party_name_cell = cells[5] if len(cells) > 5 else None
+                third_party_name = third_party_name_cell.text_content().strip() if third_party_name_cell else ""
+
+                # Use third-party name when available; fall back to internal name
+                name = third_party_name if third_party_name else internal_name
+
+                # Skip header rows (case-insensitive check for both name columns)
+                if name.lower() in ['item name', 'third party item name', 'unknown', ''] \
+                        or name.lower().startswith('item name') \
+                        or name.lower().startswith('third party'):
                     continue
 
                 brand_cell = cells[4] if len(cells) > 4 else None

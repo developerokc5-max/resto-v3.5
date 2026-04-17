@@ -291,15 +291,16 @@ Route::get('/stores', function () {
             ->get();
 
         // BATCH: Get all item counts per shop in one query (Grab + FoodPanda only)
+        // Normalize (Del) from BOTH name and category so delivery-mapped variants don't double-count.
         $allItemCounts = DB::table('items')
-            ->select('shop_name', DB::raw("COUNT(DISTINCT (name || '|' || REGEXP_REPLACE(category, '\\s*\\(Del\\)\\s*', '', 'g'))) as total_count"))
+            ->select('shop_name', DB::raw("COUNT(DISTINCT (REGEXP_REPLACE(name, '\\s*\\(Del\\)\\s*', '', 'g') || '|' || REGEXP_REPLACE(category, '\\s*\\(Del\\)\\s*', '', 'g'))) as total_count"))
             ->whereIn('platform', ['grab', 'foodpanda'])
             ->groupBy('shop_name')
             ->pluck('total_count', 'shop_name');
 
         // BATCH: Get all offline item counts per shop in one query (Grab + FoodPanda only)
         $allOfflineCounts = DB::table('items')
-            ->select('shop_name', DB::raw("COUNT(DISTINCT (name || '|' || REGEXP_REPLACE(category, '\\s*\\(Del\\)\\s*', '', 'g'))) as offline_count"))
+            ->select('shop_name', DB::raw("COUNT(DISTINCT (REGEXP_REPLACE(name, '\\s*\\(Del\\)\\s*', '', 'g') || '|' || REGEXP_REPLACE(category, '\\s*\\(Del\\)\\s*', '', 'g'))) as offline_count"))
             ->whereIn('platform', ['grab', 'foodpanda'])
             ->where('is_available', false)
             ->groupBy('shop_name')
@@ -401,16 +402,17 @@ Route::get('/store/{shop_id}', function ($shop_id) {
             ->orderBy('name')
             ->get();
 
-        // Group items by unique item (name + category) — normalize "(Del)" suffix so
-        // RestoSuite delivery-mapped variants merge with their base item instead of appearing twice.
+        // Group items by unique item (name + category) — normalize "(Del)" suffix from BOTH
+        // name and category so RestoSuite delivery-mapped variants merge with their base item.
         $groupedItems = [];
         foreach ($items as $item) {
+            $cleanName     = trim(preg_replace('/\s*\(Del\)\s*/', ' ', $item->name ?? ''));
             $cleanCategory = trim(preg_replace('/\s*\(Del\)\s*/', ' ', $item->category ?? ''));
-            $key = $item->name . '|' . $cleanCategory;
+            $key = $cleanName . '|' . $cleanCategory;
 
             if (!isset($groupedItems[$key])) {
                 $groupedItems[$key] = [
-                    'name'      => $item->name,
+                    'name'      => $cleanName,
                     'category'  => $cleanCategory,
                     'image_url' => $item->image_url,
                     'price'     => $item->price,
@@ -485,21 +487,22 @@ Route::get('/items', function (Request $request) {
             ->get();
 
         // Group items by shop + name to show all platforms together.
-        // Normalize "(Del)" in category so RestoSuite delivery-mapped variants
-        // merge cleanly instead of displaying the "(Del)" suffix.
+        // Normalize "(Del)" from BOTH name and category so RestoSuite delivery-mapped
+        // variants merge cleanly and don't appear as duplicate items.
         $grouped = [];
         foreach ($allItems as $item) {
+            $cleanName     = trim(preg_replace('/\s*\(Del\)\s*/', ' ', $item->name ?? ''));
             $cleanCategory = trim(preg_replace('/\s*\(Del\)\s*/', ' ', $item->category ?? ''));
-            $key = $item->shop_name . '|' . $item->name;
+            $key = $item->shop_name . '|' . $cleanName;
 
             if (!isset($grouped[$key])) {
                 $grouped[$key] = [
                     'shop_name' => $item->shop_name,
-                    'name' => $item->name,
-                    'category' => $cleanCategory,
-                    'price' => $item->price,
+                    'name'      => $cleanName,
+                    'category'  => $cleanCategory,
+                    'price'     => $item->price,
                     'image_url' => $item->image_url,
-                    'sku' => $item->sku,
+                    'sku'       => $item->sku,
                     'platforms' => [
                         'grab' => false,
                         'foodpanda' => false,
@@ -744,18 +747,22 @@ Route::get('/store/{shopId}/items', function ($shopId) {
         }
     }
 
-    // Dedupe on (platform, name) — prefer non-"(Del)" category variant; strip "(Del)" for display.
+    // Dedupe on (platform, cleanName) — normalize "(Del)" from BOTH name and category;
+    // prefer non-"(Del)" variant when both exist for the same item.
     $deduped = [];
     foreach ($allItems as $item) {
+        $cleanName     = trim(preg_replace('/\s*\(Del\)\s*/', ' ', $item->name ?? ''));
         $cleanCategory = trim(preg_replace('/\s*\(Del\)\s*/', ' ', $item->category ?? ''));
-        $key = $item->platform . '|' . $item->name;
-        $hasDel = str_contains($item->category ?? '', '(Del)');
+        $key = $item->platform . '|' . $cleanName;
+        $hasDel = str_contains($item->name ?? '', '(Del)') || str_contains($item->category ?? '', '(Del)');
 
         if (!isset($deduped[$key])) {
+            $item->name     = $cleanName;
             $item->category = $cleanCategory;
             $deduped[$key] = $item;
         } elseif (!$hasDel) {
             // Prefer the non-"(Del)" variant
+            $item->name     = $cleanName;
             $item->category = $cleanCategory;
             $deduped[$key] = $item;
         }
@@ -1062,7 +1069,7 @@ Route::get('/dashboard/export', function () {
         ->select(
             'shop_name',
             'platform',
-            DB::raw("COUNT(DISTINCT (name || '|' || REGEXP_REPLACE(category, '\\s*\\(Del\\)\\s*', '', 'g'))) as offline_count")
+            DB::raw("COUNT(DISTINCT (REGEXP_REPLACE(name, '\\s*\\(Del\\)\\s*', '', 'g') || '|' || REGEXP_REPLACE(category, '\\s*\\(Del\\)\\s*', '', 'g'))) as offline_count")
         )
         ->groupBy('shop_name', 'platform')
         ->get()
@@ -1271,12 +1278,12 @@ Route::get('/alerts', function () {
 
             'storesWithOfflineItems' => DB::table('items')
                 ->selectRaw("shop_name, shop_id,
-                    COUNT(DISTINCT CASE WHEN is_available = false THEN (name || '|' || REGEXP_REPLACE(category, '\\s*\\(Del\\)\\s*', '', 'g')) END) as offline_count,
-                    COUNT(DISTINCT (name || '|' || REGEXP_REPLACE(category, '\\s*\\(Del\\)\\s*', '', 'g'))) as total_items,
+                    COUNT(DISTINCT CASE WHEN is_available = false THEN (REGEXP_REPLACE(name, '\\s*\\(Del\\)\\s*', '', 'g') || '|' || REGEXP_REPLACE(category, '\\s*\\(Del\\)\\s*', '', 'g')) END) as offline_count,
+                    COUNT(DISTINCT (REGEXP_REPLACE(name, '\\s*\\(Del\\)\\s*', '', 'g') || '|' || REGEXP_REPLACE(category, '\\s*\\(Del\\)\\s*', '', 'g'))) as total_items,
                     MAX(updated_at) as last_updated")
                 ->whereIn('platform', ['grab', 'foodpanda'])
                 ->groupBy('shop_name', 'shop_id')
-                ->havingRaw("COUNT(DISTINCT CASE WHEN is_available = false THEN (name || '|' || REGEXP_REPLACE(category, '\\s*\\(Del\\)\\s*', '', 'g')) END) > 20")
+                ->havingRaw("COUNT(DISTINCT CASE WHEN is_available = false THEN (REGEXP_REPLACE(name, '\\s*\\(Del\\)\\s*', '', 'g') || '|' || REGEXP_REPLACE(category, '\\s*\\(Del\\)\\s*', '', 'g')) END) > 20")
                 ->orderByRaw('offline_count DESC')
                 ->limit(8)
                 ->get(),
@@ -2031,8 +2038,8 @@ Route::get('/reports/store-comparison', function () {
             'itemCounts' => DB::table('items')
                 ->select(
                     'shop_name',
-                    DB::raw("COUNT(DISTINCT (name || '|' || REGEXP_REPLACE(category, '\\s*\\(Del\\)\\s*', '', 'g'))) as total"),
-                    DB::raw("COUNT(DISTINCT CASE WHEN is_available = false THEN (name || '|' || REGEXP_REPLACE(category, '\\s*\\(Del\\)\\s*', '', 'g')) END) as offline")
+                    DB::raw("COUNT(DISTINCT (REGEXP_REPLACE(name, '\\s*\\(Del\\)\\s*', '', 'g') || '|' || REGEXP_REPLACE(category, '\\s*\\(Del\\)\\s*', '', 'g'))) as total"),
+                    DB::raw("COUNT(DISTINCT CASE WHEN is_available = false THEN (REGEXP_REPLACE(name, '\\s*\\(Del\\)\\s*', '', 'g') || '|' || REGEXP_REPLACE(category, '\\s*\\(Del\\)\\s*', '', 'g')) END) as offline")
                 )
                 ->whereIn('platform', ['grab', 'foodpanda'])
                 ->groupBy('shop_name')
