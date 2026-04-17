@@ -123,12 +123,23 @@ function showNotification(message, type = 'info') {
 // Last known sync unix timestamp — used to skip full-page fetches when data hasn't changed
 let _lastSyncTs = 0;
 
-// Auto-reload every 2 minutes — skip if tab is hidden to avoid wasted requests
-const _autoReloadTimer = setInterval(() => { if (!document.hidden) smartReload(); }, 120000);
+// Auto-reload every 60 seconds — skip if tab is hidden to avoid wasted requests
+// Scraper runs every 5 min; 60s polling means changes show up within ~1 min of the scrape finishing.
+const _autoReloadTimer = setInterval(() => { if (!document.hidden) smartReload(); }, 60000);
 window.addEventListener('beforeunload', () => clearInterval(_autoReloadTimer));
 
 // Reload when tab becomes visible again (returning to app on phone/laptop or switching tabs)
 document.addEventListener('visibilitychange', () => { if (!document.hidden) smartReload(); });
+
+// On first page open: after 5 seconds seed _lastSyncTs so subsequent polls have a baseline.
+// This avoids an unnecessary full-HTML fetch immediately on load (the server-rendered
+// HTML is already fresh), while still catching any scrape that completes after page open.
+setTimeout(async () => {
+  try {
+    const r = await fetch('/api/last-sync', { cache: 'no-store' });
+    if (r.ok) { const { timestamp } = await r.json(); if (_lastSyncTs === 0) _lastSyncTs = timestamp; }
+  } catch (_) {}
+}, 5000);
 
 async function smartReload(btn) {
   // Visual feedback (only when user explicitly clicks Reload)

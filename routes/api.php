@@ -799,6 +799,13 @@ Route::post('/history/snapshot', function () {
                 ->delete();
         }
 
+        // Clear all page caches so the next page load (and smartReload() auto-refresh)
+        // serves fresh data immediately — not stale TTL-cached data from before this scrape.
+        // Also clear last_sync_unix so the timestamp check in hawkerops.js detects the change instantly.
+        \App\Helpers\CacheOptimizationHelper::invalidateDashboardCaches();
+        Cache::forget('last_sync_unix');
+        Cache::forget('bell_alert_count');
+
         return response()->json([
             'success'   => true,
             'message'   => 'Daily history snapshot updated',
