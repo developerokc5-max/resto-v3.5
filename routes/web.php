@@ -287,8 +287,11 @@ Route::get('/stores', function () {
 
         // BATCH: Get all item counts per shop in one query (Grab + FoodPanda only)
         // Normalize (Del) from BOTH name and category so delivery-mapped variants don't double-count.
+        // Count by normalized name only (not name+category) — matches store detail page grouping.
+        // Case-insensitive regex strips (Del), (Onl), (ONL), ( ONL ), etc.
+        $normNameSql = "TRIM(TRAILING '.' FROM TRIM(REGEXP_REPLACE(name, '\\s*\\(\\s*(Del|Onl)\\s*\\)\\s*', '', 'gi')))";
         $allItemCounts = DB::table('items')
-            ->select('shop_name', DB::raw("COUNT(DISTINCT (TRIM(TRAILING '.' FROM TRIM(REGEXP_REPLACE(name, '\\s*\\((Del|Onl)\\)\\s*', '', 'g'))) || '|' || REGEXP_REPLACE(category, '\\s*\\((Del|Onl)\\)\\s*', '', 'g'))) as total_count"))
+            ->select('shop_name', DB::raw("COUNT(DISTINCT {$normNameSql}) as total_count"))
             ->whereIn('platform', ['grab', 'foodpanda'])
             ->whereNotIn('shop_name', $excludedNames)
             ->groupBy('shop_name')
@@ -296,9 +299,8 @@ Route::get('/stores', function () {
 
         // BATCH: Get all offline item counts per shop in one query (Grab + FoodPanda only)
         $allOfflineCounts = DB::table('items')
-            ->select('shop_name', DB::raw("COUNT(DISTINCT (TRIM(TRAILING '.' FROM TRIM(REGEXP_REPLACE(name, '\\s*\\((Del|Onl)\\)\\s*', '', 'g'))) || '|' || REGEXP_REPLACE(category, '\\s*\\((Del|Onl)\\)\\s*', '', 'g'))) as offline_count"))
+            ->select('shop_name', DB::raw("COUNT(DISTINCT CASE WHEN is_available = false THEN {$normNameSql} END) as offline_count"))
             ->whereIn('platform', ['grab', 'foodpanda'])
-            ->where('is_available', false)
             ->whereNotIn('shop_name', $excludedNames)
             ->groupBy('shop_name')
             ->pluck('offline_count', 'shop_name');
@@ -406,8 +408,8 @@ Route::get('/store/{shop_id}', function ($shop_id) {
         // Also normalize "(Del)"/"(Onl)" suffixes and trailing dots from both name and category.
         $groupedItems = [];
         foreach ($items as $item) {
-            $cleanName     = rtrim(trim(preg_replace('/\s*\((Del|Onl)\)\s*/', '', $item->name ?? '')), '.');
-            $cleanCategory = trim(preg_replace('/\s*\((Del|Onl)\)\s*/', '', $item->category ?? ''));
+            $cleanName     = rtrim(trim(preg_replace('/\s*\(\s*(Del|Onl)\s*\)\s*/i', '', $item->name ?? '')), '.');
+            $cleanCategory = trim(preg_replace('/\s*\(\s*(Del|Onl)\s*\)\s*/i', '', $item->category ?? ''));
             $key = $cleanName;
 
             if (!isset($groupedItems[$key])) {
@@ -478,7 +480,7 @@ Route::get('/items', function (Request $request) {
         // Apply category filter at DB level — match against normalized category so
         // "(Del)" variants still match their cleaned category value.
         if ($selectedCategory) {
-            $query->whereRaw("TRIM(REGEXP_REPLACE(category, '\\s*\\((Del|Onl)\\)\\s*', '', 'g')) = ?", [$selectedCategory]);
+            $query->whereRaw("TRIM(REGEXP_REPLACE(category, '\\s*\\(\\s*(Del|Onl)\\s*\\)\\s*', '', 'gi')) = ?", [$selectedCategory]);
         }
 
         // Get all items from the items table
@@ -492,8 +494,8 @@ Route::get('/items', function (Request $request) {
         // variants merge cleanly and don't appear as duplicate items.
         $grouped = [];
         foreach ($allItems as $item) {
-            $cleanName     = rtrim(trim(preg_replace('/\s*\((Del|Onl)\)\s*/', '', $item->name ?? '')), '.');
-            $cleanCategory = trim(preg_replace('/\s*\((Del|Onl)\)\s*/', '', $item->category ?? ''));
+            $cleanName     = rtrim(trim(preg_replace('/\s*\(\s*(Del|Onl)\s*\)\s*/i', '', $item->name ?? '')), '.');
+            $cleanCategory = trim(preg_replace('/\s*\(\s*(Del|Onl)\s*\)\s*/i', '', $item->category ?? ''));
             $key = $item->shop_name . '|' . $cleanName;
 
             if (!isset($grouped[$key])) {
@@ -511,7 +513,7 @@ Route::get('/items', function (Request $request) {
                 ];
             } else {
                 // Prefer the non-"(Del)" category when both variants exist
-                if ($cleanCategory !== '' && ($grouped[$key]['category'] === '' || preg_match('/\((Del|Onl)\)/', $grouped[$key]['category']))) {
+                if ($cleanCategory !== '' && ($grouped[$key]['category'] === '' || preg_match('/\(\s*(Del|Onl)\s*\)/i', $grouped[$key]['category']))) {
                     $grouped[$key]['category'] = $cleanCategory;
                 }
             }
@@ -553,7 +555,7 @@ Route::get('/items', function (Request $request) {
     // Normalize "(Del)" suffix so delivery-mapped categories collapse into their base value.
     $categories = Cache::remember('items_categories', 300, function () {
         return DB::table('items')
-            ->selectRaw("DISTINCT TRIM(REGEXP_REPLACE(category, '\\s*\\((Del|Onl)\\)\\s*', '', 'g')) as category")
+            ->selectRaw("DISTINCT TRIM(REGEXP_REPLACE(category, '\\s*\\(\\s*(Del|Onl)\\s*\\)\\s*', '', 'gi')) as category")
             ->whereNotNull('category')
             ->whereNotIn('shop_name', ShopHelper::excludedShopNames())
             ->pluck('category')
@@ -743,10 +745,10 @@ Route::get('/store/{shopId}/items', function ($shopId) {
     // prefer non-"(Del)" variant when both exist for the same item.
     $deduped = [];
     foreach ($allItems as $item) {
-        $cleanName     = rtrim(trim(preg_replace('/\s*\((Del|Onl)\)\s*/', '', $item->name ?? '')), '.');
-        $cleanCategory = trim(preg_replace('/\s*\((Del|Onl)\)\s*/', '', $item->category ?? ''));
+        $cleanName     = rtrim(trim(preg_replace('/\s*\(\s*(Del|Onl)\s*\)\s*/i', '', $item->name ?? '')), '.');
+        $cleanCategory = trim(preg_replace('/\s*\(\s*(Del|Onl)\s*\)\s*/i', '', $item->category ?? ''));
         $key = $item->platform . '|' . $cleanName;
-        $hasDel = preg_match('/\((Del|Onl)\)/', $item->name ?? '') || preg_match('/\((Del|Onl)\)/', $item->category ?? '');
+        $hasDel = preg_match('/\(\s*(Del|Onl)\s*\)/i', $item->name ?? '') || preg_match('/\(\s*(Del|Onl)\s*\)/i', $item->category ?? '');
 
         if (!isset($deduped[$key])) {
             $item->name     = $cleanName;
@@ -933,8 +935,8 @@ Route::get('/store/{shopId}/logs', function ($shopId) {
             // Dedupe by name — prefer non-"(Del)" category; strip "(Del)" for display
             $byName = [];
             foreach ($items as $item) {
-                $cleanCategory = trim(preg_replace('/\s*\((Del|Onl)\)\s*/', '', $item->category ?? ''));
-                $hasDel = preg_match('/\((Del|Onl)\)/', $item->category ?? '');
+                $cleanCategory = trim(preg_replace('/\s*\(\s*(Del|Onl)\s*\)\s*/i', '', $item->category ?? ''));
+                $hasDel = preg_match('/\(\s*(Del|Onl)\s*\)/i', $item->category ?? '');
                 if (!isset($byName[$item->name]) || !$hasDel) {
                     $item->category = $cleanCategory;
                     $byName[$item->name] = $item;
@@ -1063,7 +1065,7 @@ Route::get('/dashboard/export', function () {
         ->select(
             'shop_name',
             'platform',
-            DB::raw("COUNT(DISTINCT (TRIM(TRAILING '.' FROM TRIM(REGEXP_REPLACE(name, '\\s*\\((Del|Onl)\\)\\s*', '', 'g'))) || '|' || REGEXP_REPLACE(category, '\\s*\\((Del|Onl)\\)\\s*', '', 'g'))) as offline_count")
+            DB::raw("COUNT(DISTINCT (TRIM(TRAILING '.' FROM TRIM(REGEXP_REPLACE(name, '\\s*\\(\\s*(Del|Onl)\\s*\\)\\s*', '', 'gi'))) || '|' || REGEXP_REPLACE(category, '\\s*\\(\\s*(Del|Onl)\\s*\\)\\s*', '', 'gi'))) as offline_count")
         )
         ->groupBy('shop_name', 'platform')
         ->get()
@@ -1279,12 +1281,12 @@ Route::get('/alerts', function () {
             'storesWithOfflineItems' => DB::table('items')
                 ->whereNotIn('shop_name', ShopHelper::excludedShopNames())
                 ->selectRaw("shop_name, shop_id,
-                    COUNT(DISTINCT CASE WHEN is_available = false THEN (TRIM(TRAILING '.' FROM TRIM(REGEXP_REPLACE(name, '\\s*\\((Del|Onl)\\)\\s*', '', 'g'))) || '|' || REGEXP_REPLACE(category, '\\s*\\((Del|Onl)\\)\\s*', '', 'g')) END) as offline_count,
-                    COUNT(DISTINCT (TRIM(TRAILING '.' FROM TRIM(REGEXP_REPLACE(name, '\\s*\\((Del|Onl)\\)\\s*', '', 'g'))) || '|' || REGEXP_REPLACE(category, '\\s*\\((Del|Onl)\\)\\s*', '', 'g'))) as total_items,
+                    COUNT(DISTINCT CASE WHEN is_available = false THEN (TRIM(TRAILING '.' FROM TRIM(REGEXP_REPLACE(name, '\\s*\\(\\s*(Del|Onl)\\s*\\)\\s*', '', 'gi'))) || '|' || REGEXP_REPLACE(category, '\\s*\\(\\s*(Del|Onl)\\s*\\)\\s*', '', 'gi')) END) as offline_count,
+                    COUNT(DISTINCT (TRIM(TRAILING '.' FROM TRIM(REGEXP_REPLACE(name, '\\s*\\(\\s*(Del|Onl)\\s*\\)\\s*', '', 'gi'))) || '|' || REGEXP_REPLACE(category, '\\s*\\(\\s*(Del|Onl)\\s*\\)\\s*', '', 'gi'))) as total_items,
                     MAX(updated_at) as last_updated")
                 ->whereIn('platform', ['grab', 'foodpanda'])
                 ->groupBy('shop_name', 'shop_id')
-                ->havingRaw("COUNT(DISTINCT CASE WHEN is_available = false THEN (TRIM(TRAILING '.' FROM TRIM(REGEXP_REPLACE(name, '\\s*\\((Del|Onl)\\)\\s*', '', 'g'))) || '|' || REGEXP_REPLACE(category, '\\s*\\((Del|Onl)\\)\\s*', '', 'g')) END) > 20")
+                ->havingRaw("COUNT(DISTINCT CASE WHEN is_available = false THEN (TRIM(TRAILING '.' FROM TRIM(REGEXP_REPLACE(name, '\\s*\\(\\s*(Del|Onl)\\s*\\)\\s*', '', 'gi'))) || '|' || REGEXP_REPLACE(category, '\\s*\\(\\s*(Del|Onl)\\s*\\)\\s*', '', 'gi')) END) > 20")
                 ->orderByRaw('offline_count DESC')
                 ->limit(8)
                 ->get(),
@@ -1482,7 +1484,7 @@ Route::get('/history', function () {
         ->groupBy(fn($item) => strtolower($item->shop_name) . '|' . $item->platform)
         ->map(function ($items) {
             // Dedupe by (name, normalized category) — "(Del)" duplicates collapse
-            return $items->unique(fn($i) => $i->name . '|' . trim(preg_replace('/\s*\((Del|Onl)\)\s*/', '', $i->category ?? '')))->values();
+            return $items->unique(fn($i) => $i->name . '|' . trim(preg_replace('/\s*\(\s*(Del|Onl)\s*\)\s*/i', '', $i->category ?? '')))->values();
         });
 
     $insertRows = [];
@@ -2067,8 +2069,8 @@ Route::get('/reports/store-comparison', function () {
             'itemCounts' => DB::table('items')
                 ->select(
                     'shop_name',
-                    DB::raw("COUNT(DISTINCT (TRIM(TRAILING '.' FROM TRIM(REGEXP_REPLACE(name, '\\s*\\((Del|Onl)\\)\\s*', '', 'g'))) || '|' || REGEXP_REPLACE(category, '\\s*\\((Del|Onl)\\)\\s*', '', 'g'))) as total"),
-                    DB::raw("COUNT(DISTINCT CASE WHEN is_available = false THEN (TRIM(TRAILING '.' FROM TRIM(REGEXP_REPLACE(name, '\\s*\\((Del|Onl)\\)\\s*', '', 'g'))) || '|' || REGEXP_REPLACE(category, '\\s*\\((Del|Onl)\\)\\s*', '', 'g')) END) as offline")
+                    DB::raw("COUNT(DISTINCT (TRIM(TRAILING '.' FROM TRIM(REGEXP_REPLACE(name, '\\s*\\(\\s*(Del|Onl)\\s*\\)\\s*', '', 'gi'))) || '|' || REGEXP_REPLACE(category, '\\s*\\(\\s*(Del|Onl)\\s*\\)\\s*', '', 'gi'))) as total"),
+                    DB::raw("COUNT(DISTINCT CASE WHEN is_available = false THEN (TRIM(TRAILING '.' FROM TRIM(REGEXP_REPLACE(name, '\\s*\\(\\s*(Del|Onl)\\s*\\)\\s*', '', 'gi'))) || '|' || REGEXP_REPLACE(category, '\\s*\\(\\s*(Del|Onl)\\s*\\)\\s*', '', 'gi')) END) as offline")
                 )
                 ->whereIn('platform', ['grab', 'foodpanda'])
                 ->whereNotIn('shop_name', $excludedNames)

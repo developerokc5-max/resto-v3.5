@@ -1212,7 +1212,7 @@ Route::get('/store/{shopId}', function ($shopId) {
 
     // Normalize item names: strip delivery/online suffixes like "(Del)", "(Onl)" and trailing dots
     // This prevents doubled items when RestoSuite creates delivery-mapped variants of the same item.
-    $normalizeItemName = fn($name) => rtrim(trim(preg_replace('/\s*\((Del|Onl)\)\s*/', '', $name)), '.');
+    $normalizeItemName = fn($name) => rtrim(trim(preg_replace('/\s*\(\s*(Del|Onl)\s*\)\s*/i', '', $name)), '.');
 
     $groupedItems = [];
     foreach ($items as $item) {
@@ -1339,7 +1339,7 @@ Route::get('/reports/item-performance', function () {
     $reportData = \Illuminate\Support\Facades\Cache::remember('reports_item_performance_v2', 300, function () {
         $excludedNames = ShopHelper::excludedShopNames();
         // SQL normalization: strip (Del)/(Onl) suffixes and trailing dots
-        $normSql = "TRIM(TRAILING '.' FROM TRIM(REGEXP_REPLACE(name, '\\\\s*\\\\((Del|Onl)\\\\)\\\\s*', '', 'g')))";
+        $normSql = "TRIM(TRAILING '.' FROM TRIM(REGEXP_REPLACE(name, '\\\\s*\\\\(\\\\s*(Del|Onl)\\\\s*\\\\)\\\\s*', '', 'gi')))";
 
         $totalItems   = DB::table('items')
             ->whereNotIn('shop_name', $excludedNames)
