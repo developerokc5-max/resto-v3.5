@@ -54,7 +54,7 @@
   </section>
 
   <!-- Platform Stats -->
-  <section class="grid grid-cols-1 md:grid-cols-3 gap-4">
+  <section class="grid grid-cols-1 md:grid-cols-2 gap-4">
     @foreach(['grab' => 'Grab', 'foodpanda' => 'FoodPanda'] as $key => $name)
       @php $stat = $platformStats[$key] ?? ['total' => 0, 'online' => 0, 'offline' => 0, 'percentage' => 0]; @endphp
       <div class="bg-white dark:bg-slate-800 border dark:border-slate-700 rounded-2xl p-5 shadow-sm">
