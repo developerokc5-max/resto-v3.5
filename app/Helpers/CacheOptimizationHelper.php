@@ -49,12 +49,16 @@ class CacheOptimizationHelper
                     ->count();
             }
 
-            // Single aggregated query for items and status
+            // Single aggregated query for items and status.
+            // Count DISTINCT on normalized (shop_name + name) so "(Del)"/"(Onl)" variants and
+            // per-platform duplicates don't inflate the dashboard totals.
+            $normNameSql = "TRIM(TRAILING '.' FROM TRIM(REGEXP_REPLACE(name, '\\s*\\(\\s*(Del|Onl)\\s*\\)\\s*', '', 'gi')))";
             $itemsStatus = DB::table('items')
                 ->select(
-                    DB::raw('COUNT(CASE WHEN is_available = false THEN 1 END) as items_off'),
-                    DB::raw('COUNT(*) as total_items')
+                    DB::raw("COUNT(DISTINCT CASE WHEN is_available = false THEN shop_name || '|' || {$normNameSql} END) as items_off"),
+                    DB::raw("COUNT(DISTINCT shop_name || '|' || {$normNameSql}) as total_items")
                 )
+                ->whereIn('platform', ['grab', 'foodpanda'])
                 ->whereNotIn('shop_name', $excludedNames)
                 ->first();
 
@@ -117,11 +121,14 @@ class CacheOptimizationHelper
                 return $store->offline_count < 2;
             })->count();
 
-            // Get offline items count in single query (excluding test/demo/closed stores)
-            $offlineItems = DB::table('items')
+            // Get offline items count (distinct normalized items, not raw rows).
+            $normNameSql = "TRIM(TRAILING '.' FROM TRIM(REGEXP_REPLACE(name, '\\s*\\(\\s*(Del|Onl)\\s*\\)\\s*', '', 'gi')))";
+            $offlineItems = (int) DB::table('items')
                 ->where('is_available', false)
+                ->whereIn('platform', ['grab', 'foodpanda'])
                 ->whereNotIn('shop_name', $excludedNames)
-                ->count();
+                ->selectRaw("COUNT(DISTINCT shop_name || '|' || {$normNameSql}) as c")
+                ->value('c');
 
             return [
                 'fully_offline_stores' => $fullyOfflineCount,

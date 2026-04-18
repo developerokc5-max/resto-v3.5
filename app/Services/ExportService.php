@@ -23,13 +23,17 @@ class ExportService
             ->get()
             ->groupBy('shop_id');
 
-        // Single query for all items with aggregation
+        // Single query for all items with aggregation.
+        // Count DISTINCT on normalized name only so "(Del)"/"(Onl)" variants and per-platform rows
+        // don't inflate the export totals (matches stores list + store-detail page counts).
+        $normNameSql = "TRIM(TRAILING '.' FROM TRIM(REGEXP_REPLACE(name, '\\s*\\(\\s*(Del|Onl)\\s*\\)\\s*', '', 'gi')))";
         $itemStats = DB::table('items')
             ->whereIn('shop_name', array_values(array_column($shopMap, 'name')))
+            ->whereIn('platform', ['grab', 'foodpanda'])
             ->select(
                 'shop_name',
-                DB::raw('COUNT(*) as total_items'),
-                DB::raw('SUM(CASE WHEN is_available = false THEN 1 ELSE 0 END) as offline_items')
+                DB::raw("COUNT(DISTINCT {$normNameSql}) as total_items"),
+                DB::raw("COUNT(DISTINCT CASE WHEN is_available = false THEN {$normNameSql} END) as offline_items")
             )
             ->groupBy('shop_name')
             ->get()
@@ -218,13 +222,16 @@ class ExportService
             ->get()
             ->keyBy('shop_id');
 
-        // Single query for all items with aggregation
+        // Single query for all items with aggregation.
+        // DISTINCT on normalized name -> one row per real menu item (not per platform / variant).
+        $normNameSql = "TRIM(TRAILING '.' FROM TRIM(REGEXP_REPLACE(name, '\\s*\\(\\s*(Del|Onl)\\s*\\)\\s*', '', 'gi')))";
         $itemStats = DB::table('items')
             ->whereIn('shop_name', $shopNames)
+            ->whereIn('platform', ['grab', 'foodpanda'])
             ->select(
                 'shop_name',
-                DB::raw('COUNT(*) as total_items'),
-                DB::raw('SUM(CASE WHEN is_available = false THEN 1 ELSE 0 END) as offline_items')
+                DB::raw("COUNT(DISTINCT {$normNameSql}) as total_items"),
+                DB::raw("COUNT(DISTINCT CASE WHEN is_available = false THEN {$normNameSql} END) as offline_items")
             )
             ->groupBy('shop_name')
             ->get()

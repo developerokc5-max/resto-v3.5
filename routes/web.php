@@ -50,7 +50,9 @@ Route::get('/dashboard', function () {
 
     $stores = [];
 
-    // Top-2 offline item names per shop+platform — used for inline dropdown on dashboard
+    // Top-2 offline item names per shop+platform — used for inline dropdown on dashboard.
+    // Normalize "(Del)"/"(Onl)" + trailing dots, then dedupe so the dropdown doesn't show
+    // the same item twice as "Item" and "Item (Del)".
     $offlineItemNames = DB::table('items')
         ->select('shop_name', 'platform', 'name')
         ->where('is_available', false)
@@ -59,7 +61,13 @@ Route::get('/dashboard', function () {
         ->orderBy('shop_name')->orderBy('platform')->orderBy('name')
         ->get()
         ->groupBy(fn($r) => $r->shop_name . '|' . $r->platform)
-        ->map(fn($rows) => $rows->pluck('name')->unique()->take(2)->values()->toArray());
+        ->map(fn($rows) => $rows
+            ->map(fn($r) => rtrim(trim(preg_replace('/\s*\(\s*(Del|Onl)\s*\)\s*/i', '', $r->name ?? '')), '.'))
+            ->filter()
+            ->unique()
+            ->take(2)
+            ->values()
+            ->toArray());
 
     // Uptime % per shop (last 30 days from alert_logs)
     $totalMinutes30d = 30 * 24 * 60;
@@ -406,6 +414,10 @@ Route::get('/store/{shop_id}', function ($shop_id) {
         // The same item can have different category names across platforms (e.g. "Beverages" vs "OK Beverages"),
         // so including category in the key causes false duplicates. Name-only grouping merges them correctly.
         // Also normalize "(Del)"/"(Onl)" suffixes and trailing dots from both name and category.
+        //
+        // IMPORTANT: When multiple variants share a normalized name (e.g. base + "(ONL)" variant),
+        // we OR-merge platform availability — an item is orderable if ANY variant is available on that platform.
+        // Then we derive all_active from the FINAL platform states to keep badge + platform chips consistent.
         $groupedItems = [];
         foreach ($items as $item) {
             $cleanName     = rtrim(trim(preg_replace('/\s*\(\s*(Del|Onl)\s*\)\s*/i', '', $item->name ?? '')), '.');
@@ -419,18 +431,38 @@ Route::get('/store/{shop_id}', function ($shop_id) {
                     'image_url' => $item->image_url,
                     'price'     => $item->price,
                     'platforms' => [],
-                    'all_active' => true,
                 ];
             }
 
-            $groupedItems[$key]['platforms'][$item->platform] = [
-                'is_available' => (bool) $item->is_available,
-                'price'        => $item->price,
-            ];
-
-            if (!$item->is_available) {
-                $groupedItems[$key]['all_active'] = false;
+            // Backfill missing image/price from any variant
+            if (empty($groupedItems[$key]['image_url']) && !empty($item->image_url)) {
+                $groupedItems[$key]['image_url'] = $item->image_url;
             }
+            if (empty($groupedItems[$key]['price']) && !empty($item->price)) {
+                $groupedItems[$key]['price'] = $item->price;
+            }
+
+            // OR-merge platform availability: TRUE wins (item is orderable if any variant is available)
+            $platform          = $item->platform;
+            $existingAvailable = $groupedItems[$key]['platforms'][$platform]['is_available'] ?? false;
+            $mergedAvailable   = $existingAvailable || (bool) $item->is_available;
+            $existingPrice     = $groupedItems[$key]['platforms'][$platform]['price'] ?? null;
+
+            $groupedItems[$key]['platforms'][$platform] = [
+                'is_available' => $mergedAvailable,
+                // Prefer the price from the available variant when merging
+                'price'        => ((bool) $item->is_available && !empty($item->price))
+                    ? $item->price
+                    : ($existingPrice ?? $item->price),
+            ];
+        }
+
+        // Derive all_active from the final merged platform states so badge matches platform chips.
+        // ACTIVE only if every platform is available; otherwise INACTIVE.
+        foreach ($groupedItems as $key => $group) {
+            $platforms = $group['platforms'] ?? [];
+            $groupedItems[$key]['all_active'] = !empty($platforms)
+                && !in_array(false, array_column($platforms, 'is_available'), true);
         }
 
         $platformStatus = DB::table('platform_status')
@@ -932,14 +964,19 @@ Route::get('/store/{shopId}/logs', function ($shopId) {
         ->get()
         ->groupBy('platform')
         ->map(function ($items) {
-            // Dedupe by name — prefer non-"(Del)" category; strip "(Del)" for display
+            // Dedupe by NORMALIZED name (strip "(Del)"/"(Onl)" + trailing dots) so base + variant merge.
+            // Prefer the non-"(Del)" variant's clean display values.
             $byName = [];
             foreach ($items as $item) {
+                $cleanName     = rtrim(trim(preg_replace('/\s*\(\s*(Del|Onl)\s*\)\s*/i', '', $item->name ?? '')), '.');
                 $cleanCategory = trim(preg_replace('/\s*\(\s*(Del|Onl)\s*\)\s*/i', '', $item->category ?? ''));
-                $hasDel = preg_match('/\(\s*(Del|Onl)\s*\)/i', $item->category ?? '');
-                if (!isset($byName[$item->name]) || !$hasDel) {
+                $hasDel        = preg_match('/\(\s*(Del|Onl)\s*\)/i', $item->name ?? '')
+                              || preg_match('/\(\s*(Del|Onl)\s*\)/i', $item->category ?? '');
+
+                if (!isset($byName[$cleanName]) || !$hasDel) {
+                    $item->name     = $cleanName;
                     $item->category = $cleanCategory;
-                    $byName[$item->name] = $item;
+                    $byName[$cleanName] = $item;
                 }
             }
             return collect(array_values($byName));
@@ -1057,7 +1094,7 @@ Route::get('/dashboard/export', function () {
     $shopNames = $platformStatuses->map(fn($rows) => $rows->first()->store_name)->filter()->values()->toArray();
 
     // QUERY 2: Get all offline items grouped by shop_name and platform.
-    // Use COUNT DISTINCT on (name, normalized_category) so "(Del)" duplicates don't double-count.
+    // COUNT DISTINCT on normalized NAME only (categories differ across platforms -> false duplicates).
     $offlineItemsStats = DB::table('items')
         ->whereIn('shop_name', $shopNames)
         ->where('is_available', false)
@@ -1065,7 +1102,7 @@ Route::get('/dashboard/export', function () {
         ->select(
             'shop_name',
             'platform',
-            DB::raw("COUNT(DISTINCT (TRIM(TRAILING '.' FROM TRIM(REGEXP_REPLACE(name, '\\s*\\(\\s*(Del|Onl)\\s*\\)\\s*', '', 'gi'))) || '|' || REGEXP_REPLACE(category, '\\s*\\(\\s*(Del|Onl)\\s*\\)\\s*', '', 'gi'))) as offline_count")
+            DB::raw("COUNT(DISTINCT TRIM(TRAILING '.' FROM TRIM(REGEXP_REPLACE(name, '\\s*\\(\\s*(Del|Onl)\\s*\\)\\s*', '', 'gi')))) as offline_count")
         )
         ->groupBy('shop_name', 'platform')
         ->get()
@@ -1281,12 +1318,12 @@ Route::get('/alerts', function () {
             'storesWithOfflineItems' => DB::table('items')
                 ->whereNotIn('shop_name', ShopHelper::excludedShopNames())
                 ->selectRaw("shop_name, shop_id,
-                    COUNT(DISTINCT CASE WHEN is_available = false THEN (TRIM(TRAILING '.' FROM TRIM(REGEXP_REPLACE(name, '\\s*\\(\\s*(Del|Onl)\\s*\\)\\s*', '', 'gi'))) || '|' || REGEXP_REPLACE(category, '\\s*\\(\\s*(Del|Onl)\\s*\\)\\s*', '', 'gi')) END) as offline_count,
-                    COUNT(DISTINCT (TRIM(TRAILING '.' FROM TRIM(REGEXP_REPLACE(name, '\\s*\\(\\s*(Del|Onl)\\s*\\)\\s*', '', 'gi'))) || '|' || REGEXP_REPLACE(category, '\\s*\\(\\s*(Del|Onl)\\s*\\)\\s*', '', 'gi'))) as total_items,
+                    COUNT(DISTINCT CASE WHEN is_available = false THEN TRIM(TRAILING '.' FROM TRIM(REGEXP_REPLACE(name, '\\s*\\(\\s*(Del|Onl)\\s*\\)\\s*', '', 'gi'))) END) as offline_count,
+                    COUNT(DISTINCT TRIM(TRAILING '.' FROM TRIM(REGEXP_REPLACE(name, '\\s*\\(\\s*(Del|Onl)\\s*\\)\\s*', '', 'gi')))) as total_items,
                     MAX(updated_at) as last_updated")
                 ->whereIn('platform', ['grab', 'foodpanda'])
                 ->groupBy('shop_name', 'shop_id')
-                ->havingRaw("COUNT(DISTINCT CASE WHEN is_available = false THEN (TRIM(TRAILING '.' FROM TRIM(REGEXP_REPLACE(name, '\\s*\\(\\s*(Del|Onl)\\s*\\)\\s*', '', 'gi'))) || '|' || REGEXP_REPLACE(category, '\\s*\\(\\s*(Del|Onl)\\s*\\)\\s*', '', 'gi')) END) > 20")
+                ->havingRaw("COUNT(DISTINCT CASE WHEN is_available = false THEN TRIM(TRAILING '.' FROM TRIM(REGEXP_REPLACE(name, '\\s*\\(\\s*(Del|Onl)\\s*\\)\\s*', '', 'gi'))) END) > 20")
                 ->orderByRaw('offline_count DESC')
                 ->limit(8)
                 ->get(),
@@ -1483,8 +1520,10 @@ Route::get('/history', function () {
         ->get()
         ->groupBy(fn($item) => strtolower($item->shop_name) . '|' . $item->platform)
         ->map(function ($items) {
-            // Dedupe by (name, normalized category) — "(Del)" duplicates collapse
-            return $items->unique(fn($i) => $i->name . '|' . trim(preg_replace('/\s*\(\s*(Del|Onl)\s*\)\s*/i', '', $i->category ?? '')))->values();
+            // Dedupe by NORMALIZED name only — "(Del)"/"(Onl)" variants + trailing-dot variants collapse.
+            return $items->unique(fn($i) =>
+                rtrim(trim(preg_replace('/\s*\(\s*(Del|Onl)\s*\)\s*/i', '', $i->name ?? '')), '.')
+            )->values();
         });
 
     $insertRows = [];
@@ -1506,10 +1545,11 @@ Route::get('/history', function () {
             $platformData[$platform] = [
                 'name'          => ucfirst($platform),
                 'status'        => $isOnline ? 'Online' : 'Offline',
+                // Normalize display fields so the snapshot JSON doesn't carry "(Del)"/"(Onl)" variants.
                 'offline_items' => $offlineItems->map(fn($i) => [
-                    'name'      => $i->name,
+                    'name'      => rtrim(trim(preg_replace('/\s*\(\s*(Del|Onl)\s*\)\s*/i', '', $i->name ?? '')), '.'),
                     'sku'       => $i->sku       ?? null,
-                    'category'  => $i->category  ?? null,
+                    'category'  => trim(preg_replace('/\s*\(\s*(Del|Onl)\s*\)\s*/i', '', $i->category ?? '')),
                     'price'     => $i->price      ?? null,
                     'image_url' => $i->image_url  ?? null,
                 ])->values()->toArray(),
@@ -1776,10 +1816,15 @@ Route::get('/reports/daily-trends', function (\Illuminate\Http\Request $request)
             ->get();
 
         $avgUptime = $platformStats->avg('uptime');
-        $offlineItemsCount = DB::table('items')
+        // Count DISTINCT offline items (normalized name + shop) so "(Del)"/"(Onl)" and
+        // per-platform rows don't double-count.
+        $normNameSql = "TRIM(TRAILING '.' FROM TRIM(REGEXP_REPLACE(name, '\\s*\\(\\s*(Del|Onl)\\s*\\)\\s*', '', 'gi')))";
+        $offlineItemsCount = (int) DB::table('items')
             ->where('is_available', false)
+            ->whereIn('platform', ['grab', 'foodpanda'])
             ->whereNotIn('shop_name', ShopHelper::excludedShopNames())
-            ->count();
+            ->selectRaw("COUNT(DISTINCT shop_name || '|' || {$normNameSql}) as c")
+            ->value('c');
 
         // Use SGT-aware date comparison (logged_at stored as UTC, +8h = SGT)
         $todaySgt = $today->toDateString();
@@ -1897,8 +1942,11 @@ Route::get('/reports/item-performance', function () {
         // Get real item statistics from database (excluding test/demo/closed stores)
         $excludedNames = ShopHelper::excludedShopNames();
 
+        // Normalize names ("(Del)"/"(Onl)" + trailing dots) so variants don't inflate totals.
+        $normNameSql = "TRIM(TRAILING '.' FROM TRIM(REGEXP_REPLACE(name, '\\s*\\(\\s*(Del|Onl)\\s*\\)\\s*', '', 'gi')))";
         $totalItems = DB::table('items')
-            ->selectRaw('COUNT(DISTINCT name || \'|\' || shop_name || \'|\' || platform) as total')
+            ->selectRaw("COUNT(DISTINCT {$normNameSql} || '|' || shop_name || '|' || platform) as total")
+            ->whereIn('platform', ['grab', 'foodpanda'])
             ->whereNotIn('shop_name', $excludedNames)
             ->first()
             ->total;
@@ -1968,13 +2016,15 @@ Route::get('/reports/item-performance', function () {
         }
 
         // Get REAL category performance data from database (excluding test/demo/closed stores)
+        // Use normalized name + shop + platform so "(Del)" variants don't inflate the category totals.
         $categoryData = DB::table('items')
-            ->selectRaw('
+            ->selectRaw("
                 category,
-                COUNT(DISTINCT (name || \'|\' || shop_name || \'|\' || platform)) as total_items,
+                COUNT(DISTINCT ({$normNameSql} || '|' || shop_name || '|' || platform)) as total_items,
                 ROUND(100.0 * SUM(CASE WHEN is_available = true THEN 1 ELSE 0 END) / COUNT(*), 1) as availability_percentage,
                 SUM(CASE WHEN is_available = false THEN 1 ELSE 0 END) as offline_count
-            ')
+            ")
+            ->whereIn('platform', ['grab', 'foodpanda'])
             ->whereNotIn('shop_name', $excludedNames)
             ->groupBy('category')
             ->orderByRaw('CAST(category AS TEXT)')
@@ -2065,12 +2115,13 @@ Route::get('/reports/store-comparison', function () {
                 ->map(fn($items) => $items->keyBy('platform')),
 
             // Fetch all item counts (Grab + FoodPanda only, excluding test/demo/closed stores).
-            // Use COUNT DISTINCT on normalized (name, category) so "(Del)" duplicates don't inflate counts.
+            // COUNT DISTINCT on normalized NAME only so counts match the store-detail page
+            // (categories differ across platforms -> false duplicates if included in the key).
             'itemCounts' => DB::table('items')
                 ->select(
                     'shop_name',
-                    DB::raw("COUNT(DISTINCT (TRIM(TRAILING '.' FROM TRIM(REGEXP_REPLACE(name, '\\s*\\(\\s*(Del|Onl)\\s*\\)\\s*', '', 'gi'))) || '|' || REGEXP_REPLACE(category, '\\s*\\(\\s*(Del|Onl)\\s*\\)\\s*', '', 'gi'))) as total"),
-                    DB::raw("COUNT(DISTINCT CASE WHEN is_available = false THEN (TRIM(TRAILING '.' FROM TRIM(REGEXP_REPLACE(name, '\\s*\\(\\s*(Del|Onl)\\s*\\)\\s*', '', 'gi'))) || '|' || REGEXP_REPLACE(category, '\\s*\\(\\s*(Del|Onl)\\s*\\)\\s*', '', 'gi')) END) as offline")
+                    DB::raw("COUNT(DISTINCT TRIM(TRAILING '.' FROM TRIM(REGEXP_REPLACE(name, '\\s*\\(\\s*(Del|Onl)\\s*\\)\\s*', '', 'gi')))) as total"),
+                    DB::raw("COUNT(DISTINCT CASE WHEN is_available = false THEN TRIM(TRAILING '.' FROM TRIM(REGEXP_REPLACE(name, '\\s*\\(\\s*(Del|Onl)\\s*\\)\\s*', '', 'gi'))) END) as offline")
                 )
                 ->whereIn('platform', ['grab', 'foodpanda'])
                 ->whereNotIn('shop_name', $excludedNames)

@@ -12,6 +12,52 @@ use App\Http\Controllers\Api\MonitorController;
  * API Routes for Hybrid System
  */
 
+// DIAGNOSTIC: inspect items that appear on FoodPanda but not Grab (or vice versa)
+// for a specific shop. Used to debug item-count mismatches where FoodPanda has
+// "phantom" items that shouldn't be counted (e.g. name variants the normalization misses).
+// Usage: /api/debug/item-diff/OK%20CHICKEN%20RICE%20@%20Taman%20Jurong
+Route::get('/debug/item-diff/{shop_name}', function ($shopName) {
+    $rows = DB::table('items')
+        ->select('name', 'category', 'platform', 'is_available', 'sku', 'price')
+        ->where('shop_name', $shopName)
+        ->whereIn('platform', ['grab', 'foodpanda'])
+        ->orderBy('platform')
+        ->orderBy('name')
+        ->get();
+
+    $normalize = fn($n) => rtrim(trim(preg_replace('/\s*\(\s*(Del|Onl)\s*\)\s*/i', '', $n ?? '')), '.');
+
+    $byPlatform = ['grab' => [], 'foodpanda' => []];
+    foreach ($rows as $r) {
+        $byPlatform[$r->platform][$normalize($r->name)] = [
+            'raw_name'     => $r->name,
+            'norm_name'    => $normalize($r->name),
+            'category'     => $r->category,
+            'sku'          => $r->sku,
+            'price'        => $r->price,
+            'is_available' => (bool) $r->is_available,
+        ];
+    }
+
+    $grabKeys = array_keys($byPlatform['grab']);
+    $fpKeys   = array_keys($byPlatform['foodpanda']);
+
+    $grabOnly       = array_values(array_diff($grabKeys, $fpKeys));
+    $foodpandaOnly  = array_values(array_diff($fpKeys, $grabKeys));
+    $both           = array_values(array_intersect($grabKeys, $fpKeys));
+
+    return response()->json([
+        'shop_name'         => $shopName,
+        'grab_count'        => count($grabKeys),
+        'foodpanda_count'   => count($fpKeys),
+        'union_count'       => count(array_unique(array_merge($grabKeys, $fpKeys))),
+        'intersection_count'=> count($both),
+        'grab_only'         => array_map(fn($k) => $byPlatform['grab'][$k], $grabOnly),
+        'foodpanda_only'    => array_map(fn($k) => $byPlatform['foodpanda'][$k], $foodpandaOnly),
+        'hint'              => 'If you expected the real menu size to match one platform, the other-platform-only list is the source of duplicates. Compare raw_name values char-by-char to find the normalization gap.',
+    ]);
+});
+
 // Lightweight sync-timestamp check used by smartReload() to skip full-page
 // fetches when no new data has arrived since the last reload.
 // Returns a unix timestamp — JS compares it to _lastSyncTs to decide whether
@@ -30,6 +76,44 @@ Route::get('/last-sync', function () {
 });
 
 // Clear page cache — called by Reload button before fetching fresh HTML
+// Manually purge stale (orphaned) item rows — items no longer in the live menu
+// but still in the DB because the Python scraper never deletes them.
+// Uses the same logic as /history/snapshot: delete anything older than
+// max(updated_at) - 15 min per (shop_id, platform).
+// Returns count of rows removed.
+Route::post('/items/cleanup-stale', function () {
+    $before = DB::table('items')->whereIn('platform', ['grab', 'foodpanda'])->count();
+
+    DB::statement("
+        DELETE FROM items
+        WHERE id IN (
+            SELECT i.id FROM items i
+            JOIN (
+                SELECT shop_id, platform, MAX(updated_at) AS latest
+                FROM items
+                WHERE platform IN ('grab', 'foodpanda')
+                GROUP BY shop_id, platform
+            ) recent ON recent.shop_id = i.shop_id AND recent.platform = i.platform
+            WHERE i.updated_at < recent.latest - INTERVAL '15 minutes'
+              AND i.platform IN ('grab', 'foodpanda')
+        )
+    ");
+
+    $after   = DB::table('items')->whereIn('platform', ['grab', 'foodpanda'])->count();
+    $removed = $before - $after;
+
+    // Invalidate caches so the UI reflects the purge immediately
+    \App\Helpers\CacheOptimizationHelper::invalidateDashboardCaches();
+
+    return response()->json([
+        'success'       => true,
+        'before_count'  => $before,
+        'after_count'   => $after,
+        'removed'       => $removed,
+        'message'       => "Purged {$removed} stale item rows",
+    ]);
+});
+
 Route::post('/cache/clear', function () {
     $keys = [
         'shop_map',
@@ -735,6 +819,30 @@ Route::post('/history/snapshot', function () {
         $todaySgt = $nowSgt->format('Y-m-d');
         $nowUtc   = $nowSgt->copy()->setTimezone('UTC');
 
+        // ── Stale-items cleanup ─────────────────────────────────────────────
+        // The Python scraper INSERTs/UPDATEs items each run but never DELETEs
+        // items that vanished from the menu. Result: orphaned rows accumulate
+        // (e.g. FoodPanda scrape returns 79 items but DB still has 88 — 9 phantoms
+        // from items removed weeks ago). Clean them up here after each scrape.
+        //
+        // Logic: for every (shop_id, platform), find the most recent updated_at.
+        // Anything older than 15 min before that high-water mark can't be from
+        // the current run — delete it. 15 min gives enough buffer for long scrapes.
+        $staleDeleted = DB::statement("
+            DELETE FROM items
+            WHERE id IN (
+                SELECT i.id FROM items i
+                JOIN (
+                    SELECT shop_id, platform, MAX(updated_at) AS latest
+                    FROM items
+                    WHERE platform IN ('grab', 'foodpanda')
+                    GROUP BY shop_id, platform
+                ) recent ON recent.shop_id = i.shop_id AND recent.platform = i.platform
+                WHERE i.updated_at < recent.latest - INTERVAL '15 minutes'
+                  AND i.platform IN ('grab', 'foodpanda')
+            )
+        ");
+
         // Read current state from both tables (2 queries) — active shops only
         $excludedIds   = ShopHelper::excludedShopIds();
         $excludedNames = ShopHelper::excludedShopNames();
@@ -748,7 +856,13 @@ Route::post('/history/snapshot', function () {
             ->whereIn('platform', ['grab', 'foodpanda'])
             ->whereNotIn('shop_name', $excludedNames)
             ->get()
-            ->groupBy(fn($item) => $item->shop_id . '|' . $item->platform);
+            ->groupBy(fn($item) => $item->shop_id . '|' . $item->platform)
+            ->map(function ($items) {
+                // Dedupe by NORMALIZED name so "(Del)"/"(Onl)" variants don't duplicate in snapshots.
+                return $items->unique(fn($i) =>
+                    rtrim(trim(preg_replace('/\s*\(\s*(Del|Onl)\s*\)\s*/i', '', $i->name ?? '')), '.')
+                )->values();
+            });
 
         $insertRows = [];
         foreach ($allPlatformStatus as $shopId => $platforms) {
@@ -768,10 +882,11 @@ Route::post('/history/snapshot', function () {
                 $platformData[$platform] = [
                     'name'          => ucfirst($platform),
                     'status'        => $isOnline ? 'Online' : 'Offline',
+                    // Normalize display fields so the snapshot JSON doesn't carry "(Del)"/"(Onl)" variants.
                     'offline_items' => $offlineItems->map(fn($i) => [
-                        'name'      => $i->name,
+                        'name'      => rtrim(trim(preg_replace('/\s*\(\s*(Del|Onl)\s*\)\s*/i', '', $i->name ?? '')), '.'),
                         'sku'       => $i->sku       ?? null,
-                        'category'  => $i->category  ?? null,
+                        'category'  => trim(preg_replace('/\s*\(\s*(Del|Onl)\s*\)\s*/i', '', $i->category ?? '')),
                         'price'     => $i->price      ?? null,
                         'image_url' => $i->image_url  ?? null,
                     ])->values()->toArray(),
@@ -869,14 +984,26 @@ Route::post('/store-logs/snapshot', function () {
         $todayUtcStart   = $nowSgt->copy()->startOfDay()->setTimezone('UTC');
         $tomorrowUtcStart = $todayUtcStart->copy()->addDay();
 
-        // 2 queries to get all data at once
-        $allPlatformStatus = DB::table('platform_status')->get()->groupBy('shop_id');
+        // 2 queries to get all data at once (exclude test/demo/closed stores)
+        $excludedIds   = ShopHelper::excludedShopIds();
+        $excludedNames = ShopHelper::excludedShopNames();
+
+        $allPlatformStatus = DB::table('platform_status')
+            ->whereNotIn('shop_id', $excludedIds)
+            ->get()->groupBy('shop_id');
 
         $allOfflineItems = DB::table('items')
             ->where('is_available', false)
             ->whereIn('platform', ['grab', 'foodpanda'])
+            ->whereNotIn('shop_name', $excludedNames)
             ->get()
-            ->groupBy(fn($item) => $item->shop_id . '|' . $item->platform);
+            ->groupBy(fn($item) => $item->shop_id . '|' . $item->platform)
+            ->map(function ($items) {
+                // Dedupe by NORMALIZED name so "(Del)"/"(Onl)" variants don't duplicate.
+                return $items->unique(fn($i) =>
+                    rtrim(trim(preg_replace('/\s*\(\s*(Del|Onl)\s*\)\s*/i', '', $i->name ?? '')), '.')
+                )->values();
+            });
 
         $insertRows = [];
         $shopIds    = [];
@@ -899,10 +1026,11 @@ Route::post('/store-logs/snapshot', function () {
                     'name'          => ucfirst($platform),
                     'status'        => $isOnline ? 'Online' : 'Offline',
                     'last_checked'  => $status ? $status->last_checked_at : null,
+                    // Normalize display fields so JSON doesn't carry "(Del)"/"(Onl)" variants.
                     'offline_items' => $offlineItems->map(fn($i) => [
-                        'name'      => $i->name,
+                        'name'      => rtrim(trim(preg_replace('/\s*\(\s*(Del|Onl)\s*\)\s*/i', '', $i->name ?? '')), '.'),
                         'sku'       => $i->sku       ?? null,
-                        'category'  => $i->category  ?? null,
+                        'category'  => trim(preg_replace('/\s*\(\s*(Del|Onl)\s*\)\s*/i', '', $i->category ?? '')),
                         'price'     => $i->price      ?? null,
                         'image_url' => $i->image_url  ?? null,
                     ])->values()->toArray(),
@@ -983,14 +1111,16 @@ Route::get('/alerts', function () {
                 ->groupBy('platform')
                 ->get()
                 ->keyBy('platform'),
+            // Count DISTINCT on normalized name so "(Del)"/"(Onl)" variants don't inflate counts.
             'storesWithOfflineItems' => DB::table('items')
                 ->whereNotIn('shop_name', $excludedNames)
-                ->selectRaw('shop_name,
-                    SUM(CASE WHEN is_available = false THEN 1 ELSE 0 END) as offline_count,
-                    COUNT(*) as total_items,
-                    MAX(updated_at) as last_updated')
+                ->whereIn('platform', ['grab', 'foodpanda'])
+                ->selectRaw("shop_name,
+                    COUNT(DISTINCT CASE WHEN is_available = false THEN TRIM(TRAILING '.' FROM TRIM(REGEXP_REPLACE(name, '\\s*\\(\\s*(Del|Onl)\\s*\\)\\s*', '', 'gi'))) END) as offline_count,
+                    COUNT(DISTINCT TRIM(TRAILING '.' FROM TRIM(REGEXP_REPLACE(name, '\\s*\\(\\s*(Del|Onl)\\s*\\)\\s*', '', 'gi')))) as total_items,
+                    MAX(updated_at) as last_updated")
                 ->groupBy('shop_name')
-                ->havingRaw('SUM(CASE WHEN is_available = false THEN 1 ELSE 0 END) > 20')
+                ->havingRaw("COUNT(DISTINCT CASE WHEN is_available = false THEN TRIM(TRAILING '.' FROM TRIM(REGEXP_REPLACE(name, '\\s*\\(\\s*(Del|Onl)\\s*\\)\\s*', '', 'gi'))) END) > 20")
                 ->orderByRaw('offline_count DESC')
                 ->limit(8)
                 ->get(),
@@ -1206,35 +1336,62 @@ Route::get('/store/{shopId}', function ($shopId) {
 
     $items = DB::table('items')
         ->where('shop_name', $shop->shop_name)
+        ->whereIn('platform', ['grab', 'foodpanda'])
         ->orderBy('category')
         ->orderBy('name')
         ->get();
 
     // Normalize item names: strip delivery/online suffixes like "(Del)", "(Onl)" and trailing dots
     // This prevents doubled items when RestoSuite creates delivery-mapped variants of the same item.
-    $normalizeItemName = fn($name) => rtrim(trim(preg_replace('/\s*\(\s*(Del|Onl)\s*\)\s*/i', '', $name)), '.');
+    $normalizeItemName     = fn($name) => rtrim(trim(preg_replace('/\s*\(\s*(Del|Onl)\s*\)\s*/i', '', $name ?? '')), '.');
+    $normalizeCategoryName = fn($cat)  => trim(preg_replace('/\s*\(\s*(Del|Onl)\s*\)\s*/i', '', $cat ?? ''));
 
+    // Group by normalized name only (categories can differ across platforms: "Beverages" vs "OK Beverages").
+    // OR-merge platform availability across variants, then derive all_active from final platform states
+    // so the badge always matches the platform chips.
     $groupedItems = [];
     foreach ($items as $item) {
-        $normalizedName = $normalizeItemName($item->name);
-        $key = $normalizedName . '|' . $item->category;
+        $normalizedName     = $normalizeItemName($item->name);
+        $normalizedCategory = $normalizeCategoryName($item->category);
+        $key = $normalizedName;
+
         if (!isset($groupedItems[$key])) {
             $groupedItems[$key] = [
-                'name'       => $normalizedName,
-                'category'   => $item->category,
-                'image_url'  => $item->image_url,
-                'price'      => $item->price,
-                'platforms'  => [],
-                'all_active' => true,
+                'name'      => $normalizedName,
+                'category'  => $normalizedCategory,
+                'image_url' => $item->image_url,
+                'price'     => $item->price,
+                'platforms' => [],
             ];
         }
-        $groupedItems[$key]['platforms'][$item->platform] = [
-            'is_available' => (bool) $item->is_available,
-            'price'        => $item->price,
-        ];
-        if (!$item->is_available) {
-            $groupedItems[$key]['all_active'] = false;
+
+        // Backfill missing image/price from any variant
+        if (empty($groupedItems[$key]['image_url']) && !empty($item->image_url)) {
+            $groupedItems[$key]['image_url'] = $item->image_url;
         }
+        if (empty($groupedItems[$key]['price']) && !empty($item->price)) {
+            $groupedItems[$key]['price'] = $item->price;
+        }
+
+        // OR-merge: TRUE wins (item is orderable if any variant is available on this platform)
+        $platform          = $item->platform;
+        $existingAvailable = $groupedItems[$key]['platforms'][$platform]['is_available'] ?? false;
+        $mergedAvailable   = $existingAvailable || (bool) $item->is_available;
+        $existingPrice     = $groupedItems[$key]['platforms'][$platform]['price'] ?? null;
+
+        $groupedItems[$key]['platforms'][$platform] = [
+            'is_available' => $mergedAvailable,
+            'price'        => ((bool) $item->is_available && !empty($item->price))
+                ? $item->price
+                : ($existingPrice ?? $item->price),
+        ];
+    }
+
+    // Derive all_active from final merged platform states
+    foreach ($groupedItems as $key => $group) {
+        $platforms = $group['platforms'] ?? [];
+        $groupedItems[$key]['all_active'] = !empty($platforms)
+            && !in_array(false, array_column($platforms, 'is_available'), true);
     }
 
     $platformStatus = DB::table('platform_status')
@@ -1343,8 +1500,14 @@ Route::get('/reports/item-performance', function () {
 
         $totalItems   = DB::table('items')
             ->whereNotIn('shop_name', $excludedNames)
+            ->whereIn('platform', ['grab', 'foodpanda'])
             ->selectRaw("COUNT(DISTINCT {$normSql} || '|' || shop_name || '|' || platform) as total")->first()->total;
-        $offlineItems = DB::table('items')->whereNotIn('shop_name', $excludedNames)->where('is_available', false)->count();
+        $offlineItems = (int) DB::table('items')
+            ->whereNotIn('shop_name', $excludedNames)
+            ->whereIn('platform', ['grab', 'foodpanda'])
+            ->where('is_available', false)
+            ->selectRaw("COUNT(DISTINCT {$normSql} || '|' || shop_name || '|' || platform) as c")
+            ->value('c');
         $onlineItems  = $totalItems - $offlineItems;
 
         $sevenDaysAgo  = \Carbon\Carbon::now('Asia/Singapore')->subDays(7)->toDateTimeString();
@@ -1377,6 +1540,7 @@ Route::get('/reports/item-performance', function () {
 
         $categoryData = DB::table('items')
             ->whereNotIn('shop_name', $excludedNames)
+            ->whereIn('platform', ['grab', 'foodpanda'])
             ->selectRaw("category,
                 COUNT(DISTINCT {$normSql} || '|' || shop_name || '|' || platform) as total_items,
                 ROUND(100.0 * SUM(CASE WHEN is_available = true THEN 1 ELSE 0 END) / COUNT(*), 1) as availability_pct,

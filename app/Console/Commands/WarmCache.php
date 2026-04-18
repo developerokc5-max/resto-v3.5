@@ -51,22 +51,39 @@ class WarmCache extends Command
             CacheOptimizationHelper::getAlertMetrics();
 
             // ── Stores page cache ─────────────────────────────────────────────
+            // IMPORTANT: logic MUST match routes/web.php's /stores route exactly,
+            // otherwise warm-cache writes stale counts under the same key and the
+            // UI shows stale numbers (e.g. 79 here vs 88 on store-detail page).
             $this->line('  → stores_page_data');
             Cache::remember('stores_page_data', 300, function () use ($shopMap) {
-                $allShops = DB::table('shops')->orderBy('shop_name')->get();
+                $excludedIds   = ShopHelper::excludedShopIds();
+                $excludedNames = ShopHelper::excludedShopNames();
+
+                $allShops = DB::table('shops')
+                    ->whereNotIn('shop_name', $excludedNames)
+                    ->orderBy('shop_name')
+                    ->get();
+
+                // Normalize names (strip "(Del)"/"(Onl)" case-insensitively + trailing dots).
+                // Count DISTINCT on normalized NAME only (categories can differ across platforms).
+                $normNameSql = "TRIM(TRAILING '.' FROM TRIM(REGEXP_REPLACE(name, '\\s*\\(\\s*(Del|Onl)\\s*\\)\\s*', '', 'gi')))";
 
                 $allItemCounts = DB::table('items')
-                    ->select('shop_name', DB::raw("COUNT(DISTINCT (name || '|' || category)) as total_count"))
+                    ->select('shop_name', DB::raw("COUNT(DISTINCT {$normNameSql}) as total_count"))
+                    ->whereIn('platform', ['grab', 'foodpanda'])
+                    ->whereNotIn('shop_name', $excludedNames)
                     ->groupBy('shop_name')
                     ->pluck('total_count', 'shop_name');
 
                 $allOfflineCounts = DB::table('items')
-                    ->select('shop_name', DB::raw("COUNT(DISTINCT (name || '|' || category)) as offline_count"))
-                    ->where('is_available', false)
+                    ->select('shop_name', DB::raw("COUNT(DISTINCT CASE WHEN is_available = false THEN {$normNameSql} END) as offline_count"))
+                    ->whereIn('platform', ['grab', 'foodpanda'])
+                    ->whereNotIn('shop_name', $excludedNames)
                     ->groupBy('shop_name')
                     ->pluck('offline_count', 'shop_name');
 
                 $allPlatformStatuses = DB::table('platform_status')
+                    ->whereNotIn('shop_id', $excludedIds)
                     ->get()
                     ->groupBy('store_name');
 
@@ -199,28 +216,47 @@ class WarmCache extends Command
             $this->line('  → shops_name_list');
             Cache::remember('shops_name_list', 3600, function () {
                 return DB::table('shops')
-                    ->select('shop_name')->orderBy('shop_name')
+                    ->select('shop_name')
+                    ->whereNotIn('shop_name', ShopHelper::excludedShopNames())
+                    ->orderBy('shop_name')
                     ->pluck('shop_name')->values();
             });
 
             $this->line('  → items_categories');
             Cache::remember('items_categories', 300, function () {
+                // Normalize "(Del)"/"(Onl)" so delivery-mapped categories collapse.
+                // Must match routes/web.php::/items or cached list disagrees with the filter UI.
                 return DB::table('items')
-                    ->select('category')->distinct()
+                    ->selectRaw("DISTINCT TRIM(REGEXP_REPLACE(category, '\\s*\\(\\s*(Del|Onl)\\s*\\)\\s*', '', 'gi')) as category")
                     ->whereNotNull('category')
-                    ->pluck('category')->sort()->values();
+                    ->whereNotIn('shop_name', ShopHelper::excludedShopNames())
+                    ->pluck('category')
+                    ->filter()
+                    ->unique()
+                    ->sort()
+                    ->values();
             });
 
             // ── Report page caches ────────────────────────────────────────────
             $this->line('  → reports_daily_trends');
             $today = \Carbon\Carbon::now('Asia/Singapore')->startOfDay();
             Cache::remember('reports_daily_trends', 300, function () use ($today) {
+                $excludedIds   = ShopHelper::excludedShopIds();
+                $excludedNames = ShopHelper::excludedShopNames();
                 $platformStats = DB::table('platform_status')
+                    ->whereNotIn('shop_id', $excludedIds)
                     ->selectRaw('platform, AVG(CASE WHEN is_online = true THEN 100 ELSE 0 END) as uptime')
                     ->groupBy('platform')
                     ->get();
                 $avgUptime = $platformStats->avg('uptime');
-                $offlineItemsCount = DB::table('items')->where('is_available', false)->count();
+                // DISTINCT normalized (shop, name) so offline count matches the reports page.
+                $normNameSql = "TRIM(TRAILING '.' FROM TRIM(REGEXP_REPLACE(name, '\\s*\\(\\s*(Del|Onl)\\s*\\)\\s*', '', 'gi')))";
+                $offlineItemsCount = (int) DB::table('items')
+                    ->where('is_available', false)
+                    ->whereIn('platform', ['grab', 'foodpanda'])
+                    ->whereNotIn('shop_name', $excludedNames)
+                    ->selectRaw("COUNT(DISTINCT shop_name || '|' || {$normNameSql}) as c")
+                    ->value('c');
                 $todaySgt = $today->toDateString();
                 $incidents = DB::table('store_status_logs')
                     ->whereRaw("DATE(logged_at + INTERVAL '8 hours') = ?", [$todaySgt])
@@ -250,6 +286,7 @@ class WarmCache extends Command
             $this->line('  → reports_platform_reliability');
             Cache::remember('reports_platform_reliability', 300, function () {
                 $platformStatuses = DB::table('platform_status')
+                    ->whereNotIn('shop_id', ShopHelper::excludedShopIds())
                     ->select(
                         'platform',
                         DB::raw('COUNT(*) as total_stores'),
@@ -276,10 +313,20 @@ class WarmCache extends Command
 
             $this->line('  → reports_item_performance_v2');
             Cache::remember('reports_item_performance_v2', 300, function () {
+                $excludedNames = ShopHelper::excludedShopNames();
+                // Normalize names so "(Del)"/"(Onl)" variants don't inflate item totals.
+                // Must match routes/web.php::/reports/item-performance exactly or the cache disagrees with the page.
+                $normNameSql = "TRIM(TRAILING '.' FROM TRIM(REGEXP_REPLACE(name, '\\s*\\(\\s*(Del|Onl)\\s*\\)\\s*', '', 'gi')))";
                 $totalItems = DB::table('items')
-                    ->selectRaw("COUNT(DISTINCT name || '|' || shop_name || '|' || platform) as total")
+                    ->selectRaw("COUNT(DISTINCT {$normNameSql} || '|' || shop_name || '|' || platform) as total")
+                    ->whereIn('platform', ['grab', 'foodpanda'])
+                    ->whereNotIn('shop_name', $excludedNames)
                     ->first()->total;
-                $offlineItems    = DB::table('items')->where('is_available', false)->count();
+                $offlineItems    = DB::table('items')
+                    ->where('is_available', false)
+                    ->whereIn('platform', ['grab', 'foodpanda'])
+                    ->whereNotIn('shop_name', $excludedNames)
+                    ->count();
                 $onlineItems     = $totalItems - $offlineItems;
                 $weekAgo         = \Carbon\Carbon::now('Asia/Singapore')->subDays(7);
                 $frequentlyOffline = DB::table('items')
@@ -329,10 +376,12 @@ class WarmCache extends Command
                 $categoryData = DB::table('items')
                     ->selectRaw("
                         category,
-                        COUNT(DISTINCT (name || '|' || shop_name || '|' || platform)) as total_items,
+                        COUNT(DISTINCT ({$normNameSql} || '|' || shop_name || '|' || platform)) as total_items,
                         ROUND(100.0 * SUM(CASE WHEN is_available = true THEN 1 ELSE 0 END) / COUNT(*), 1) as availability_percentage,
                         SUM(CASE WHEN is_available = false THEN 1 ELSE 0 END) as offline_count
                     ")
+                    ->whereIn('platform', ['grab', 'foodpanda'])
+                    ->whereNotIn('shop_name', $excludedNames)
                     ->groupBy('category')
                     ->orderByRaw('CAST(category AS TEXT)')
                     ->get()
@@ -342,7 +391,13 @@ class WarmCache extends Command
 
             $this->line('  → store_comparison_db');
             Cache::remember('store_comparison_db', 300, function () {
-                $shopIds = DB::table('platform_status')->select('shop_id')->distinct()->pluck('shop_id')->toArray();
+                $excludedIds   = ShopHelper::excludedShopIds();
+                $excludedNames = ShopHelper::excludedShopNames();
+                $shopIds       = DB::table('platform_status')
+                    ->whereNotIn('shop_id', $excludedIds)
+                    ->select('shop_id')->distinct()->pluck('shop_id')->toArray();
+                // Name-only normalized grouping — matches stores list and store-detail page.
+                $normNameSql = "TRIM(TRAILING '.' FROM TRIM(REGEXP_REPLACE(name, '\\s*\\(\\s*(Del|Onl)\\s*\\)\\s*', '', 'gi')))";
                 return [
                     'shopIds'             => $shopIds,
                     'allPlatformStatuses' => DB::table('platform_status')
@@ -353,9 +408,11 @@ class WarmCache extends Command
                     'itemCounts'          => DB::table('items')
                         ->select(
                             'shop_name',
-                            DB::raw('COUNT(*) as total'),
-                            DB::raw('SUM(CASE WHEN is_available = false THEN 1 ELSE 0 END) as offline')
+                            DB::raw("COUNT(DISTINCT {$normNameSql}) as total"),
+                            DB::raw("COUNT(DISTINCT CASE WHEN is_available = false THEN {$normNameSql} END) as offline")
                         )
+                        ->whereIn('platform', ['grab', 'foodpanda'])
+                        ->whereNotIn('shop_name', $excludedNames)
                         ->groupBy('shop_name')
                         ->get()
                         ->keyBy('shop_name'),
