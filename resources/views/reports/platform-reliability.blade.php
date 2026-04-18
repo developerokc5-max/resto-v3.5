@@ -7,7 +7,7 @@
 
 @section('content')
   <!-- Platform Comparison -->
-  <section class="grid grid-cols-1 md:grid-cols-3 gap-6">
+  <section class="grid grid-cols-1 md:grid-cols-2 gap-6">
     <!-- Grab -->
     <div class="bg-white dark:bg-slate-800 border-2 border-green-200 dark:border-green-800 rounded-2xl p-4 md:p-6 shadow-sm">
       <div class="flex items-center justify-between mb-4">
