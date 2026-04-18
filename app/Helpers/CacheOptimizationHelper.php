@@ -37,19 +37,20 @@ class CacheOptimizationHelper
             // Total distinct stores (excluding test/demo/closed).
             // platform_status is the source of truth — one row per real shop_id per platform.
             // restosuite_item_snapshots may contain orphan/legacy shop_ids that inflate the count.
+            // NOTE: use ->distinct('shop_id')->count('shop_id') — plain ->distinct()->count()
+            // resolves to COUNT(*) in Laravel's builder, which would return the raw row count
+            // (92 = 46 shops × 2 platforms) instead of the distinct shop count (46).
             $storeCount = DB::table('platform_status')
-                ->select('shop_id')
                 ->whereNotIn('shop_id', $excludedIds)
-                ->distinct()
-                ->count();
+                ->distinct('shop_id')
+                ->count('shop_id');
 
             if ($storeCount === 0) {
                 // Fallback only if platform_status is empty (scraper hasn't run yet)
                 $storeCount = DB::table('restosuite_item_snapshots')
-                    ->select('shop_id')
                     ->whereNotIn('shop_id', $excludedIds)
-                    ->distinct()
-                    ->count();
+                    ->distinct('shop_id')
+                    ->count('shop_id');
             }
 
             // Single aggregated query for items and status.
