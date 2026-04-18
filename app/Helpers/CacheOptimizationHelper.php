@@ -34,15 +34,18 @@ class CacheOptimizationHelper
             $excludedIds   = ShopHelper::excludedShopIds();
             $excludedNames = ShopHelper::excludedShopNames();
 
-            // Total distinct stores (excluding test/demo/closed)
-            $storeCount = DB::table('restosuite_item_snapshots')
+            // Total distinct stores (excluding test/demo/closed).
+            // platform_status is the source of truth — one row per real shop_id per platform.
+            // restosuite_item_snapshots may contain orphan/legacy shop_ids that inflate the count.
+            $storeCount = DB::table('platform_status')
                 ->select('shop_id')
                 ->whereNotIn('shop_id', $excludedIds)
                 ->distinct()
                 ->count();
 
             if ($storeCount === 0) {
-                $storeCount = DB::table('platform_status')
+                // Fallback only if platform_status is empty (scraper hasn't run yet)
+                $storeCount = DB::table('restosuite_item_snapshots')
                     ->select('shop_id')
                     ->whereNotIn('shop_id', $excludedIds)
                     ->distinct()
