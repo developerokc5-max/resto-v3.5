@@ -21,7 +21,6 @@ class ShopHelper
             '408443497', // AH HUAT HOKKIEN MEE (Demo outlet)
             '409789948', // OK CHICKEN RICE @ Depot (closed)
             '407006583', // HUMFULL @ Edgedale Plains (closed)
-            '408543917', // HUMFULL @ AMK (closed)
         ];
     }
 
@@ -40,7 +39,6 @@ class ShopHelper
             'AH HUAT HOKKIEN MEE ( Demo outlet )',
             'OK CHICKEN RICE @ Depot',
             'HUMFULL @ Edgedale Plains',
-            'HUMFULL @ AMK',
         ];
     }
 
