@@ -20,6 +20,7 @@ class ShopHelper
             '404144535', // Drinks Stall Testing Outlet
             '408443497', // AH HUAT HOKKIEN MEE (Demo outlet)
             '402473827', // OK CHICKEN RICE @ AMK (closed)
+            '409789948', // OK CHICKEN RICE @ Depot (closed)
             '407006583', // HUMFULL @ Edgedale Plains (closed)
             '408543917', // HUMFULL @ AMK (closed)
         ];
@@ -39,6 +40,7 @@ class ShopHelper
             'Drinks Stall Testing Outlet',
             'AH HUAT HOKKIEN MEE ( Demo outlet )',
             'OK CHICKEN RICE @ AMK',
+            'OK CHICKEN RICE @ Depot',
             'HUMFULL @ Edgedale Plains',
             'HUMFULL @ AMK',
         ];
