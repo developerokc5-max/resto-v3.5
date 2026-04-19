@@ -73,6 +73,15 @@ class CacheOptimizationHelper
                 ->distinct('shop_id')
                 ->count('shop_id');
 
+            // Stores online = distinct stores with at least 1 platform online.
+            // Do NOT use (storeCount - alertCount): if every store has 1 platform offline
+            // alertCount equals storeCount and the result is always 0.
+            $storesOnline = DB::table('platform_status')
+                ->where('is_online', true)
+                ->whereNotIn('shop_id', $excludedIds)
+                ->distinct('shop_id')
+                ->count('shop_id');
+
             // Single aggregated query for platform stats
             $platformStats = DB::table('platform_status')
                 ->select(
@@ -81,8 +90,6 @@ class CacheOptimizationHelper
                 )
                 ->whereNotIn('shop_id', $excludedIds)
                 ->first();
-
-            $storesOnline = max(0, $storeCount - $alertCount);
 
             return [
                 'stores_online' => $storesOnline,
